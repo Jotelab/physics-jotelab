@@ -11,15 +11,13 @@ import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LessonCombobox } from "@/features/generate/components/lesson-combobox"
 import { ScenarioSelect } from "@/features/generate/components/scenario-select"
-import { SubjectSelector } from "@/features/generate/components/subject-selector"
 import { VariableCheckboxPicker } from "@/features/generate/components/variable-checkbox-picker"
 import { MAX_INITIAL_WORKSHEET_QUESTION_COUNT } from "@/features/generate/limits"
-import type { GenerationProgress, Subject } from "@/features/generate/types"
+import type { GenerationProgress } from "@/features/generate/types"
 
 export type WorksheetConfigPanelProps = {
   activeTab: "basic" | "advanced"
   onActiveTabChange: (tab: "basic" | "advanced") => void
-  subject: Subject | ""
   lesson: string
   resolvedScenarioId: string
   givenVariableIds: string[]
@@ -31,7 +29,6 @@ export type WorksheetConfigPanelProps = {
   maxQuestionCount: number
   availableCredits: number
   hasNoCredits: boolean
-  onSubjectChange: (subject: Subject) => void
   onLessonChange: (lesson: string) => void
   onLessonSuggestionSelect: () => void
   onScenarioChange: (id: string, description: string) => void
@@ -60,7 +57,6 @@ export type WorksheetConfigPanelProps = {
 }
 
 function WorksheetBasicFields({
-  subject,
   lesson,
   resolvedScenarioId,
   controlsDisabled,
@@ -68,14 +64,12 @@ function WorksheetBasicFields({
   maxQuestionCount,
   availableCredits,
   hasNoCredits,
-  onSubjectChange,
   onLessonChange,
   onLessonSuggestionSelect,
   onScenarioChange,
   onQuestionCountChange,
 }: Pick<
   WorksheetConfigPanelProps,
-  | "subject"
   | "lesson"
   | "resolvedScenarioId"
   | "controlsDisabled"
@@ -83,7 +77,6 @@ function WorksheetBasicFields({
   | "maxQuestionCount"
   | "availableCredits"
   | "hasNoCredits"
-  | "onSubjectChange"
   | "onLessonChange"
   | "onLessonSuggestionSelect"
   | "onScenarioChange"
@@ -93,10 +86,7 @@ function WorksheetBasicFields({
 
   return (
     <div className="space-y-6">
-      <SubjectSelector value={subject} onChange={onSubjectChange} disabled={controlsDisabled} />
-
       <LessonCombobox
-        subject={subject}
         value={lesson}
         onChange={onLessonChange}
         onSuggestionSelect={onLessonSuggestionSelect}
@@ -104,7 +94,6 @@ function WorksheetBasicFields({
       />
 
       <ScenarioSelect
-        subject={subject}
         lesson={lesson}
         value={resolvedScenarioId}
         onChange={onScenarioChange}
@@ -374,7 +363,6 @@ export function WorksheetConfigPanel({
 
   const basicFields = (
     <WorksheetBasicFields
-      subject={props.subject}
       lesson={props.lesson}
       resolvedScenarioId={props.resolvedScenarioId}
       controlsDisabled={props.controlsDisabled}
@@ -382,7 +370,6 @@ export function WorksheetConfigPanel({
       maxQuestionCount={props.maxQuestionCount}
       availableCredits={props.availableCredits}
       hasNoCredits={props.hasNoCredits}
-      onSubjectChange={props.onSubjectChange}
       onLessonChange={props.onLessonChange}
       onLessonSuggestionSelect={props.onLessonSuggestionSelect}
       onScenarioChange={props.onScenarioChange}
@@ -438,7 +425,6 @@ export function WorksheetConfigPanel({
             {basicFields}
 
             <VariableCheckboxPicker
-              subject={props.subject}
               givenVariableIds={props.givenVariableIds}
               targetVariableId={props.targetVariableId}
               onGivenChange={props.onGivenVariableIdsChange}

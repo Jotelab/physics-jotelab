@@ -73,7 +73,7 @@ begin
     v_worksheet_id,
     v_profile_id,
     'Idempotency Test',
-    'math',
+    'physics',
     3,
     '{"lesson":"Test","scenario":"Test"}'::jsonb
   )

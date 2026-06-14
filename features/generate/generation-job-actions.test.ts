@@ -107,7 +107,7 @@ const profileId = "11111111-1111-4111-8111-111111111111"
 const authUserId = "user-auth-1"
 
 const generateInput = {
-  subject: "math" as const,
+  subject: "physics" as const,
   lesson: "Linear equations",
   scenario: "Solve for x.",
   question_count: 3,
@@ -283,7 +283,7 @@ describe("startWorksheetGenerationJobAction", () => {
       "generate_worksheet_init",
       expect.objectContaining({
         p_question_count: 3,
-        p_subject: "math",
+        p_subject: "physics",
       })
     )
     expect(mockRpc).toHaveBeenCalledWith(

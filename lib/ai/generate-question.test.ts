@@ -32,7 +32,7 @@ describe("generateWorksheetQuestion", () => {
     })
 
     const result = await generateWorksheetQuestion({
-      subject: "math",
+      subject: "physics",
       lesson: "Algebra",
       scenario: "Solve for x",
       previousQuestionsContext: [],
@@ -69,9 +69,9 @@ describe("generateWorksheetQuestion", () => {
 
     await expect(
       generateWorksheetQuestion({
-        subject: "chemistry",
-        lesson: "Stoichiometry",
-        scenario: "Balance the equation",
+        subject: "physics",
+        lesson: "Electrostatics",
+        scenario: "Balance the forces",
         previousQuestionsContext: [],
       })
     ).rejects.toThrow("API unavailable")

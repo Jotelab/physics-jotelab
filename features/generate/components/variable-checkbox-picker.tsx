@@ -6,12 +6,10 @@ import {
   getVariablePresets,
   type VariablePreset,
 } from "@/features/generate/data/generation-presets"
-import type { Subject } from "@/features/generate/types"
 import { formLabelClass } from "@/lib/ui-classes"
 import { cn } from "@/lib/utils"
 
 interface VariableCheckboxPickerProps {
-  subject: Subject | ""
   givenVariableIds: string[]
   targetVariableId: string
   onGivenChange: (ids: string[]) => void
@@ -83,7 +81,6 @@ function VariableChip({
 }
 
 export function VariableCheckboxPicker({
-  subject,
   givenVariableIds,
   targetVariableId,
   onGivenChange,
@@ -91,8 +88,8 @@ export function VariableCheckboxPicker({
   disabled,
 }: VariableCheckboxPickerProps) {
   const t = useTranslations("generate")
-  const presets = subject ? getVariablePresets(subject) : []
-  const controlsDisabled = !subject || Boolean(disabled)
+  const presets = getVariablePresets()
+  const controlsDisabled = Boolean(disabled)
 
   function handleGivenToggle(id: string, checked: boolean) {
     if (checked) {
@@ -110,12 +107,6 @@ export function VariableCheckboxPicker({
     } else if (targetVariableId === id) {
       onTargetChange("")
     }
-  }
-
-  if (!subject) {
-    return (
-      <p className="text-sm text-muted-foreground">{t("chooseSubjectForVariables")}</p>
-    )
   }
 
   return (

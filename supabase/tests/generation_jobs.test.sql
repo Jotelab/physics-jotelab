@@ -96,7 +96,7 @@ begin
   values (
     v_profile_id,
     'Jobs test',
-    'math',
+    'physics',
     3,
     '{"lesson":"Algebra","scenario":"Solve."}'::jsonb
   )

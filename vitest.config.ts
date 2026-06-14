@@ -38,7 +38,6 @@ export default defineConfig({
         "**/*.{test,spec}.{ts,tsx}",
         "**/*.d.ts",
         "features/**/components/**",
-        "features/generate/utils/subject-label.ts",
       ],
       thresholds: {
         "features/generate/**": {

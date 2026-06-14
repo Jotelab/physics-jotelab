@@ -9,7 +9,7 @@ async function main() {
 
   try {
     const question = await generateWorksheetQuestion({
-      subject: "math",
+      subject: "physics",
       lesson: "Linear equations",
       scenario: "Solve a linear equation for the unknown variable x.",
       previousQuestionsContext: [],

@@ -72,7 +72,7 @@ begin
     v_worksheet_id,
     v_profile_id,
     'Child table test',
-    'math',
+    'physics',
     2,
     '{"lesson":"Test","scenario":"Test"}'::jsonb
   )

@@ -103,7 +103,7 @@ begin
     v_worksheet_id,
     v_owner_profile_id,
     'Header settings test',
-    'math',
+    'physics',
     2,
     '{"lesson":"Linear equations","scenario":"Solve for x."}'::jsonb
   )

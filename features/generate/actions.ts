@@ -14,7 +14,7 @@ import {
 import { regenerateQuestionForWorksheet } from "./generate-question-core"
 import type { ActionResult } from "./result-types"
 import { generatedQuestionSchema, worksheetQuestionSchema } from "./schemas"
-import type { WorksheetQuestion } from "./types"
+import type { WorksheetQuestion, Subject } from "./types"
 import { fetchWorksheetQuestions } from "./utils/fetch-worksheet-questions"
 
 const questionActionInputSchema = z.object({
@@ -28,7 +28,7 @@ const editQuestionInputSchema = questionActionInputSchema.extend({
 
 type WorksheetRow = {
   id: string
-  subject: "math" | "physics" | "chemistry"
+  subject: Subject
   question_count: number
   generation_settings: unknown
 }

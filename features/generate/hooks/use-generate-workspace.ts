@@ -10,7 +10,6 @@ import { useWorksheetConfigForm } from "@/features/generate/hooks/use-worksheet-
 import { useWorksheetCreditLimits } from "@/features/generate/hooks/use-worksheet-credit-limits"
 import { useWorksheetGenerator } from "@/features/generate/hooks/use-worksheet-generator"
 import { useWorksheetQuestionActions } from "@/features/generate/hooks/use-worksheet-question-actions"
-import { getSubjectLabel } from "@/features/generate/utils/subject-label"
 import type { WorksheetViewMode } from "@/features/worksheet/components/worksheet-preview"
 import { useWorksheetHeaderConfig } from "@/features/worksheet/hooks/use-worksheet-header-config"
 
@@ -87,12 +86,11 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
     if (creditLimits.hasActiveWorksheet && creditLimits.activeWorksheetMeta) {
       return `${creditLimits.activeWorksheetMeta.subjectLabel}: ${creditLimits.activeWorksheetMeta.lesson}`
     }
-    if (!configForm.subject || !configForm.trimmedLesson) return t("worksheetPreview")
-    return `${getSubjectLabel(configForm.subject, tCommon)}: ${configForm.trimmedLesson}`
+    if (!configForm.trimmedLesson) return t("worksheetPreview")
+    return `${tCommon("subjects.physics")}: ${configForm.trimmedLesson}`
   }, [
     creditLimits.activeWorksheetMeta,
     creditLimits.hasActiveWorksheet,
-    configForm.subject,
     configForm.trimmedLesson,
     t,
     tCommon,
@@ -144,7 +142,7 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
     }
 
     creditLimits.setActiveWorksheetMeta({
-      subjectLabel: getSubjectLabel(parsed.data.subject, tCommon),
+      subjectLabel: tCommon("subjects.physics"),
       lesson: parsed.data.lesson,
       scenario: parsed.data.scenario,
       questionCount: parsed.data.question_count,
@@ -190,7 +188,6 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
   const configPanelProps: WorksheetConfigPanelProps = {
     activeTab: configForm.activeTab,
     onActiveTabChange: configForm.setActiveTab,
-    subject: configForm.subject,
     lesson: configForm.lesson,
     resolvedScenarioId: configForm.resolvedScenarioId,
     givenVariableIds: configForm.givenVariableIds,
@@ -202,7 +199,6 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
     maxQuestionCount: creditLimits.maxQuestionCount,
     availableCredits: creditLimits.availableCredits,
     hasNoCredits: creditLimits.hasNoCredits,
-    onSubjectChange: configForm.handleSubjectChange,
     onLessonChange: configForm.handleLessonChange,
     onLessonSuggestionSelect: configForm.handleLessonSuggestionSelect,
     onScenarioChange: configForm.handleScenarioChange,

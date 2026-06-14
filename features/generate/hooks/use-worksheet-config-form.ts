@@ -4,14 +4,12 @@ import { useState } from "react"
 
 import { findScenarioById, getScenariosForLesson, toVariableRows } from "@/features/generate/data/generation-presets"
 import { generateWorksheetInputSchema } from "@/features/generate/schemas"
-import type { Subject } from "@/features/generate/types"
 import {
   mapGivenRowsToVariables,
   mapTargetRowsToVariables,
 } from "@/features/generate/utils/map-variable-rows"
 
 export function buildGenerateWorksheetInput(params: {
-  subject: Subject | ""
   lesson: string
   scenarioDescription: string
   resolvedScenarioId: string
@@ -21,16 +19,13 @@ export function buildGenerateWorksheetInput(params: {
 }) {
   const scenario =
     params.scenarioDescription ||
-    (params.subject
-      ? findScenarioById(params.subject, params.lesson, params.resolvedScenarioId)?.description
-      : undefined) ||
+    findScenarioById(params.lesson, params.resolvedScenarioId)?.description ||
     ""
 
   const variablePayload =
-    params.subject && (params.givenVariableIds.length > 0 || params.targetVariableId)
+    params.givenVariableIds.length > 0 || params.targetVariableId
       ? (() => {
           const { given, target } = toVariableRows(
-            params.subject,
             params.givenVariableIds,
             params.targetVariableId
           )
@@ -42,7 +37,7 @@ export function buildGenerateWorksheetInput(params: {
       : {}
 
   return generateWorksheetInputSchema.safeParse({
-    subject: params.subject,
+    subject: "physics",
     lesson: params.lesson,
     scenario,
     question_count: params.effectiveQuestionCount,
@@ -51,7 +46,6 @@ export function buildGenerateWorksheetInput(params: {
 }
 
 export function useWorksheetConfigForm() {
-  const [subject, setSubject] = useState<Subject | "">("")
   const [lesson, setLesson] = useState("")
   const [scenarioId, setScenarioId] = useState("")
   const [scenarioDescription, setScenarioDescription] = useState("")
@@ -63,20 +57,9 @@ export function useWorksheetConfigForm() {
 
   const trimmedLesson = lesson.trim()
   const lessonScenarios =
-    subject && trimmedLesson ? getScenariosForLesson(subject, trimmedLesson).scenarios : []
+    trimmedLesson ? getScenariosForLesson(trimmedLesson).scenarios : []
   const resolvedScenarioId = lessonScenarios.some((s) => s.id === scenarioId) ? scenarioId : ""
-  const hasRequiredFields = Boolean(subject && trimmedLesson && resolvedScenarioId)
-
-  function handleSubjectChange(newSubject: Subject) {
-    setSubject(newSubject)
-    if (newSubject !== subject) {
-      setLesson("")
-      setScenarioId("")
-      setScenarioDescription("")
-      setGivenVariableIds([])
-      setTargetVariableId("")
-    }
-  }
+  const hasRequiredFields = Boolean(trimmedLesson && resolvedScenarioId)
 
   function handleLessonChange(newLesson: string) {
     setLesson(newLesson)
@@ -93,7 +76,6 @@ export function useWorksheetConfigForm() {
   }
 
   return {
-    subject,
     lesson,
     scenarioDescription,
     resolvedScenarioId,
@@ -107,13 +89,11 @@ export function useWorksheetConfigForm() {
     setTargetVariableId,
     trimmedLesson,
     hasRequiredFields,
-    handleSubjectChange,
     handleLessonChange,
     handleLessonSuggestionSelect,
     handleScenarioChange,
     buildInput: (effectiveQuestionCount: number) =>
       buildGenerateWorksheetInput({
-        subject,
         lesson,
         scenarioDescription,
         resolvedScenarioId,

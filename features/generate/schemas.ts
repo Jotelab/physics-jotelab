@@ -18,7 +18,7 @@ import {
   MAX_WORKSHEET_QUESTION_COUNT,
 } from "./limits"
 
-export const subjectSchema = z.enum(["math", "physics", "chemistry"])
+export const subjectSchema = z.literal("physics")
 
 export const givenValueSchema = z.object({
   symbol: z.string().min(1).max(MAX_SYMBOL_LEN),

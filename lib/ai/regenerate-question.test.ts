@@ -27,7 +27,7 @@ describe("regenerateWorksheetQuestion", () => {
     mockGenerateObject.mockResolvedValue({ object: validGeneratedQuestion })
 
     const result = await regenerateWorksheetQuestion({
-      subject: "math",
+      subject: "physics",
       lesson: "Algebra",
       scenario: "Solve for x",
       existingQuestionText: "Find the value of $x$ when $a = 2$.",

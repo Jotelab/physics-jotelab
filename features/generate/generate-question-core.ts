@@ -24,12 +24,12 @@ import {
 import { parseReserveResponse } from "./utils/parse-reservation-response"
 import { generationSettingsSchema, worksheetQuestionSchema } from "./schemas"
 import { fetchWorksheetQuestions } from "./utils/fetch-worksheet-questions"
-import type { WorksheetQuestion } from "./types"
+import type { WorksheetQuestion, Subject } from "./types"
 
 type WorksheetRow = {
   id: string
   user_id: string
-  subject: "math" | "physics" | "chemistry"
+  subject: Subject
   question_count: number
   generation_settings: unknown
 }

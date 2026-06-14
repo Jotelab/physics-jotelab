@@ -7,19 +7,17 @@ test.describe("generate golden path", () => {
     await page.goto("/generate")
     await expect(page.locator("#generate-worksheet-btn")).toBeVisible({ timeout: 15_000 })
 
-    await page.getByRole("button", { name: "Select Math" }).click()
-
     const lessonInput = page.locator("#lesson-combobox")
     await lessonInput.click()
-    await lessonInput.fill("Linear equations")
-    await page.locator("#lesson-listbox").getByRole("option", { name: "Linear equations" }).click()
+    await lessonInput.fill("Motion in one dimension")
+    await page.locator("#lesson-listbox").getByRole("option", { name: "Motion in one dimension" }).click()
 
     await page.locator("#scenario-select").click()
-    await page.locator("#scenario-listbox").getByRole("option", { name: "Solve for x" }).click()
+    await page.locator("#scenario-listbox").getByRole("option", { name: "Find final velocity" }).click()
 
-    await expect(page.getByText("Math: Linear equations")).toBeVisible()
+    await expect(page.getByText("Physics: Motion in one dimension")).toBeVisible()
     await expect(
-      page.getByText(/questions - Solve a linear equation for the unknown variable x/i)
+      page.getByText(/questions - Find final velocity given initial velocity, acceleration, and time/i)
     ).toBeVisible()
 
     await page.locator("#generate-worksheet-btn").click()

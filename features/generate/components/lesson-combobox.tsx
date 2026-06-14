@@ -12,10 +12,8 @@ import {
   useBuilderDropdown,
 } from "@/features/generate/components/builder-dropdown"
 import { LESSON_SUGGESTIONS } from "@/features/generate/data/generation-presets"
-import type { Subject } from "@/features/generate/types"
 
 interface LessonComboboxProps {
-  subject: Subject | ""
   value: string
   onChange: (value: string) => void
   /** Fired when the user picks a catalog suggestion (not on free-text typing). */
@@ -24,7 +22,6 @@ interface LessonComboboxProps {
 }
 
 export function LessonCombobox({
-  subject,
   value,
   onChange,
   onSuggestionSelect,
@@ -40,13 +37,9 @@ export function LessonCombobox({
     setInputValue(value)
   }
 
-  const suggestions = subject ? LESSON_SUGGESTIONS[subject] : []
   const filtered = inputValue.trim()
-    ? suggestions.filter((s) => s.toLowerCase().includes(inputValue.toLowerCase()))
-    : suggestions
-
-  const placeholder = subject ? t("lessonPlaceholder") : t("chooseSubjectFirst")
-  const inputDisabled = !subject || disabled
+    ? LESSON_SUGGESTIONS.filter((s) => s.toLowerCase().includes(inputValue.toLowerCase()))
+    : LESSON_SUGGESTIONS
 
   function handleInputChange(text: string) {
     setInputValue(text)
@@ -79,10 +72,10 @@ export function LessonCombobox({
             aria-controls="lesson-listbox"
             aria-label={t("lesson")}
             value={inputValue}
-            disabled={inputDisabled}
-            placeholder={placeholder}
+            disabled={disabled}
+            placeholder={t("lessonPlaceholder")}
             onChange={(e) => handleInputChange(e.target.value)}
-            onFocus={() => subject && setOpen(true)}
+            onFocus={() => setOpen(true)}
             onKeyDown={handleKeyDown}
             className={builderTriggerClass}
           />
@@ -90,8 +83,8 @@ export function LessonCombobox({
             type="button"
             aria-label={t("toggleLessonSuggestions")}
             tabIndex={-1}
-            disabled={inputDisabled}
-            onClick={() => subject && setOpen((prev) => !prev)}
+            disabled={disabled}
+            onClick={() => setOpen((prev) => !prev)}
             className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-muted-foreground disabled:cursor-not-allowed lg:w-auto lg:px-2"
           >
             <ChevronsUpDown className="size-5 lg:size-4" />

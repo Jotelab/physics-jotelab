@@ -79,7 +79,7 @@ const questionId = validWorksheetQuestion.id
 function makeWorksheetRow(
   overrides: Partial<{
     id: string
-    subject: "math" | "physics" | "chemistry"
+    subject: "physics"
     question_count: number
     generation_settings: unknown
   }> = {}
