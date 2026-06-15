@@ -52,7 +52,9 @@
   },
   "auth": {
     "tagline": "สร้างใบงานคำนวณระดับมัธยมปลายได้ในไม่กี่วินาที",
-    "loginWithGoogle": "เข้าสู่ระบบด้วย Google"
+    "loginWithGoogle": "เข้าสู่ระบบด้วย Google",
+    "loginErrorOauth": "ไม่สามารถเริ่มเข้าสู่ระบบด้วย Google ได้ กรุณาลองอีกครั้ง",
+    "loginErrorCallback": "เข้าสู่ระบบไม่สำเร็จ กรุณาลองอีกครั้ง"
   },
   "account": {
     "title": "บัญชี",

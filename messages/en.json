@@ -52,7 +52,9 @@
   },
   "auth": {
     "tagline": "Generate high-school calculation worksheets in seconds.",
-    "loginWithGoogle": "Login with Google"
+    "loginWithGoogle": "Login with Google",
+    "loginErrorOauth": "Could not start Google sign-in. Please try again.",
+    "loginErrorCallback": "Sign-in failed. Please try again."
   },
   "account": {
     "title": "Account",

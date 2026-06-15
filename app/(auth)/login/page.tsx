@@ -17,7 +17,12 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; error_description?: string }>
+}) {
+  const { error, error_description: errorDescription } = await searchParams
   const supabase = await createClient()
   const {
     data: { user },
@@ -29,12 +34,36 @@ export default async function LoginPage() {
 
   const t = await getTranslations("auth")
   const tCommon = await getTranslations("common")
+  const tErrors = await getTranslations("errors")
+  const loginErrorMessage =
+    error === "profile"
+      ? tErrors("PROFILE_NOT_FOUND")
+      : error === "oauth"
+        ? t("loginErrorOauth")
+        : error === "callback"
+          ? t("loginErrorCallback")
+          : error
+            ? tErrors("UNKNOWN")
+            : null
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/10">
       <div className={cn(cardClass, "w-full max-w-sm text-center")}>
         <h1 className={cn(pageTitleClass, "mb-2")}>{tCommon("appName")}</h1>
         <p className="mb-6 text-sm text-muted-foreground">{t("tagline")}</p>
+        {loginErrorMessage ? (
+          <div
+            className="mb-4 rounded-md border border-destructive/20 bg-destructive/5 px-4 py-3 text-left text-sm text-destructive"
+            role="alert"
+          >
+            <p className="font-medium">{loginErrorMessage}</p>
+            {errorDescription ? (
+              <p className="mt-1 break-words text-xs text-destructive/80">
+                {errorDescription}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <form action={signInWithGoogleAction}>
           <Button type="submit" size="touch-wide">
             {t("loginWithGoogle")}
