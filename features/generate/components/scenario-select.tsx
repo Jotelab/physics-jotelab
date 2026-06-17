@@ -2,7 +2,11 @@
 
 import { useTranslations } from "next-intl"
 
-import { getScenariosForLesson, type ScenarioPreset } from "@/features/generate/data/generation-presets"
+import {
+  getScenarioDescription,
+  getScenariosForLesson,
+  type ScenarioPreset,
+} from "@/features/generate/data/generation-presets"
 import { BuilderSelectDropdown } from "@/features/generate/components/builder-dropdown"
 
 interface ScenarioSelectProps {
@@ -46,8 +50,12 @@ export function ScenarioSelect({
       placeholder={placeholder}
       hint={hint}
       getKey={(preset) => preset.id}
-      getLabel={(preset) => preset.label}
-      onChange={(preset) => onChange(preset.id, preset.description)}
+      getLabel={(preset) =>
+        t(`presets.scenarios.${preset.lessonId}.${preset.index}.label`)
+      }
+      onChange={(preset) =>
+        onChange(preset.id, getScenarioDescription(lesson, preset.id))
+      }
     />
   )
 }

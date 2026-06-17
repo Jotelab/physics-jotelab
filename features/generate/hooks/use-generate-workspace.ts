@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import type { WorksheetConfigPanelProps } from "@/features/generate/components/worksheet-config-panel"
 import type { WorksheetPreviewPanelProps } from "@/features/generate/components/worksheet-preview-panel"
 import { useWorksheetConfigForm } from "@/features/generate/hooks/use-worksheet-config-form"
+import { resolveLessonKey } from "@/features/generate/data/generation-presets"
 import { useWorksheetCreditLimits } from "@/features/generate/hooks/use-worksheet-credit-limits"
 import { useWorksheetGenerator } from "@/features/generate/hooks/use-worksheet-generator"
 import { useWorksheetQuestionActions } from "@/features/generate/hooks/use-worksheet-question-actions"
@@ -82,16 +83,26 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
     void syncTargetQuestionCount(worksheetId)
   }, [worksheetId, creditLimits.hasGenerated, isGenerating, syncTargetQuestionCount])
 
+  const lessonDisplay = useMemo(() => {
+    const trimmed = configForm.trimmedLesson
+    if (!trimmed) return ""
+    const key = resolveLessonKey(trimmed)
+    if (key.isPreset && key.lessonId) {
+      return t(`presets.lessons.${key.lessonId}`)
+    }
+    return trimmed
+  }, [configForm.trimmedLesson, t])
+
   const worksheetTitle = useMemo(() => {
     if (creditLimits.hasActiveWorksheet && creditLimits.activeWorksheetMeta) {
       return `${creditLimits.activeWorksheetMeta.subjectLabel}: ${creditLimits.activeWorksheetMeta.lesson}`
     }
-    if (!configForm.trimmedLesson) return t("worksheetPreview")
-    return `${tCommon("subjects.physics")}: ${configForm.trimmedLesson}`
+    if (!lessonDisplay) return t("worksheetPreview")
+    return `${tCommon("subjects.physics")}: ${lessonDisplay}`
   }, [
     creditLimits.activeWorksheetMeta,
     creditLimits.hasActiveWorksheet,
-    configForm.trimmedLesson,
+    lessonDisplay,
     t,
     tCommon,
   ])

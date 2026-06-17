@@ -11,7 +11,12 @@ import {
   builderTriggerClass,
   useBuilderDropdown,
 } from "@/features/generate/components/builder-dropdown"
-import { LESSON_SUGGESTIONS } from "@/features/generate/data/generation-presets"
+import {
+  getLessonLabel,
+  getLessonPresets,
+  resolveLessonKey,
+  type LessonPresetId,
+} from "@/features/generate/data/generation-presets"
 
 interface LessonComboboxProps {
   value: string
@@ -29,17 +34,32 @@ export function LessonCombobox({
 }: LessonComboboxProps) {
   const t = useTranslations("generate")
   const { open, setOpen, containerRef } = useBuilderDropdown()
-  const [inputValue, setInputValue] = useState(value)
+  const resolved = resolveLessonKey(value)
+  const displayValue =
+    resolved.isPreset && resolved.lessonId
+      ? t(`presets.lessons.${resolved.lessonId}`)
+      : value
+  const [inputValue, setInputValue] = useState(displayValue)
   const [prevValue, setPrevValue] = useState(value)
 
   if (value !== prevValue) {
     setPrevValue(value)
-    setInputValue(value)
+    setInputValue(displayValue)
+  } else if (resolved.isPreset && inputValue !== displayValue) {
+    setInputValue(displayValue)
   }
 
-  const filtered = inputValue.trim()
-    ? LESSON_SUGGESTIONS.filter((s) => s.toLowerCase().includes(inputValue.toLowerCase()))
-    : LESSON_SUGGESTIONS
+  const presets = getLessonPresets()
+  const isShowingCatalogSelection =
+    resolved.isPreset && resolved.lessonId && inputValue === displayValue
+  const query = isShowingCatalogSelection ? "" : inputValue.trim().toLowerCase()
+  const filtered = query
+    ? presets.filter((preset) => {
+        const translated = t(`presets.lessons.${preset.id}`).toLowerCase()
+        const english = getLessonLabel(preset.id).toLowerCase()
+        return translated.includes(query) || english.includes(query)
+      })
+    : presets
 
   function handleInputChange(text: string) {
     setInputValue(text)
@@ -47,10 +67,11 @@ export function LessonCombobox({
     setOpen(true)
   }
 
-  function handleSelect(lesson: string) {
-    setInputValue(lesson)
-    onChange(lesson)
-    onSuggestionSelect?.(lesson)
+  function handleSelect(lessonId: LessonPresetId) {
+    const label = t(`presets.lessons.${lessonId}`)
+    setInputValue(label)
+    onChange(lessonId)
+    onSuggestionSelect?.(lessonId)
     setOpen(false)
   }
 
@@ -96,10 +117,10 @@ export function LessonCombobox({
             listId="lesson-listbox"
             ariaLabel={t("lessonSuggestions")}
             options={filtered}
-            selectedKey={value}
-            getKey={(lesson) => lesson}
-            getLabel={(lesson) => lesson}
-            onSelect={handleSelect}
+            selectedKey={resolved.lessonId ?? value}
+            getKey={(preset) => preset.id}
+            getLabel={(preset) => t(`presets.lessons.${preset.id}`)}
+            onSelect={(preset) => handleSelect(preset.id)}
           />
         ) : null}
       </div>

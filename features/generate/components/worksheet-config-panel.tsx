@@ -425,6 +425,7 @@ export function WorksheetConfigPanel({
             {basicFields}
 
             <VariableCheckboxPicker
+              lesson={props.lesson}
               givenVariableIds={props.givenVariableIds}
               targetVariableId={props.targetVariableId}
               onGivenChange={props.onGivenVariableIdsChange}

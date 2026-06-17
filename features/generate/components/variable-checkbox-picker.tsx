@@ -3,13 +3,14 @@
 import { useTranslations } from "next-intl"
 
 import {
-  getVariablePresets,
+  getVariablesForLesson,
   type VariablePreset,
 } from "@/features/generate/data/generation-presets"
 import { formLabelClass } from "@/lib/ui-classes"
 import { cn } from "@/lib/utils"
 
 interface VariableCheckboxPickerProps {
+  lesson: string
   givenVariableIds: string[]
   targetVariableId: string
   onGivenChange: (ids: string[]) => void
@@ -19,9 +20,10 @@ interface VariableCheckboxPickerProps {
 
 function variableHint(
   preset: VariablePreset,
+  label: string,
   t: ReturnType<typeof useTranslations<"generate">>
 ): string {
-  const parts = [preset.label]
+  const parts = [label]
   if (preset.defaultValue != null) {
     parts.push(
       t("defaultValue", {
@@ -81,6 +83,7 @@ function VariableChip({
 }
 
 export function VariableCheckboxPicker({
+  lesson,
   givenVariableIds,
   targetVariableId,
   onGivenChange,
@@ -88,8 +91,9 @@ export function VariableCheckboxPicker({
   disabled,
 }: VariableCheckboxPickerProps) {
   const t = useTranslations("generate")
-  const presets = getVariablePresets()
+  const presets = getVariablesForLesson(lesson)
   const controlsDisabled = Boolean(disabled)
+  const hasLesson = Boolean(lesson.trim())
 
   function handleGivenToggle(id: string, checked: boolean) {
     if (checked) {
@@ -109,23 +113,32 @@ export function VariableCheckboxPicker({
     }
   }
 
+  if (!hasLesson) {
+    return (
+      <p className="text-xs text-muted-foreground">{t("selectLessonForVariables")}</p>
+    )
+  }
+
   return (
     <div className="space-y-5">
       <fieldset className="space-y-2" disabled={controlsDisabled}>
         <legend className={formLabelClass}>{t("given")}</legend>
         <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-3 lg:gap-0.5 xl:grid-cols-4">
-          {presets.map((preset) => (
-            <VariableChip
-              key={preset.id}
-              preset={preset}
-              inputId={`given-${preset.id}`}
-              inputType="checkbox"
-              checked={givenVariableIds.includes(preset.id)}
-              disabled={controlsDisabled}
-              hint={variableHint(preset, t)}
-              onToggle={(checked) => handleGivenToggle(preset.id, checked)}
-            />
-          ))}
+          {presets.map((preset) => {
+            const label = t(`presets.variables.${preset.id}`)
+            return (
+              <VariableChip
+                key={preset.id}
+                preset={preset}
+                inputId={`given-${preset.id}`}
+                inputType="checkbox"
+                checked={givenVariableIds.includes(preset.id)}
+                disabled={controlsDisabled}
+                hint={variableHint(preset, label, t)}
+                onToggle={(checked) => handleGivenToggle(preset.id, checked)}
+              />
+            )
+          })}
         </div>
       </fieldset>
 
@@ -136,19 +149,22 @@ export function VariableCheckboxPicker({
           role="radiogroup"
           aria-label={t("targetVariable")}
         >
-          {presets.map((preset) => (
-            <VariableChip
-              key={preset.id}
-              preset={preset}
-              inputId={`target-${preset.id}`}
-              inputType="radio"
-              name="target-variable"
-              checked={targetVariableId === preset.id}
-              disabled={controlsDisabled}
-              hint={variableHint(preset, t)}
-              onToggle={(checked) => handleTargetToggle(preset.id, checked)}
-            />
-          ))}
+          {presets.map((preset) => {
+            const label = t(`presets.variables.${preset.id}`)
+            return (
+              <VariableChip
+                key={preset.id}
+                preset={preset}
+                inputId={`target-${preset.id}`}
+                inputType="radio"
+                name="target-variable"
+                checked={targetVariableId === preset.id}
+                disabled={controlsDisabled}
+                hint={variableHint(preset, label, t)}
+                onToggle={(checked) => handleTargetToggle(preset.id, checked)}
+              />
+            )
+          })}
         </div>
       </fieldset>
     </div>

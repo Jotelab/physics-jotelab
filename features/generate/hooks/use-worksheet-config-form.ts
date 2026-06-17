@@ -2,7 +2,14 @@
 
 import { useState } from "react"
 
-import { findScenarioById, getScenariosForLesson, toVariableRows } from "@/features/generate/data/generation-presets"
+import {
+  getLessonLabel,
+  getScenariosForLesson,
+  getScenarioDescription,
+  pruneVariableSelection,
+  resolveLessonKey,
+  toVariableRows,
+} from "@/features/generate/data/generation-presets"
 import { generateWorksheetInputSchema } from "@/features/generate/schemas"
 import {
   mapGivenRowsToVariables,
@@ -17,9 +24,15 @@ export function buildGenerateWorksheetInput(params: {
   givenVariableIds: string[]
   targetVariableId: string
 }) {
+  const lessonKey = resolveLessonKey(params.lesson)
+  const resolvedLesson =
+    lessonKey.isPreset && lessonKey.lessonId
+      ? getLessonLabel(lessonKey.lessonId)
+      : params.lesson.trim()
+
   const scenario =
     params.scenarioDescription ||
-    findScenarioById(params.lesson, params.resolvedScenarioId)?.description ||
+    getScenarioDescription(params.lesson, params.resolvedScenarioId) ||
     ""
 
   const variablePayload =
@@ -38,7 +51,7 @@ export function buildGenerateWorksheetInput(params: {
 
   return generateWorksheetInputSchema.safeParse({
     subject: "physics",
-    lesson: params.lesson,
+    lesson: resolvedLesson,
     scenario,
     question_count: params.effectiveQuestionCount,
     ...variablePayload,
@@ -61,8 +74,15 @@ export function useWorksheetConfigForm() {
   const resolvedScenarioId = lessonScenarios.some((s) => s.id === scenarioId) ? scenarioId : ""
   const hasRequiredFields = Boolean(trimmedLesson && resolvedScenarioId)
 
+  function applyVariablePruning(nextLesson: string) {
+    const pruned = pruneVariableSelection(nextLesson, givenVariableIds, targetVariableId)
+    setGivenVariableIds(pruned.givenVariableIds)
+    setTargetVariableId(pruned.targetVariableId)
+  }
+
   function handleLessonChange(newLesson: string) {
     setLesson(newLesson)
+    applyVariablePruning(newLesson)
   }
 
   function handleLessonSuggestionSelect() {
