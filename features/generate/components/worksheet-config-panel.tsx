@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LessonCombobox } from "@/features/generate/components/lesson-combobox"
 import { ScenarioSelect } from "@/features/generate/components/scenario-select"
-import { VariableCheckboxPicker } from "@/features/generate/components/variable-checkbox-picker"
+import { VariableConstraintPicker } from "@/features/generate/components/variable-constraint-picker"
 import { MAX_INITIAL_WORKSHEET_QUESTION_COUNT } from "@/features/generate/limits"
 import type { GenerationProgress } from "@/features/generate/types"
 
@@ -21,9 +21,11 @@ export type WorksheetConfigPanelProps = {
   lesson: string
   resolvedScenarioId: string
   givenVariableIds: string[]
-  targetVariableId: string
+  findVariableIds: string[]
+  targetRandomize: boolean
   onGivenVariableIdsChange: (ids: string[]) => void
-  onTargetVariableIdChange: (id: string) => void
+  onFindVariableIdsChange: (ids: string[]) => void
+  onTargetRandomizeChange: (enabled: boolean) => void
   controlsDisabled: boolean
   effectiveQuestionCount: number
   maxQuestionCount: number
@@ -424,12 +426,14 @@ export function WorksheetConfigPanel({
           <div className="space-y-7">
             {basicFields}
 
-            <VariableCheckboxPicker
+            <VariableConstraintPicker
               lesson={props.lesson}
+              findVariableIds={props.findVariableIds}
+              targetRandomize={props.targetRandomize}
               givenVariableIds={props.givenVariableIds}
-              targetVariableId={props.targetVariableId}
+              onFindChange={props.onFindVariableIdsChange}
+              onTargetRandomizeChange={props.onTargetRandomizeChange}
               onGivenChange={props.onGivenVariableIdsChange}
-              onTargetChange={props.onTargetVariableIdChange}
               disabled={props.controlsDisabled}
             />
 

@@ -14,10 +14,16 @@ function formatTargetVariable(variable: TargetVariable) {
   return `${variable.symbol} (${variable.label}${unitPart})`
 }
 
+export type ScenarioPromptOptions = {
+  pool?: TargetVariable[]
+  mode?: "rotate" | "random"
+}
+
 export function buildScenarioPrompt(
   baseScenario: string,
   givenVariables?: GivenVariable[],
-  targetVariables?: TargetVariable[]
+  activeTarget?: TargetVariable,
+  options?: ScenarioPromptOptions
 ) {
   const trimmedBase = baseScenario.trim()
   const parts: string[] = []
@@ -26,8 +32,17 @@ export function buildScenarioPrompt(
     parts.push(`Given: ${givenVariables.map(formatGivenVariable).join(", ")}.`)
   }
 
-  if (targetVariables && targetVariables.length > 0) {
-    parts.push(`Find: ${targetVariables.map(formatTargetVariable).join(", ")}.`)
+  if (activeTarget) {
+    parts.push(`Find: ${formatTargetVariable(activeTarget)}.`)
+  }
+
+  const pool = options?.pool ?? []
+  if (pool.length > 1 && activeTarget) {
+    const poolLabels = pool.map(formatTargetVariable).join(", ")
+    const modeLabel = options?.mode === "random" ? "random" : "rotate"
+    parts.push(
+      `Worksheet target pool (${modeLabel} across questions): ${poolLabels}. For this question, find ${activeTarget.symbol}.`
+    )
   }
 
   if (parts.length === 0) {

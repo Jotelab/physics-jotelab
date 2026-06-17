@@ -11,6 +11,7 @@ export function buildGenerationSettingsPayload(input: GenerateWorksheetInput) {
     scenario: string
     given_variables?: GenerateWorksheetInput["given_variables"]
     target_variables?: GenerateWorksheetInput["target_variables"]
+    target_randomize?: boolean
   } = {
     lesson: input.lesson,
     scenario: input.scenario,
@@ -22,6 +23,10 @@ export function buildGenerationSettingsPayload(input: GenerateWorksheetInput) {
 
   if (input.target_variables && input.target_variables.length > 0) {
     payload.target_variables = input.target_variables
+  }
+
+  if (input.target_randomize) {
+    payload.target_randomize = true
   }
 
   return payload

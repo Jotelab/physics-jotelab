@@ -1,3 +1,5 @@
+import { getCompatibleGivenIds } from "@/features/generate/data/variable-compatibility"
+
 export const LESSON_PRESET_IDS = [
   "motion-1d",
   "newtons-laws",
@@ -295,12 +297,19 @@ export function getVariablesForLesson(lesson: string): VariablePreset[] {
 export function pruneVariableSelection(
   lesson: string,
   givenVariableIds: string[],
-  targetVariableId: string
-): { givenVariableIds: string[]; targetVariableId: string } {
-  const allowedIds = new Set(getVariablesForLesson(lesson).map((preset) => preset.id))
+  findVariableIds: string[],
+  targetRandomize: boolean
+): { givenVariableIds: string[]; findVariableIds: string[] } {
+  const lessonVarSet = new Set(getVariablesForLesson(lesson).map((preset) => preset.id))
+  const scopedFind = findVariableIds.filter((id) => lessonVarSet.has(id))
+  const scopedFindSet = new Set(scopedFind)
+  const compatible = new Set(getCompatibleGivenIds(lesson, scopedFind, targetRandomize))
+
   return {
-    givenVariableIds: givenVariableIds.filter((id) => allowedIds.has(id)),
-    targetVariableId: allowedIds.has(targetVariableId) ? targetVariableId : "",
+    findVariableIds: scopedFind,
+    givenVariableIds: givenVariableIds.filter(
+      (id) => compatible.has(id) && !scopedFindSet.has(id)
+    ),
   }
 }
 
@@ -314,7 +323,7 @@ export type VariableRow = {
 
 export function toVariableRows(
   givenVariableIds: string[],
-  targetVariableId: string
+  findVariableIds: string[]
 ): { given: VariableRow[]; target: VariableRow[] } {
   const presets = getVariablePresets()
   const byId = new Map(presets.map((p) => [p.id, p]))
@@ -330,18 +339,16 @@ export function toVariableRows(
       value: p.defaultValue != null ? String(p.defaultValue) : "",
     }))
 
-  const targetPreset = targetVariableId ? byId.get(targetVariableId) : undefined
-  const target = targetPreset
-    ? [
-        {
-          id: targetPreset.id,
-          symbol: targetPreset.symbol,
-          label: targetPreset.label,
-          unit: targetPreset.unit ?? "",
-          value: "",
-        },
-      ]
-    : []
+  const target = findVariableIds
+    .map((id) => byId.get(id))
+    .filter((p): p is VariablePreset => Boolean(p))
+    .map((p) => ({
+      id: p.id,
+      symbol: p.symbol,
+      label: p.label,
+      unit: p.unit ?? "",
+      value: "",
+    }))
 
   return { given, target }
 }

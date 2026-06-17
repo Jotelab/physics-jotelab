@@ -14,6 +14,7 @@ import {
   MAX_SOLUTION_STEP_LEN,
   MAX_SOLUTION_STEPS,
   MAX_SYMBOL_LEN,
+  MAX_TARGET_VARIABLES,
   MAX_UNIT_LEN,
   MAX_WORKSHEET_QUESTION_COUNT,
 } from "./limits"
@@ -53,7 +54,8 @@ export const generationSettingsSchema = z.object({
   lesson: z.string().trim().min(1).max(MAX_LESSON_LEN),
   scenario: z.string().trim().min(1).max(MAX_SCENARIO_LEN),
   given_variables: z.array(givenValueSchema).max(MAX_GIVEN_VARIABLES).optional(),
-  target_variables: z.array(targetVariableSchema).max(1).optional(),
+  target_variables: z.array(targetVariableSchema).max(MAX_TARGET_VARIABLES).optional(),
+  target_randomize: z.boolean().optional(),
   header: worksheetHeaderConfigSchema.optional(),
 })
 
@@ -63,7 +65,8 @@ export const generateWorksheetInputSchema = z.object({
   scenario: z.string().trim().min(1).max(MAX_SCENARIO_LEN),
   question_count: z.number().int().min(1).max(MAX_INITIAL_WORKSHEET_QUESTION_COUNT),
   given_variables: z.array(givenValueSchema).max(MAX_GIVEN_VARIABLES).optional(),
-  target_variables: z.array(targetVariableSchema).max(1).optional(),
+  target_variables: z.array(targetVariableSchema).max(MAX_TARGET_VARIABLES).optional(),
+  target_randomize: z.boolean().optional(),
 })
 
 const solutionSchema = z.object({

@@ -68,7 +68,7 @@ describe("generateWorksheetInputSchema", () => {
     expect(result.success).toBe(true)
   })
 
-  it("rejects more than one target variable", () => {
+  it("accepts multiple target variables", () => {
     const result = generateWorksheetInputSchema.safeParse({
       subject: "physics",
       lesson: "Motion",
@@ -78,8 +78,9 @@ describe("generateWorksheetInputSchema", () => {
         { symbol: "v", label: "velocity" },
         { symbol: "a", label: "acceleration" },
       ],
+      target_randomize: true,
     })
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
   })
 
   it("rejects lesson and scenario over max length", () => {

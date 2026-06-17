@@ -22,7 +22,8 @@ export function buildGenerateWorksheetInput(params: {
   resolvedScenarioId: string
   effectiveQuestionCount: number
   givenVariableIds: string[]
-  targetVariableId: string
+  findVariableIds: string[]
+  targetRandomize: boolean
 }) {
   const lessonKey = resolveLessonKey(params.lesson)
   const resolvedLesson =
@@ -35,19 +36,38 @@ export function buildGenerateWorksheetInput(params: {
     getScenarioDescription(params.lesson, params.resolvedScenarioId) ||
     ""
 
-  const variablePayload =
-    params.givenVariableIds.length > 0 || params.targetVariableId
-      ? (() => {
-          const { given, target } = toVariableRows(
-            params.givenVariableIds,
-            params.targetVariableId
-          )
-          return {
-            given_variables: given.length > 0 ? mapGivenRowsToVariables(given) : undefined,
-            target_variables: target.length > 0 ? mapTargetRowsToVariables(target) : undefined,
-          }
-        })()
-      : {}
+  const hasVariableConstraints =
+    params.givenVariableIds.length > 0 ||
+    params.findVariableIds.length > 0 ||
+    params.targetRandomize
+
+  const variablePayload = hasVariableConstraints
+    ? (() => {
+        const { given, target } = toVariableRows(
+          params.givenVariableIds,
+          params.findVariableIds
+        )
+        const payload: {
+          given_variables?: ReturnType<typeof mapGivenRowsToVariables>
+          target_variables?: ReturnType<typeof mapTargetRowsToVariables>
+          target_randomize?: boolean
+        } = {}
+
+        if (given.length > 0) {
+          payload.given_variables = mapGivenRowsToVariables(given)
+        }
+
+        if (target.length > 0) {
+          payload.target_variables = mapTargetRowsToVariables(target)
+        }
+
+        if (params.targetRandomize) {
+          payload.target_randomize = true
+        }
+
+        return payload
+      })()
+    : {}
 
   return generateWorksheetInputSchema.safeParse({
     subject: "physics",
@@ -66,7 +86,8 @@ export function useWorksheetConfigForm() {
 
   const [activeTab, setActiveTab] = useState<"basic" | "advanced">("basic")
   const [givenVariableIds, setGivenVariableIds] = useState<string[]>([])
-  const [targetVariableId, setTargetVariableId] = useState("")
+  const [findVariableIds, setFindVariableIds] = useState<string[]>([])
+  const [targetRandomize, setTargetRandomize] = useState(false)
 
   const trimmedLesson = lesson.trim()
   const lessonScenarios =
@@ -74,10 +95,19 @@ export function useWorksheetConfigForm() {
   const resolvedScenarioId = lessonScenarios.some((s) => s.id === scenarioId) ? scenarioId : ""
   const hasRequiredFields = Boolean(trimmedLesson && resolvedScenarioId)
 
-  function applyVariablePruning(nextLesson: string) {
-    const pruned = pruneVariableSelection(nextLesson, givenVariableIds, targetVariableId)
+  function applyVariablePruning(
+    nextLesson: string,
+    nextFindIds = findVariableIds,
+    nextRandomize = targetRandomize
+  ) {
+    const pruned = pruneVariableSelection(
+      nextLesson,
+      givenVariableIds,
+      nextFindIds,
+      nextRandomize
+    )
+    setFindVariableIds(pruned.findVariableIds)
     setGivenVariableIds(pruned.givenVariableIds)
-    setTargetVariableId(pruned.targetVariableId)
   }
 
   function handleLessonChange(newLesson: string) {
@@ -95,6 +125,18 @@ export function useWorksheetConfigForm() {
     setScenarioDescription(description)
   }
 
+  function handleFindChange(ids: string[]) {
+    const pruned = pruneVariableSelection(lesson, givenVariableIds, ids, targetRandomize)
+    setFindVariableIds(pruned.findVariableIds)
+    setGivenVariableIds(pruned.givenVariableIds)
+  }
+
+  function handleTargetRandomizeChange(enabled: boolean) {
+    setTargetRandomize(enabled)
+    const pruned = pruneVariableSelection(lesson, givenVariableIds, findVariableIds, enabled)
+    setGivenVariableIds(pruned.givenVariableIds)
+  }
+
   return {
     lesson,
     scenarioDescription,
@@ -105,13 +147,17 @@ export function useWorksheetConfigForm() {
     setActiveTab,
     givenVariableIds,
     setGivenVariableIds,
-    targetVariableId,
-    setTargetVariableId,
+    findVariableIds,
+    setFindVariableIds,
+    targetRandomize,
+    setTargetRandomize,
     trimmedLesson,
     hasRequiredFields,
     handleLessonChange,
     handleLessonSuggestionSelect,
     handleScenarioChange,
+    handleFindChange,
+    handleTargetRandomizeChange,
     buildInput: (effectiveQuestionCount: number) =>
       buildGenerateWorksheetInput({
         lesson,
@@ -119,7 +165,8 @@ export function useWorksheetConfigForm() {
         resolvedScenarioId,
         effectiveQuestionCount,
         givenVariableIds,
-        targetVariableId,
+        findVariableIds,
+        targetRandomize,
       }),
   }
 }

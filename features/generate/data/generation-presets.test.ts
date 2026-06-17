@@ -104,34 +104,52 @@ describe("getVariablesForLesson", () => {
 })
 
 describe("pruneVariableSelection", () => {
-  it("removes variables outside the lesson scope", () => {
+  it("removes invalid find ids and prunes givens without find context", () => {
     const pruned = pruneVariableSelection(
       "motion-1d",
       ["phys-v0", "phys-q"],
-      "phys-m"
+      ["phys-m"],
+      false
     )
-    expect(pruned.givenVariableIds).toEqual(["phys-v0"])
-    expect(pruned.targetVariableId).toBe("")
+    expect(pruned.givenVariableIds).toEqual([])
+    expect(pruned.findVariableIds).toEqual([])
   })
 
-  it("keeps in-scope selections", () => {
-    const pruned = pruneVariableSelection("newtons-laws", ["phys-f", "phys-m"], "phys-a")
+  it("keeps in-scope selections and prunes incompatible givens", () => {
+    const pruned = pruneVariableSelection(
+      "newtons-laws",
+      ["phys-f", "phys-m"],
+      ["phys-a"],
+      false
+    )
     expect(pruned.givenVariableIds).toEqual(["phys-f", "phys-m"])
-    expect(pruned.targetVariableId).toBe("phys-a")
+    expect(pruned.findVariableIds).toEqual(["phys-a"])
+  })
+
+  it("removes find ids from given selections", () => {
+    const pruned = pruneVariableSelection(
+      "motion-1d",
+      ["phys-v0", "phys-v"],
+      ["phys-v"],
+      false
+    )
+    expect(pruned.givenVariableIds).toEqual(["phys-v0"])
+    expect(pruned.findVariableIds).toEqual(["phys-v"])
   })
 })
 
 describe("toVariableRows", () => {
   it("maps known variable ids and omits unknown ids", () => {
-    const { given, target } = toVariableRows(["phys-v0", "unknown-id"], "phys-v")
+    const { given, target } = toVariableRows(["phys-v0", "unknown-id"], ["phys-v", "phys-a"])
     expect(given).toHaveLength(1)
     expect(given[0]?.symbol).toBe("v₀")
-    expect(target).toHaveLength(1)
+    expect(target).toHaveLength(2)
     expect(target[0]?.symbol).toBe("v")
+    expect(target[1]?.symbol).toBe("a")
   })
 
-  it("returns empty target when target id is missing", () => {
-    const { target } = toVariableRows([], "")
+  it("returns empty target when find ids are missing", () => {
+    const { target } = toVariableRows([], [])
     expect(target).toEqual([])
   })
 })
