@@ -20,9 +20,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; error_description?: string }>
+  searchParams: Promise<{ error?: string }>
 }) {
-  const { error, error_description: errorDescription } = await searchParams
+  const { error } = await searchParams
   const supabase = await createClient()
   const {
     data: { user },
@@ -57,11 +57,6 @@ export default async function LoginPage({
             role="alert"
           >
             <p className="font-medium">{loginErrorMessage}</p>
-            {errorDescription ? (
-              <p className="mt-1 break-words text-xs text-destructive/80">
-                {errorDescription}
-              </p>
-            ) : null}
           </div>
         ) : null}
         <form action={signInWithGoogleAction}>

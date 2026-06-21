@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { GET } from "./route"
 
@@ -18,9 +18,14 @@ function createRequest(url: string) {
 describe("auth callback route", () => {
   beforeEach(() => {
     createClientMock.mockReset()
+    vi.spyOn(console, "error").mockImplementation(() => {})
   })
 
-  it("redirects provider errors to login with details", async () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it("redirects provider errors to login without leaking details in the URL", async () => {
     const response = await GET(
       createRequest(
         "http://localhost:3000/auth/callback?error=server_error&error_description=Unable+to+exchange+external+code%3A+4%2F0A"
@@ -31,14 +36,16 @@ describe("auth callback route", () => {
 
     expect(location.pathname).toBe("/login")
     expect(location.searchParams.get("error")).toBe("callback")
-    expect(location.searchParams.get("error_code")).toBe("server_error")
-    expect(location.searchParams.get("error_description")).toBe(
-      "Unable to exchange external code: 4/0A"
-    )
+    expect(location.searchParams.get("error_code")).toBeNull()
+    expect(location.searchParams.get("error_description")).toBeNull()
     expect(createClientMock).not.toHaveBeenCalled()
+    expect(console.error).toHaveBeenCalledWith("[auth/callback]", {
+      callbackError: "server_error",
+      callbackErrorDescription: "Unable to exchange external code: 4/0A",
+    })
   })
 
-  it("redirects exchange failures to login with the Supabase error message", async () => {
+  it("redirects exchange failures to login without leaking the Supabase error message", async () => {
     createClientMock.mockResolvedValue({
       auth: {
         exchangeCodeForSession: vi.fn(async () => ({
@@ -57,7 +64,9 @@ describe("auth callback route", () => {
 
     expect(location.pathname).toBe("/login")
     expect(location.searchParams.get("error")).toBe("callback")
-    expect(location.searchParams.get("error_description")).toBe(
+    expect(location.searchParams.get("error_description")).toBeNull()
+    expect(console.error).toHaveBeenCalledWith(
+      "[auth/callback] exchangeCodeForSession failed",
       "Unable to exchange external code: 4/0A"
     )
   })

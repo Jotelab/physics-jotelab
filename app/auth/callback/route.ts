@@ -14,14 +14,13 @@ export async function GET(request: NextRequest) {
       : "/generate"
 
   if (callbackError) {
+    console.error("[auth/callback]", {
+      callbackError,
+      callbackErrorDescription,
+    })
+
     const loginUrl = new URL("/login", request.url)
     loginUrl.searchParams.set("error", "callback")
-    loginUrl.searchParams.set("error_code", callbackError)
-
-    if (callbackErrorDescription) {
-      loginUrl.searchParams.set("error_description", callbackErrorDescription)
-    }
-
     return NextResponse.redirect(loginUrl)
   }
 
@@ -35,9 +34,10 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error) {
+    console.error("[auth/callback] exchangeCodeForSession failed", error.message)
+
     const loginUrl = new URL("/login", request.url)
     loginUrl.searchParams.set("error", "callback")
-    loginUrl.searchParams.set("error_description", error.message)
     return NextResponse.redirect(loginUrl)
   }
 
