@@ -12,7 +12,7 @@ import {
   parseStructuredRpcFailure,
 } from "./errors"
 import type { AppFailure, GenerationErrorCode } from "./errors"
-import { variantQuestionRollSchema } from "./schemas"
+import { variantQuestionRollSchema, generationSettingsSchema } from "./schemas"
 import type { VariantLabel, VariantQuestionRoll, WorksheetQuestion } from "./types"
 import { fetchWorksheetQuestions } from "./utils/fetch-worksheet-questions"
 import { buildVariantRollIdempotencyKey } from "./utils/idempotency-key"
@@ -20,6 +20,7 @@ import {
   parseVariantRollCompleteResponse,
   parseVariantRollReserveResponse,
 } from "./utils/parse-variant-roll-response"
+import { DEFAULT_MATH_COMPLEXITY } from "./constants/difficulty-settings"
 
 const VARIANT_FALLBACK_CODE = "VARIANT_FAILED" as const
 
@@ -27,6 +28,7 @@ type WorksheetRow = {
   id: string
   user_id: string
   question_count: number
+  generation_settings: unknown
 }
 
 async function getWorksheetForProfile(
@@ -36,7 +38,7 @@ async function getWorksheetForProfile(
 ): Promise<WorksheetRow | null> {
   const { data: worksheet, error } = await supabase
     .from("worksheets")
-    .select("id, user_id, question_count")
+    .select("id, user_id, question_count, generation_settings")
     .eq("id", worksheetId)
     .single<WorksheetRow>()
 
@@ -131,6 +133,11 @@ export async function generateVariantRollForQuestion(params: {
     return failure("QUESTION_NOT_FOUND")
   }
 
+  const generationSettings = generationSettingsSchema.safeParse(worksheet.generation_settings)
+  const mathComplexity = generationSettings.success
+    ? (generationSettings.data.math_complexity ?? DEFAULT_MATH_COMPLEXITY)
+    : DEFAULT_MATH_COMPLEXITY
+
   const idempotencyKey = buildVariantRollIdempotencyKey(worksheet.id, label, order)
 
   const { data: reserveResult, error: reserveError } = await supabase.rpc(
@@ -174,6 +181,7 @@ export async function generateVariantRollForQuestion(params: {
     const generatedQuestion = await variantWorksheetQuestion({
       masterQuestion,
       variantLabel: label,
+      mathComplexity,
     })
 
     const roll = toVariantRoll(masterQuestion, generatedQuestion)

@@ -10,10 +10,14 @@ import { formLabelClass } from "@/lib/ui-classes"
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LessonCombobox } from "@/features/generate/components/lesson-combobox"
+import {
+  ConceptualDifficultySelect,
+  MathComplexitySelect,
+} from "@/features/generate/components/difficulty-select"
 import { ScenarioSelect } from "@/features/generate/components/scenario-select"
 import { VariableConstraintPicker } from "@/features/generate/components/variable-constraint-picker"
 import { MAX_INITIAL_WORKSHEET_QUESTION_COUNT } from "@/features/generate/limits"
-import type { GenerationProgress } from "@/features/generate/types"
+import type { ConceptualDifficulty, GenerationProgress, MathComplexity } from "@/features/generate/types"
 
 export type WorksheetConfigPanelProps = {
   activeTab: "basic" | "advanced"
@@ -26,6 +30,10 @@ export type WorksheetConfigPanelProps = {
   onGivenVariableIdsChange: (ids: string[]) => void
   onFindVariableIdsChange: (ids: string[]) => void
   onTargetRandomizeChange: (enabled: boolean) => void
+  mathComplexity: MathComplexity
+  conceptualDifficulty: ConceptualDifficulty
+  onMathComplexityChange: (value: MathComplexity) => void
+  onConceptualDifficultyChange: (value: ConceptualDifficulty) => void
   controlsDisabled: boolean
   effectiveQuestionCount: number
   maxQuestionCount: number
@@ -70,6 +78,10 @@ function WorksheetBasicFields({
   onLessonSuggestionSelect,
   onScenarioChange,
   onQuestionCountChange,
+  mathComplexity,
+  conceptualDifficulty,
+  onMathComplexityChange,
+  onConceptualDifficultyChange,
 }: Pick<
   WorksheetConfigPanelProps,
   | "lesson"
@@ -83,6 +95,10 @@ function WorksheetBasicFields({
   | "onLessonSuggestionSelect"
   | "onScenarioChange"
   | "onQuestionCountChange"
+  | "mathComplexity"
+  | "conceptualDifficulty"
+  | "onMathComplexityChange"
+  | "onConceptualDifficultyChange"
 >) {
   const t = useTranslations("generate")
 
@@ -99,6 +115,18 @@ function WorksheetBasicFields({
         lesson={lesson}
         value={resolvedScenarioId}
         onChange={onScenarioChange}
+        disabled={controlsDisabled}
+      />
+
+      <MathComplexitySelect
+        value={mathComplexity}
+        onChange={onMathComplexityChange}
+        disabled={controlsDisabled}
+      />
+
+      <ConceptualDifficultySelect
+        value={conceptualDifficulty}
+        onChange={onConceptualDifficultyChange}
         disabled={controlsDisabled}
       />
 
@@ -376,6 +404,10 @@ export function WorksheetConfigPanel({
       onLessonSuggestionSelect={props.onLessonSuggestionSelect}
       onScenarioChange={props.onScenarioChange}
       onQuestionCountChange={props.onQuestionCountChange}
+      mathComplexity={props.mathComplexity}
+      conceptualDifficulty={props.conceptualDifficulty}
+      onMathComplexityChange={props.onMathComplexityChange}
+      onConceptualDifficultyChange={props.onConceptualDifficultyChange}
     />
   )
 

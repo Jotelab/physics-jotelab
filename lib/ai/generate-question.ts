@@ -1,19 +1,21 @@
 import { generateObject } from "ai"
 
 import { generatedQuestionSchema } from "@/features/generate/schemas"
-import type { GeneratedQuestion, Subject } from "@/features/generate/types"
+import { DEFAULT_MATH_COMPLEXITY } from "@/features/generate/constants/difficulty-settings"
+import type { GeneratedQuestion, MathComplexity, Subject } from "@/features/generate/types"
 
 import { getGenerationModel } from "./client"
 import { e2eStubGeneratedQuestion } from "./e2e-stub-question"
 import { getGenerationErrorMessage, logGenerationError } from "./generation-errors"
 import { normalizeGeneratedQuestion } from "./normalize-question"
-import { QUESTION_GENERATION_RULES } from "./prompt-rules"
+import { QUESTION_GENERATION_RULES, buildMathComplexityRules } from "./prompt-rules"
 
 type GenerateQuestionInput = {
   subject: Subject
   lesson: string
   scenario: string
   previousQuestionsContext: string[]
+  mathComplexity?: MathComplexity
 }
 
 function formatPreviousQuestions(previousQuestionsContext: string[]) {
@@ -29,6 +31,7 @@ function buildGenerationPrompt({
   lesson,
   scenario,
   previousQuestionsContext,
+  mathComplexity = DEFAULT_MATH_COMPLEXITY,
 }: GenerateQuestionInput) {
   return `You are generating a high-school calculation question for Thai students.
 
@@ -41,7 +44,8 @@ Scenario: ${scenario}
 Previously generated questions (DO NOT REPEAT THESE):
 ${formatPreviousQuestions(previousQuestionsContext)}
 
-${QUESTION_GENERATION_RULES}`
+${QUESTION_GENERATION_RULES}
+${buildMathComplexityRules(mathComplexity)}`
 }
 
 export async function generateWorksheetQuestion(
@@ -58,7 +62,11 @@ export async function generateWorksheetQuestion(
       prompt: buildGenerationPrompt(input),
     })
 
-    return generatedQuestionSchema.parse(normalizeGeneratedQuestion(object))
+    return generatedQuestionSchema.parse(
+      normalizeGeneratedQuestion(object, {
+        mathComplexity: input.mathComplexity ?? DEFAULT_MATH_COMPLEXITY,
+      })
+    )
   } catch (error) {
     logGenerationError("generateWorksheetQuestion", error)
     throw new Error(getGenerationErrorMessage(error))

@@ -15,3 +15,18 @@ export const CORE_QUESTION_RULES = `- The question must be solvable from the giv
 export const QUESTION_GENERATION_RULES = `Rules:
 ${CORE_QUESTION_RULES}
 ${THAI_LANGUAGE_RULES}`
+
+const MATH_COMPLEXITY_PROMPTS = {
+  integers:
+    "Use clean integer values only for all numeric given_values. Avoid decimals and scientific notation.",
+  decimals:
+    "Use decimal values with 1–2 decimal places for all numeric given_values. Avoid integers-only and scientific notation.",
+  scientific:
+    "Express large or small magnitudes using scientific notation (e.g. 3.2 × 10⁵ or 3.2e5) in given_values and question_text when appropriate.",
+} as const
+
+export function buildMathComplexityRules(
+  complexity: keyof typeof MATH_COMPLEXITY_PROMPTS = "integers"
+) {
+  return `- ${MATH_COMPLEXITY_PROMPTS[complexity]}`
+}

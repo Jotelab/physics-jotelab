@@ -21,6 +21,10 @@ import {
 
 export const subjectSchema = z.literal("physics")
 
+export const mathComplexitySchema = z.enum(["integers", "decimals", "scientific"])
+
+export const conceptualDifficultySchema = z.enum(["level_1", "level_2", "level_3"])
+
 export const givenValueSchema = z.object({
   symbol: z.string().min(1).max(MAX_SYMBOL_LEN),
   label: z.string().min(1).max(MAX_LABEL_LEN),
@@ -56,6 +60,8 @@ export const generationSettingsSchema = z.object({
   given_variables: z.array(givenValueSchema).max(MAX_GIVEN_VARIABLES).optional(),
   target_variables: z.array(targetVariableSchema).max(MAX_TARGET_VARIABLES).optional(),
   target_randomize: z.boolean().optional(),
+  math_complexity: mathComplexitySchema.optional(),
+  conceptual_difficulty: conceptualDifficultySchema.optional(),
   header: worksheetHeaderConfigSchema.optional(),
 })
 
@@ -67,6 +73,8 @@ export const generateWorksheetInputSchema = z.object({
   given_variables: z.array(givenValueSchema).max(MAX_GIVEN_VARIABLES).optional(),
   target_variables: z.array(targetVariableSchema).max(MAX_TARGET_VARIABLES).optional(),
   target_randomize: z.boolean().optional(),
+  math_complexity: mathComplexitySchema.optional(),
+  conceptual_difficulty: conceptualDifficultySchema.optional(),
 })
 
 const solutionSchema = z.object({

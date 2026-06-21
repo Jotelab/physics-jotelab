@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest"
 import { buildScenarioPrompt } from "./build-scenario-prompt"
 
 describe("buildScenarioPrompt", () => {
-  it("returns base scenario when no variables", () => {
-    expect(buildScenarioPrompt("Solve for x.")).toBe("Solve for x.")
+  it("returns base scenario with default difficulty when no variables", () => {
+    const result = buildScenarioPrompt("Solve for x.")
+    expect(result).toContain("Solve for x.")
+    expect(result).toContain("Difficulty instructions:")
   })
 
   it("appends given and active target sections", () => {
@@ -35,6 +37,23 @@ describe("buildScenarioPrompt", () => {
 
     expect(result).toContain("Worksheet target pool (rotate across questions)")
     expect(result).toContain("For this question, find v.")
+    expect(result).toContain("Difficulty instructions:")
+  })
+
+  it("appends level 2 unit conversion instructions", () => {
+    const result = buildScenarioPrompt("Base.", undefined, undefined, {
+      conceptualDifficulty: "level_2",
+    })
+
+    expect(result).toContain("non-standard unit")
+  })
+
+  it("appends level 3 distractor instructions", () => {
+    const result = buildScenarioPrompt("Base.", undefined, undefined, {
+      conceptualDifficulty: "level_3",
+    })
+
+    expect(result).toContain("irrelevant numerical values")
   })
 
   it("handles empty given value", () => {

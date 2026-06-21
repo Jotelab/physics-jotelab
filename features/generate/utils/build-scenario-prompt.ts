@@ -1,4 +1,8 @@
-import type { GivenVariable, TargetVariable } from "@/features/generate/types"
+import type { GivenVariable, TargetVariable, ConceptualDifficulty } from "@/features/generate/types"
+import {
+  CONCEPTUAL_DIFFICULTY_PROMPTS,
+  DEFAULT_CONCEPTUAL_DIFFICULTY,
+} from "@/features/generate/constants/difficulty-settings"
 
 function formatGivenVariable(variable: GivenVariable) {
   const valuePart =
@@ -17,6 +21,7 @@ function formatTargetVariable(variable: TargetVariable) {
 export type ScenarioPromptOptions = {
   pool?: TargetVariable[]
   mode?: "rotate" | "random"
+  conceptualDifficulty?: ConceptualDifficulty
 }
 
 export function buildScenarioPrompt(
@@ -44,6 +49,9 @@ export function buildScenarioPrompt(
       `Worksheet target pool (${modeLabel} across questions): ${poolLabels}. For this question, find ${activeTarget.symbol}.`
     )
   }
+
+  const difficulty = options?.conceptualDifficulty ?? DEFAULT_CONCEPTUAL_DIFFICULTY
+  parts.push(`Difficulty instructions: ${CONCEPTUAL_DIFFICULTY_PROMPTS[difficulty]}`)
 
   if (parts.length === 0) {
     return trimmedBase

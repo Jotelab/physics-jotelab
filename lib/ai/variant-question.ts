@@ -7,11 +7,14 @@ import { getGenerationModel } from "./client"
 import { e2eStubVariantQuestion } from "./e2e-stub-question"
 import { getGenerationErrorMessage, logGenerationError } from "./generation-errors"
 import { normalizeGeneratedQuestion } from "./normalize-question"
-import { CORE_QUESTION_RULES, THAI_LANGUAGE_RULES } from "./prompt-rules"
+import { CORE_QUESTION_RULES, THAI_LANGUAGE_RULES, buildMathComplexityRules } from "./prompt-rules"
+import type { MathComplexity } from "@/features/generate/types"
+import { DEFAULT_MATH_COMPLEXITY } from "@/features/generate/constants/difficulty-settings"
 
 type VariantQuestionInput = {
   masterQuestion: WorksheetQuestion
   variantLabel: VariantLabel
+  mathComplexity?: MathComplexity
 }
 
 function formatMasterQuestion(masterQuestion: WorksheetQuestion) {
@@ -30,6 +33,7 @@ function formatMasterQuestion(masterQuestion: WorksheetQuestion) {
 export async function variantWorksheetQuestion({
   masterQuestion,
   variantLabel,
+  mathComplexity = DEFAULT_MATH_COMPLEXITY,
 }: VariantQuestionInput): Promise<GeneratedQuestion> {
   if (process.env.E2E_STUB_GENERATION === "true") {
     return e2eStubVariantQuestion(masterQuestion, variantLabel)
@@ -53,11 +57,14 @@ Rules:
 - Change ALL numeric given_values to new, physically plausible values different from the master.
 - Recalculate solution steps and final_answer to match the new given_values.
 - Do NOT change which variable is being solved for.
+${buildMathComplexityRules(mathComplexity)}
 ${CORE_QUESTION_RULES}
 ${THAI_LANGUAGE_RULES}`,
     })
 
-    const normalized = generatedQuestionSchema.parse(normalizeGeneratedQuestion(object))
+    const normalized = generatedQuestionSchema.parse(
+      normalizeGeneratedQuestion(object, { mathComplexity })
+    )
 
     if (normalized.target_variable.symbol !== masterQuestion.target_variable.symbol) {
       throw new Error("Variant target variable does not match master question.")

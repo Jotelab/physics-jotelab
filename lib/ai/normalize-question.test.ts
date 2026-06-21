@@ -40,15 +40,27 @@ describe("normalizeGeneratedQuestion", () => {
   })
 
   it("coerces numeric strings and preserves non-numeric strings", () => {
-    const result = normalizeGeneratedQuestion({
-      ...validGeneratedQuestion,
-      given_values: [
-        { symbol: "m", label: "mass", value: "12.5" },
-        { symbol: "v", label: "velocity", value: "fast" },
-      ],
-    })
+    const result = normalizeGeneratedQuestion(
+      {
+        ...validGeneratedQuestion,
+        given_values: [
+          { symbol: "m", label: "mass", value: "12.5" },
+          { symbol: "v", label: "velocity", value: "fast" },
+        ],
+      },
+      { mathComplexity: "decimals" }
+    )
 
     expect(result.given_values[0]?.value).toBe(12.5)
     expect(result.given_values[1]?.value).toBe("fast")
+  })
+
+  it("rounds numeric values to integers by default", () => {
+    const result = normalizeGeneratedQuestion({
+      ...validGeneratedQuestion,
+      given_values: [{ symbol: "m", label: "mass", value: "12.7" }],
+    })
+
+    expect(result.given_values[0]?.value).toBe(13)
   })
 })

@@ -10,7 +10,13 @@ import {
   resolveLessonKey,
   toVariableRows,
 } from "@/features/generate/data/generation-presets"
+import {
+  DEFAULT_CONCEPTUAL_DIFFICULTY,
+  DEFAULT_MATH_COMPLEXITY,
+} from "@/features/generate/constants/difficulty-settings"
 import { generateWorksheetInputSchema } from "@/features/generate/schemas"
+import type { ConceptualDifficulty, MathComplexity } from "@/features/generate/types"
+
 import {
   mapGivenRowsToVariables,
   mapTargetRowsToVariables,
@@ -24,6 +30,8 @@ export function buildGenerateWorksheetInput(params: {
   givenVariableIds: string[]
   findVariableIds: string[]
   targetRandomize: boolean
+  mathComplexity: MathComplexity
+  conceptualDifficulty: ConceptualDifficulty
 }) {
   const lessonKey = resolveLessonKey(params.lesson)
   const resolvedLesson =
@@ -74,6 +82,8 @@ export function buildGenerateWorksheetInput(params: {
     lesson: resolvedLesson,
     scenario,
     question_count: params.effectiveQuestionCount,
+    math_complexity: params.mathComplexity,
+    conceptual_difficulty: params.conceptualDifficulty,
     ...variablePayload,
   })
 }
@@ -88,6 +98,10 @@ export function useWorksheetConfigForm() {
   const [givenVariableIds, setGivenVariableIds] = useState<string[]>([])
   const [findVariableIds, setFindVariableIds] = useState<string[]>([])
   const [targetRandomize, setTargetRandomize] = useState(false)
+  const [mathComplexity, setMathComplexity] = useState<MathComplexity>(DEFAULT_MATH_COMPLEXITY)
+  const [conceptualDifficulty, setConceptualDifficulty] = useState<ConceptualDifficulty>(
+    DEFAULT_CONCEPTUAL_DIFFICULTY
+  )
 
   const trimmedLesson = lesson.trim()
   const lessonScenarios =
@@ -151,6 +165,10 @@ export function useWorksheetConfigForm() {
     setFindVariableIds,
     targetRandomize,
     setTargetRandomize,
+    mathComplexity,
+    setMathComplexity,
+    conceptualDifficulty,
+    setConceptualDifficulty,
     trimmedLesson,
     hasRequiredFields,
     handleLessonChange,
@@ -167,6 +185,8 @@ export function useWorksheetConfigForm() {
         givenVariableIds,
         findVariableIds,
         targetRandomize,
+        mathComplexity,
+        conceptualDifficulty,
       }),
   }
 }

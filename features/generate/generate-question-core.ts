@@ -18,6 +18,10 @@ import type { GenerateQuestionResult } from "./result-types"
 import { buildScenarioPrompt } from "./utils/build-scenario-prompt"
 import { buildGenerateIdempotencyKey, buildRegenerateIdempotencyKey } from "./utils/idempotency-key"
 import {
+  DEFAULT_CONCEPTUAL_DIFFICULTY,
+  DEFAULT_MATH_COMPLEXITY,
+} from "./constants/difficulty-settings"
+import {
   getTargetPoolFromSettings,
   resolveQuestionTarget,
 } from "./utils/resolve-question-target"
@@ -62,6 +66,8 @@ function getPromptScenario(
     {
       pool: pool.length > 1 ? pool : undefined,
       mode: generationSettings.target_randomize ? "random" : "rotate",
+      conceptualDifficulty:
+        generationSettings.conceptual_difficulty ?? DEFAULT_CONCEPTUAL_DIFFICULTY,
     }
   )
 }
@@ -242,6 +248,7 @@ export async function generateQuestionForWorksheet(params: {
       lesson: generationSettings.lesson,
       scenario: getPromptScenario(generationSettings, order, worksheet.id),
       previousQuestionsContext,
+      mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
     })
 
     const question = worksheetQuestionSchema.parse({
@@ -378,6 +385,7 @@ export async function regenerateQuestionForWorksheet(params: {
         worksheet.id
       ),
       existingQuestionText: originalQuestion.question_text,
+      mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
     })
 
     const replacementQuestion = worksheetQuestionSchema.parse({

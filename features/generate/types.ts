@@ -1,9 +1,11 @@
 import type { z } from "zod"
 
 import type {
+  conceptualDifficultySchema,
   generatedQuestionSchema,
   generateWorksheetInputSchema,
   givenValueSchema,
+  mathComplexitySchema,
   subjectSchema,
   targetVariableSchema,
   variantLabelSchema,
@@ -14,6 +16,8 @@ import type {
 } from "./schemas"
 
 export type Subject = z.infer<typeof subjectSchema>
+export type MathComplexity = z.infer<typeof mathComplexitySchema>
+export type ConceptualDifficulty = z.infer<typeof conceptualDifficultySchema>
 export type GivenVariable = z.infer<typeof givenValueSchema>
 export type TargetVariable = z.infer<typeof targetVariableSchema>
 export type GenerateWorksheetInput = z.infer<typeof generateWorksheetInputSchema>
