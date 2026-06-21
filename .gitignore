@@ -64,7 +64,7 @@ storybook-static/
 # Optional: lockfiles for other package managers (uncomment if you use them)
 # yarn.lock
 # package-lock.json
-# pnpm-lock.yaml
+pnpm-lock.yaml
 
 # Keep the Next.js generated type file out of source control
 next-env.d.ts
