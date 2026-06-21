@@ -41,7 +41,7 @@ export type WorksheetPreviewPanelProps = {
   savedVariants?: WorksheetVariant[]
   isWorksheetComplete?: boolean
   onCreditBalanceUpdated?: (balance: number) => void
-  onVariantsSaved?: () => void
+  onVariantsSaved?: (variants: WorksheetVariant[]) => void
   variantActionMessage?: string | null
   onVariantActionMessage?: (message: string | null) => void
   variantActionError?: string | null
@@ -130,7 +130,7 @@ export function WorksheetPreviewPanel({
     if (result.ok) {
       markVariantsSaved(allVariants)
       onVariantActionMessage?.(t("variantsSaved"))
-      onVariantsSaved?.()
+      onVariantsSaved?.(allVariants)
     }
   }
 

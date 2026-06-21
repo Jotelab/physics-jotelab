@@ -7,20 +7,24 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import type { WorksheetConfigPanelProps } from "@/features/generate/components/worksheet-config-panel"
 import type { WorksheetPreviewPanelProps } from "@/features/generate/components/worksheet-preview-panel"
 import { useWorksheetConfigForm } from "@/features/generate/hooks/use-worksheet-config-form"
+import { getWorksheetSavedVariantsAction } from "@/features/generate/actions"
 import { resolveLessonKey } from "@/features/generate/data/generation-presets"
 import { useWorksheetCreditLimits } from "@/features/generate/hooks/use-worksheet-credit-limits"
 import { useWorksheetGenerator } from "@/features/generate/hooks/use-worksheet-generator"
 import { useWorksheetQuestionActions } from "@/features/generate/hooks/use-worksheet-question-actions"
 import type { WorksheetViewMode } from "@/features/worksheet/components/worksheet-preview"
 import { useWorksheetHeaderConfig } from "@/features/worksheet/hooks/use-worksheet-header-config"
+import type { WorksheetVariant } from "@/features/generate/types"
 
 export function useGenerateWorkspace({ creditBalance }: { creditBalance: number }) {
   const router = useRouter()
   const t = useTranslations("generate")
   const tCommon = useTranslations("common")
   const [viewMode, setViewMode] = useState<WorksheetViewMode>("worksheet")
+  const [savedVariants, setSavedVariants] = useState<WorksheetVariant[]>([])
   const configForm = useWorksheetConfigForm()
   const setCreditOverrideRef = useRef<(balance: number) => void>(() => {})
+  const savedVariantsEpochRef = useRef(0)
 
   const {
     isGenerating,
@@ -82,6 +86,33 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
 
     void syncTargetQuestionCount(worksheetId)
   }, [worksheetId, creditLimits.hasGenerated, isGenerating, syncTargetQuestionCount])
+
+  useEffect(() => {
+    if (!worksheetId) {
+      savedVariantsEpochRef.current += 1
+      setSavedVariants([])
+      return
+    }
+
+    let cancelled = false
+    const epochAtFetch = savedVariantsEpochRef.current
+
+    void getWorksheetSavedVariantsAction(worksheetId).then((result) => {
+      if (
+        cancelled ||
+        !result.ok ||
+        savedVariantsEpochRef.current !== epochAtFetch
+      ) {
+        return
+      }
+
+      setSavedVariants(result.data.savedVariants)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [worksheetId])
 
   const lessonDisplay = useMemo(() => {
     const trimmed = configForm.trimmedLesson
@@ -254,14 +285,18 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
     questionActions: questionActions.questionActions,
     worksheetId,
     creditBalance: creditLimits.availableCredits,
-    savedVariants: [],
+    savedVariants,
     isWorksheetComplete:
       creditLimits.hasGenerated &&
       questions.length >= (targetQuestionCount ?? questions.length) &&
       skippedSlots.length === 0 &&
       !isGenerating,
     onCreditBalanceUpdated: creditLimits.setLocalCreditBalanceOverride,
-    onVariantsSaved: () => router.refresh(),
+    onVariantsSaved: (variants) => {
+      savedVariantsEpochRef.current += 1
+      setSavedVariants(variants)
+      router.refresh()
+    },
     onVariantActionMessage: questionActions.setActionMessage,
     onVariantActionError: questionActions.setActionError,
   }

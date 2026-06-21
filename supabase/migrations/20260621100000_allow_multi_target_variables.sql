@@ -1,4 +1,4 @@
--- Allow math_complexity, conceptual_difficulty, and target_randomize in generation_settings
+-- Fix target_variables cap left at 1 in 20260621000000_generation_settings_difficulty.sql
 
 create or replace function public.is_valid_generation_settings(
   p_settings jsonb

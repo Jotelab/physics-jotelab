@@ -5,7 +5,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(13);
+select plan(15);
 
 do $$
 declare
@@ -133,6 +133,31 @@ begin
     )::text,
     true
   );
+  perform set_config(
+    'test.valid_multi_target_settings',
+    jsonb_build_object(
+      'lesson', 'Motion',
+      'scenario', 'Find values.',
+      'target_variables', jsonb_build_array(
+        jsonb_build_object('symbol', 'v', 'label', 'velocity'),
+        jsonb_build_object('symbol', 'a', 'label', 'acceleration')
+      ),
+      'target_randomize', true
+    )::text,
+    true
+  );
+  perform set_config(
+    'test.oversized_target_settings',
+    jsonb_build_object(
+      'lesson', 'Motion',
+      'scenario', 'Find values.',
+      'target_variables', (
+        select jsonb_agg(jsonb_build_object('symbol', 'x' || n, 'label', 'target ' || n))
+        from generate_series(1, 7) as n
+      )
+    )::text,
+    true
+  );
 end;
 $$;
 
@@ -199,6 +224,16 @@ select ok(
 select ok(
   not public.is_valid_generation_settings(current_setting('test.invalid_target_randomize_settings')::jsonb),
   'non-boolean target_randomize is rejected'
+);
+
+select ok(
+  public.is_valid_generation_settings(current_setting('test.valid_multi_target_settings')::jsonb),
+  'valid generation settings with multiple target_variables passes'
+);
+
+select ok(
+  not public.is_valid_generation_settings(current_setting('test.oversized_target_settings')::jsonb),
+  'more than 6 target_variables is rejected'
 );
 
 select ok(

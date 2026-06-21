@@ -23,6 +23,7 @@ import { variantLabelSchema, variantQuestionRollSchema, worksheetVariantsPayload
 import type { VariantLabel, WorksheetVariant } from "./types"
 import { fetchWorksheetQuestions } from "./utils/fetch-worksheet-questions"
 import { mapGenerationJobPoll } from "./utils/map-generation-job-poll"
+import { allocateVariantLabels } from "@/features/worksheet/utils/merge-variant-questions"
 
 type ProfileIdRow = {
   id: string
@@ -115,11 +116,6 @@ function parseRpcActionFailure<T>(
   return null
 }
 
-function labelsFromAdditionalCount(additionalCount: number): VariantLabel[] {
-  const allLabels: VariantLabel[] = ["B", "C", "D"]
-  return allLabels.slice(0, additionalCount)
-}
-
 export async function startVariantGenerationJobAction(input: {
   worksheetId: string
   additionalCount: number
@@ -129,16 +125,6 @@ export async function startVariantGenerationJobAction(input: {
 
   if (!parsedCount.success) {
     return localizedFailure("VALIDATION_FAILED", "invalidVariantCount")
-  }
-
-  const labels = labelsFromAdditionalCount(parsedCount.data)
-  const parsed = startVariantJobInputSchema.safeParse({
-    worksheetId: input.worksheetId,
-    labels,
-  })
-
-  if (!parsed.success) {
-    return localizedFailure("VALIDATION_FAILED", "invalidWorksheet")
   }
 
   const supabase = await createClient()
@@ -154,6 +140,36 @@ export async function startVariantGenerationJobAction(input: {
 
   if (!profile) {
     return localizedFailure("PROFILE_NOT_FOUND")
+  }
+
+  const { data: worksheet, error: worksheetError } = await supabase
+    .from("worksheets")
+    .select("variants")
+    .eq("id", input.worksheetId)
+    .single<{ variants: unknown }>()
+
+  if (worksheetError || !worksheet) {
+    return localizedFailure("WORKSHEET_ACCESS_DENIED", "worksheetNotFound")
+  }
+
+  const variantsPayload = worksheetVariantsPayloadSchema.safeParse(worksheet.variants)
+  const usedLabels = variantsPayload.success
+    ? variantsPayload.data.saved.map((variant) => variant.label)
+    : []
+
+  const labels = allocateVariantLabels(parsedCount.data, usedLabels)
+
+  if (!labels) {
+    return localizedFailure("VALIDATION_FAILED", "invalidVariantCount")
+  }
+
+  const parsed = startVariantJobInputSchema.safeParse({
+    worksheetId: input.worksheetId,
+    labels,
+  })
+
+  if (!parsed.success) {
+    return localizedFailure("VALIDATION_FAILED", "invalidWorksheet")
   }
 
   const { data: jobData, error: enqueueError } = await supabase.rpc(

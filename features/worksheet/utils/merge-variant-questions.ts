@@ -5,6 +5,8 @@ import type {
   WorksheetVersionLabel,
 } from "@/features/generate/types"
 
+const VARIANT_LABELS: VariantLabel[] = ["B", "C", "D"]
+
 function findVariant(
   variants: WorksheetVariant[],
   label: VariantLabel
@@ -55,6 +57,20 @@ export function getAvailableVersionLabels(
   }
 
   return (["A", "B", "C", "D"] as const).filter((label) => labels.has(label))
+}
+
+export function allocateVariantLabels(
+  additionalCount: number,
+  usedLabels: Iterable<VariantLabel> = []
+): VariantLabel[] | null {
+  const used = new Set(usedLabels)
+  const available = VARIANT_LABELS.filter((label) => !used.has(label))
+
+  if (additionalCount < 1 || additionalCount > available.length) {
+    return null
+  }
+
+  return available.slice(0, additionalCount)
 }
 
 export function mergeSavedAndEphemeralVariants(

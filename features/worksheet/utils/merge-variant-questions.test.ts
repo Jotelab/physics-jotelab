@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import type { WorksheetQuestion, WorksheetVariant } from "@/features/generate/types"
 import {
+  allocateVariantLabels,
   getAvailableVersionLabels,
   hasUnsavedVariants,
   mergeSavedAndEphemeralVariants,
@@ -70,5 +71,18 @@ describe("variant helpers", () => {
   it("detects unsaved ephemeral variants", () => {
     expect(hasUnsavedVariants([variant], [])).toBe(false)
     expect(hasUnsavedVariants([], [variant])).toBe(true)
+  })
+
+  it("allocates the next unused variant labels", () => {
+    expect(allocateVariantLabels(1, [])).toEqual(["B"])
+    expect(allocateVariantLabels(2, [])).toEqual(["B", "C"])
+    expect(allocateVariantLabels(1, ["B"])).toEqual(["C"])
+    expect(allocateVariantLabels(2, ["B"])).toEqual(["C", "D"])
+    expect(allocateVariantLabels(1, ["B", "C"])).toEqual(["D"])
+  })
+
+  it("returns null when not enough unused labels remain", () => {
+    expect(allocateVariantLabels(2, ["B", "C"])).toBeNull()
+    expect(allocateVariantLabels(1, ["B", "C", "D"])).toBeNull()
   })
 })

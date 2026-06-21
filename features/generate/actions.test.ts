@@ -67,6 +67,7 @@ vi.mock("./generate-question-core", async (importOriginal) => {
 import {
   editQuestionAction,
   getWorksheetQuestionCountAction,
+  getWorksheetSavedVariantsAction,
   regenerateQuestionAction,
 } from "./actions"
 import { failure } from "./errors"
@@ -82,6 +83,7 @@ function makeWorksheetRow(
     subject: "physics"
     question_count: number
     generation_settings: unknown
+    variants: unknown
   }> = {}
 ) {
   return {
@@ -89,8 +91,22 @@ function makeWorksheetRow(
     subject: "physics" as const,
     question_count: 5,
     generation_settings: { lesson: "Motion", scenario: "Find velocity." },
+    variants: { saved: [] },
     ...overrides,
   }
+}
+
+const savedVariant = {
+  id: "22222222-2222-4222-8222-222222222222",
+  label: "B" as const,
+  createdAt: "2026-06-21T00:00:00.000Z",
+  rolls: [
+    {
+      order: 1,
+      given_values: validWorksheetQuestion.given_values,
+      solution: validWorksheetQuestion.solution,
+    },
+  ],
 }
 
 function makeWorksheetQuestionRows(
@@ -151,6 +167,60 @@ describe("getWorksheetQuestionCountAction", () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
 
     const result = await getWorksheetQuestionCountAction(worksheetId)
+
+    expect(result).toEqual(
+      failure("NOT_AUTHENTICATED", "You must be logged in to view this worksheet.")
+    )
+  })
+})
+
+describe("getWorksheetSavedVariantsAction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockGetUser.mockResolvedValue({ data: { user: { id: "user-1" } } })
+  })
+
+  it("returns saved variants for an owned worksheet", async () => {
+    mockWorksheetsSingle.mockResolvedValue({
+      data: { variants: { saved: [savedVariant] } },
+      error: null,
+    })
+
+    const result = await getWorksheetSavedVariantsAction(worksheetId)
+
+    expect(result).toEqual({ ok: true, data: { savedVariants: [savedVariant] } })
+  })
+
+  it("returns an empty array when variants payload is invalid", async () => {
+    mockWorksheetsSingle.mockResolvedValue({
+      data: { variants: { saved: "invalid" } },
+      error: null,
+    })
+
+    const result = await getWorksheetSavedVariantsAction(worksheetId)
+
+    expect(result).toEqual({ ok: true, data: { savedVariants: [] } })
+  })
+
+  it("rejects invalid worksheet ids", async () => {
+    const result = await getWorksheetSavedVariantsAction("not-a-uuid")
+
+    expect(result).toEqual(failure("VALIDATION_FAILED", "Invalid worksheet."))
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it("returns not found when the worksheet is missing", async () => {
+    mockWorksheetsSingle.mockResolvedValue({ data: null, error: { message: "not found" } })
+
+    const result = await getWorksheetSavedVariantsAction(worksheetId)
+
+    expect(result).toEqual(failure("WORKSHEET_ACCESS_DENIED"))
+  })
+
+  it("requires authentication", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } })
+
+    const result = await getWorksheetSavedVariantsAction(worksheetId)
 
     expect(result).toEqual(
       failure("NOT_AUTHENTICATED", "You must be logged in to view this worksheet.")
