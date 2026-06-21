@@ -88,3 +88,29 @@ export const worksheetQuestionSchema = generatedQuestionSchema.extend({
   id: z.string().uuid(),
   order: z.number().int().min(1).max(MAX_WORKSHEET_QUESTION_COUNT),
 })
+
+export const variantLabelSchema = z.enum(["B", "C", "D"])
+
+export const variantQuestionRollSchema = z.object({
+  order: z.number().int().min(1).max(MAX_WORKSHEET_QUESTION_COUNT),
+  given_values: z.array(givenValueSchema).min(1).max(MAX_GIVEN_VARIABLES),
+  solution: solutionSchema,
+  question_text: z.string().min(1).max(MAX_QUESTION_TEXT_LEN).optional(),
+})
+
+export const worksheetVariantSchema = z.object({
+  id: z.string().uuid(),
+  label: variantLabelSchema,
+  createdAt: z.string().min(1),
+  rolls: z.array(variantQuestionRollSchema).min(1).max(MAX_WORKSHEET_QUESTION_COUNT),
+})
+
+export const worksheetVariantsPayloadSchema = z.object({
+  saved: z.array(worksheetVariantSchema).max(3),
+})
+
+export const variantSkippedSlotSchema = z.object({
+  order: z.number().int().min(1),
+  label: variantLabelSchema,
+  message: z.string().min(1),
+})

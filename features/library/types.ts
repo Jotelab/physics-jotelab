@@ -1,4 +1,4 @@
-import type { Subject, WorksheetQuestion } from "@/features/generate/types"
+import type { Subject, WorksheetQuestion, WorksheetVariant } from "@/features/generate/types"
 import type { WorksheetHeaderConfig } from "@/features/worksheet/types/header"
 
 export type LibraryWorksheetSummary = {
@@ -17,5 +17,6 @@ export type LibraryWorksheetDetail = LibraryWorksheetSummary & {
     scenario: string
     header?: WorksheetHeaderConfig
   } | null
+  savedVariants: WorksheetVariant[]
   updatedAt: string
 }

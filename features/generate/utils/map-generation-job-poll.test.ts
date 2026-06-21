@@ -20,6 +20,8 @@ const baseJob: GenerationJobRow = {
   skipped_orders: [],
   error_message: null,
   inngest_run_id: null,
+  variant_labels: null,
+  variant_results: { variants: [] },
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 }
@@ -216,5 +218,26 @@ describe("mapGenerationJobPoll", () => {
     expect(poll.statusMessage).toBe(
       "Generation stopped because you do not have enough credits."
     )
+  })
+
+  it("maps variant jobs with roll progress", () => {
+    const poll = mapGenerationJobPoll({
+      job: {
+        ...baseJob,
+        kind: "variant",
+        status: "running",
+        to_order: 1,
+        variant_labels: ["B", "C"],
+        last_completed_order: 2,
+        variant_results: { variants: [] },
+      },
+      questions: [questionAtOrder(1)],
+      questionCount: 1,
+      creditBalance: 4,
+    })
+
+    expect(poll.variantProgress).toEqual({ current: 2, total: 2 })
+    expect(poll.statusMessage).toContain("variants")
+    expect(poll.skippedSlots).toEqual([])
   })
 })

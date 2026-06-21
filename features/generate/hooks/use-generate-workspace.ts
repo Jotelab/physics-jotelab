@@ -248,6 +248,18 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
     questions,
     skippedSlots,
     questionActions: questionActions.questionActions,
+    worksheetId,
+    creditBalance: creditLimits.availableCredits,
+    savedVariants: [],
+    isWorksheetComplete:
+      creditLimits.hasGenerated &&
+      questions.length >= (targetQuestionCount ?? questions.length) &&
+      skippedSlots.length === 0 &&
+      !isGenerating,
+    onCreditBalanceUpdated: creditLimits.setLocalCreditBalanceOverride,
+    onVariantsSaved: () => router.refresh(),
+    onVariantActionMessage: questionActions.setActionMessage,
+    onVariantActionError: questionActions.setActionError,
   }
 
   return {

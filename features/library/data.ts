@@ -3,7 +3,7 @@ import "server-only"
 import { cache } from "react"
 import { z } from "zod"
 
-import { generationSettingsSchema } from "@/features/generate/schemas"
+import { generationSettingsSchema, worksheetVariantsPayloadSchema } from "@/features/generate/schemas"
 import { fetchWorksheetQuestions } from "@/features/generate/utils/fetch-worksheet-questions"
 import type { Subject, WorksheetQuestion } from "@/features/generate/types"
 import type { LibraryWorksheetDetail, LibraryWorksheetSummary } from "@/features/library/types"
@@ -18,6 +18,7 @@ type WorksheetDetailRow = {
   subject: Subject
   question_count: number
   generation_settings: unknown
+  variants: unknown
   created_at: string
   updated_at: string
 }
@@ -27,6 +28,7 @@ function toDetail(
   questions: WorksheetQuestion[]
 ): LibraryWorksheetDetail {
   const settings = generationSettingsSchema.safeParse(row.generation_settings)
+  const variantsPayload = worksheetVariantsPayloadSchema.safeParse(row.variants)
 
   return {
     id: row.id,
@@ -37,6 +39,7 @@ function toDetail(
     createdAt: row.created_at,
     questions,
     generationSettings: settings.success ? settings.data : null,
+    savedVariants: variantsPayload.success ? variantsPayload.data.saved : [],
     updatedAt: row.updated_at,
   }
 }
@@ -95,7 +98,7 @@ export const getLibraryWorksheet = cache(async function getLibraryWorksheet(
 
   const { data, error } = await supabase
     .from("worksheets")
-    .select("id, title, subject, question_count, generation_settings, created_at, updated_at")
+    .select("id, title, subject, question_count, generation_settings, variants, created_at, updated_at")
     .eq("id", parsed.data)
     .single<WorksheetDetailRow>()
 

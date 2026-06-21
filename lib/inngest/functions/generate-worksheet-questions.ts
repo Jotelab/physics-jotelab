@@ -1,7 +1,7 @@
 import {
   runGenerationJobWorker,
-  type GenerationJobStep,
 } from "@/lib/inngest/run-generation-job-worker"
+import type { GenerationJobStep } from "@/lib/inngest/generation-job-step"
 
 import { inngest } from "../client"
 
