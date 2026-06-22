@@ -20,7 +20,7 @@ export function MathComplexitySelect({ value, onChange, disabled }: MathComplexi
 
   return (
     <BuilderSelectDropdown
-      label={t("mathComplexity")}
+      label={t("mathComplexity.title")}
       id="math-complexity-select"
       listId="math-complexity-listbox"
       options={MATH_COMPLEXITY_OPTIONS}
@@ -49,7 +49,7 @@ export function ConceptualDifficultySelect({
 
   return (
     <BuilderSelectDropdown
-      label={t("conceptualDifficulty")}
+      label={t("conceptualDifficulty.title")}
       id="conceptual-difficulty-select"
       listId="conceptual-difficulty-listbox"
       options={CONCEPTUAL_DIFFICULTY_OPTIONS}

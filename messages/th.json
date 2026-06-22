@@ -97,14 +97,18 @@
     "advanced": "ขั้นสูง",
     "lesson": "บทเรียน",
     "scenario": "สถานการณ์",
-    "mathComplexity": "ความซับซ้อนของตัวเลข",
-    "mathComplexity.integers": "จำนวนเต็ม",
-    "mathComplexity.decimals": "ทศนิยม",
-    "mathComplexity.scientific": "สัญกรณ์วิทยาศาสตร์",
-    "conceptualDifficulty": "ระดับความยากเชิงแนวคิด",
-    "conceptualDifficulty.level_1": "ระดับ 1: ใช้สูตรโดยตรง",
-    "conceptualDifficulty.level_2": "ระดับ 2: แปลงหน่วย",
-    "conceptualDifficulty.level_3": "ระดับ 3: ข้อมูลรบกวน",
+    "mathComplexity": {
+      "title": "ความซับซ้อนของตัวเลข",
+      "integers": "จำนวนเต็ม",
+      "decimals": "ทศนิยม",
+      "scientific": "สัญกรณ์วิทยาศาสตร์"
+    },
+    "conceptualDifficulty": {
+      "title": "ระดับความยากเชิงแนวคิด",
+      "level_1": "ระดับ 1: ใช้สูตรโดยตรง",
+      "level_2": "ระดับ 2: แปลงหน่วย",
+      "level_3": "ระดับ 3: ข้อมูลรบกวน"
+    },
     "questions": "จำนวนข้อ",
     "numberOfQuestions": "จำนวนข้อ",
     "limitedQuestions": "จำกัดที่ {count} ข้อตามยอดเครดิตของคุณ",
