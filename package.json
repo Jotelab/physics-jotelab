@@ -65,16 +65,18 @@
     "typescript": "^5",
     "vitest": "^4.1.7"
   },
-  "ignoreScripts": [
-    "sharp",
-    "unrs-resolver"
-  ],
-  "trustedDependencies": [
-    "sharp",
-    "unrs-resolver"
-  ],
   "optionalDependencies": {
     "@emnapi/core": "1.10.0",
     "@emnapi/runtime": "1.10.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "@swc/core",
+      "inngest-cli",
+      "protobufjs",
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }
