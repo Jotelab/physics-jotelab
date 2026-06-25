@@ -1,9 +1,8 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 import { getTranslations } from "next-intl/server"
 import { notFound } from "next/navigation"
 
-import { Button } from "@/components/ui/button"
+import { getUserProfile } from "@/features/auth/get-user-profile"
 import { SavedWorksheetViewer } from "@/features/library/components/saved-worksheet-viewer"
 import { getLibraryWorksheet } from "@/features/library/data"
 
@@ -29,7 +28,7 @@ export default async function LibraryWorksheetPage({
 }) {
   const { worksheetId } = await params
   const worksheet = await getLibraryWorksheet(worksheetId)
-  const t = await getTranslations("library")
+  const profile = await getUserProfile()
 
   if (!worksheet) {
     notFound()
@@ -37,12 +36,10 @@ export default async function LibraryWorksheetPage({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="border-b bg-background px-6 py-3 print:hidden">
-        <Button asChild variant="outline" size="touch">
-          <Link href="/library">{t("backToLibrary")}</Link>
-        </Button>
-      </div>
-      <SavedWorksheetViewer worksheet={worksheet} />
+      <SavedWorksheetViewer
+        worksheet={worksheet}
+        creditBalance={profile?.credit_balance ?? 0}
+      />
     </div>
   )
 }

@@ -1,11 +1,12 @@
 "use client"
 
-import { FileText } from "lucide-react"
-import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 
+import { Button } from "@/components/ui/button"
 import { editQuestionAction, regenerateQuestionAction } from "@/features/generate/actions"
+import { WorksheetPreviewPanel } from "@/features/generate/components/worksheet-preview-panel"
 import type { WorksheetQuestion } from "@/features/generate/types"
 import type { LibraryWorksheetDetail } from "@/features/library/types"
 import {
@@ -14,27 +15,40 @@ import {
   getEditQuestionDraft,
   type EditQuestionDraft,
 } from "@/features/worksheet/components/edit-question-dialog"
-import { ExportPdfButton } from "@/features/worksheet/components/export-pdf-button"
-import { WorksheetPreview, type WorksheetViewMode } from "@/features/worksheet/components/worksheet-preview"
+import type { WorksheetViewMode } from "@/features/worksheet/components/worksheet-preview"
+import { UnsavedVariantsDialog } from "@/features/worksheet/components/generate-variants-dialog"
 import { useWorksheetHeaderConfig } from "@/features/worksheet/hooks/use-worksheet-header-config"
-import { SegmentedControl } from "@/components/ui/segmented-control"
 
-export function SavedWorksheetViewer({ worksheet }: { worksheet: LibraryWorksheetDetail }) {
+export function SavedWorksheetViewer({
+  worksheet,
+  creditBalance,
+}: {
+  worksheet: LibraryWorksheetDetail
+  creditBalance: number
+}) {
   return (
     <SavedWorksheetEditor
       key={`${worksheet.id}:${worksheet.updatedAt}`}
       worksheet={worksheet}
+      creditBalance={creditBalance}
     />
   )
 }
 
-function SavedWorksheetEditor({ worksheet }: { worksheet: LibraryWorksheetDetail }) {
+function SavedWorksheetEditor({
+  worksheet,
+  creditBalance,
+}: {
+  worksheet: LibraryWorksheetDetail
+  creditBalance: number
+}) {
   const router = useRouter()
   const t = useTranslations("library")
   const tGenerate = useTranslations("generate")
   const tErrors = useTranslations("errors")
   const [viewMode, setViewMode] = useState<WorksheetViewMode>("worksheet")
   const [questions, setQuestions] = useState(worksheet.questions)
+  const [localCreditBalance, setLocalCreditBalance] = useState(creditBalance)
   const [openMenuQuestionId, setOpenMenuQuestionId] = useState<string | null>(null)
   const [editingQuestion, setEditingQuestion] = useState<WorksheetQuestion | null>(null)
   const [editDraft, setEditDraft] = useState<EditQuestionDraft | null>(null)
@@ -42,6 +56,8 @@ function SavedWorksheetEditor({ worksheet }: { worksheet: LibraryWorksheetDetail
   const [actionError, setActionError] = useState<string | null>(null)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
   const [busyQuestionId, setBusyQuestionId] = useState<string | null>(null)
+  const [hasUnsavedVariants, setHasUnsavedVariants] = useState(false)
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false)
   const scenario = worksheet.generationSettings?.scenario ?? t("savedWorksheet")
   const actualQuestionCount = questions.length
   const isIncomplete = actualQuestionCount < worksheet.expectedQuestionCount
@@ -130,60 +146,67 @@ function SavedWorksheetEditor({ worksheet }: { worksheet: LibraryWorksheetDetail
 
     replaceQuestion(result.data.question)
     setActionMessage(tGenerate("questionRegenerated"))
+    setLocalCreditBalance(result.data.creditBalance)
     router.refresh()
     setBusyQuestionId(null)
   }
 
   return (
-    <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-muted/30">
-      <div className="flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-3 border-b bg-background px-4 py-3 print:hidden md:px-6">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <FileText className="size-4 shrink-0 text-muted-foreground" />
-            <span className="truncate text-sm font-medium">{resolvedHeader.title}</span>
-          </div>
-          {isIncomplete ? (
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t("incompleteGenerated", {
-                actual: actualQuestionCount,
-                expected: worksheet.expectedQuestionCount,
-              })}
-            </p>
-          ) : null}
-        </div>
-        <div className="flex items-center gap-2">
-          <ExportPdfButton />
-          <SegmentedControl
-            value={viewMode}
-            onValueChange={setViewMode}
-            options={[
-              { value: "worksheet", label: tGenerate("worksheet") },
-              { value: "answer", label: tGenerate("answer") },
-            ]}
-          />
-        </div>
+    <>
+      <div className="border-b bg-background px-6 py-3 print:hidden">
+        <Button
+          type="button"
+          variant="outline"
+          size="touch"
+          onClick={() => {
+            if (hasUnsavedVariants) {
+              setLeaveDialogOpen(true)
+              return
+            }
+            router.push("/library")
+          }}
+        >
+          {t("backToLibrary")}
+        </Button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto p-4 print:bg-white print:p-0 sm:p-6 lg:p-8">
-        <WorksheetPreview
-          header={resolvedHeader}
-          onHeaderChange={onHeaderChange}
-          questions={questions}
-          viewMode={viewMode}
-          emptyMessage={t("emptySavedWorksheet")}
-          questionActions={{
-            actionsDisabled: Boolean(busyQuestionId),
-            busyQuestionId,
-            openMenuQuestionId,
-            onToggleMenu: (questionId) =>
-              setOpenMenuQuestionId((current) =>
-                current === questionId ? null : questionId
-              ),
-            onEdit: handleEdit,
-            onRegenerate: handleRegenerate,
-          }}
-        />
-      </div>
+      <WorksheetPreviewPanel
+        worksheetTitle={resolvedHeader.title}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        header={resolvedHeader}
+        onHeaderChange={onHeaderChange}
+        questions={questions}
+        skippedSlots={[]}
+        questionActions={{
+          actionsDisabled: Boolean(busyQuestionId),
+          busyQuestionId,
+          openMenuQuestionId,
+          onToggleMenu: (questionId) =>
+            setOpenMenuQuestionId((current) => (current === questionId ? null : questionId)),
+          onEdit: handleEdit,
+          onRegenerate: handleRegenerate,
+        }}
+        worksheetId={worksheet.id}
+        creditBalance={localCreditBalance}
+        savedVariants={worksheet.savedVariants}
+        isWorksheetComplete={!isIncomplete}
+        onCreditBalanceUpdated={setLocalCreditBalance}
+        onVariantsSaved={() => router.refresh()}
+        onVariantActionMessage={setActionMessage}
+        onVariantActionError={setActionError}
+        onUnsavedVariantsChange={setHasUnsavedVariants}
+        onRequestLeave={() => router.push("/library")}
+      />
+
+      {isIncomplete ? (
+        <p className="border-b bg-background px-6 py-2 text-sm text-muted-foreground print:hidden">
+          {t("incompleteGenerated", {
+            actual: actualQuestionCount,
+            expected: worksheet.expectedQuestionCount,
+          })}
+        </p>
+      ) : null}
 
       {actionError ? (
         <p className="fixed right-4 bottom-4 z-40 max-w-sm rounded-md border border-destructive/30 bg-background px-3 py-2 text-sm text-destructive shadow-sm print:hidden">
@@ -210,6 +233,15 @@ function SavedWorksheetEditor({ worksheet }: { worksheet: LibraryWorksheetDetail
           onSave={handleSaveEdit}
         />
       ) : null}
-    </section>
+
+      <UnsavedVariantsDialog
+        open={leaveDialogOpen}
+        onOpenChange={setLeaveDialogOpen}
+        onConfirmLeave={() => {
+          setLeaveDialogOpen(false)
+          router.push("/library")
+        }}
+      />
+    </>
   )
 }

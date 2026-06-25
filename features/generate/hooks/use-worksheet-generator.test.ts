@@ -337,4 +337,319 @@ describe("useWorksheetGenerator", () => {
     expect(getGenerationJobAction).toHaveBeenCalledWith(jobId)
     expect(result.current.isGenerating).toBe(false)
   })
+
+  it("polls across intervals until the job reaches a terminal state", async () => {
+    vi.useFakeTimers()
+    startWorksheetGenerationJobAction.mockResolvedValue({
+      ok: true,
+      data: { jobId, worksheetId },
+    })
+    getGenerationJobAction
+      .mockResolvedValueOnce({
+        ok: true,
+        data: terminalPoll({
+          isTerminal: false,
+          status: "running",
+          progress: { current: 1, total: 2 },
+          statusMessage: "Generating questions...",
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        data: terminalPoll(),
+      })
+
+    const { result } = renderHook(() => useWorksheetGenerator())
+
+    let generationPromise: Promise<void> | undefined
+
+    await act(async () => {
+      generationPromise = result.current.startGeneration(generateInput)
+      await Promise.resolve()
+    })
+
+    expect(getGenerationJobAction).toHaveBeenCalledTimes(1)
+    expect(result.current.isGenerating).toBe(true)
+    expect(result.current.statusMessage).toBe("Generating questions...")
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000)
+      await generationPromise
+    })
+
+    expect(getGenerationJobAction).toHaveBeenCalledTimes(2)
+    expect(result.current.isGenerating).toBe(false)
+    expect(result.current.statusMessage).toBe("Worksheet complete.")
+  })
+
+  it("stops polling when the hook unmounts during a non-terminal job", async () => {
+    vi.useFakeTimers()
+    startWorksheetGenerationJobAction.mockResolvedValue({
+      ok: true,
+      data: { jobId, worksheetId },
+    })
+    getGenerationJobAction.mockResolvedValue({
+      ok: true,
+      data: terminalPoll({
+        isTerminal: false,
+        status: "running",
+        progress: { current: 1, total: 2 },
+        statusMessage: "Generating questions...",
+      }),
+    })
+
+    const { result, unmount } = renderHook(() => useWorksheetGenerator())
+
+    await act(async () => {
+      void result.current.startGeneration(generateInput)
+      await Promise.resolve()
+    })
+
+    expect(getGenerationJobAction).toHaveBeenCalledTimes(1)
+
+    unmount()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000)
+    })
+
+    expect(getGenerationJobAction).toHaveBeenCalledTimes(1)
+  })
+
+  it("sets an error when polling returns not ok", async () => {
+    startWorksheetGenerationJobAction.mockResolvedValue({
+      ok: true,
+      data: { jobId, worksheetId },
+    })
+    getGenerationJobAction.mockResolvedValue({
+      ok: false,
+      code: "UNKNOWN",
+      message: "Generation job not found.",
+    })
+
+    const { result } = renderHook(() => useWorksheetGenerator())
+
+    await act(async () => {
+      await result.current.startGeneration(generateInput)
+    })
+
+    expect(result.current.error).toBe("Generation job not found.")
+    expect(result.current.isGenerating).toBe(false)
+  })
+
+  it("sets an error when polling throws", async () => {
+    startWorksheetGenerationJobAction.mockResolvedValue({
+      ok: true,
+      data: { jobId, worksheetId },
+    })
+    getGenerationJobAction.mockRejectedValue(new Error("network down"))
+
+    const { result } = renderHook(() => useWorksheetGenerator())
+
+    await act(async () => {
+      await result.current.startGeneration(generateInput)
+    })
+
+    expect(result.current.error).toBe("Could not load generation progress.")
+    expect(result.current.isGenerating).toBe(false)
+  })
+
+  it("records failed terminal poll status as an error", async () => {
+    startWorksheetGenerationJobAction.mockResolvedValue({
+      ok: true,
+      data: { jobId, worksheetId },
+    })
+    getGenerationJobAction.mockResolvedValue({
+      ok: true,
+      data: terminalPoll({
+        status: "failed",
+        statusMessage: "Worksheet generation failed.",
+      }),
+    })
+
+    const { result } = renderHook(() => useWorksheetGenerator())
+
+    await act(async () => {
+      await result.current.startGeneration(generateInput)
+    })
+
+    expect(result.current.error).toBe("Worksheet generation failed.")
+    expect(result.current.isGenerating).toBe(false)
+  })
+
+  it("returns early from startGeneration when credits run out before completion", async () => {
+    startWorksheetGenerationJobAction.mockResolvedValue({
+      ok: true,
+      data: { jobId, worksheetId },
+    })
+    getGenerationJobAction.mockResolvedValue({
+      ok: true,
+      data: terminalPoll({
+        status: "partial",
+        stoppedForCredits: true,
+        isTerminal: true,
+        statusMessage: "Generation stopped because you do not have enough credits.",
+      }),
+    })
+
+    const { result } = renderHook(() => useWorksheetGenerator())
+
+    await act(async () => {
+      await result.current.startGeneration(generateInput)
+    })
+
+    expect(result.current.isGenerating).toBe(false)
+    expect(result.current.statusMessage).toBe(
+      "Generation stopped because you do not have enough credits."
+    )
+  })
+
+  it("returns null from syncTargetQuestionCount when the action fails", async () => {
+    getWorksheetQuestionCountAction.mockResolvedValue({
+      ok: false,
+      message: "Could not load worksheet.",
+    })
+
+    const { result } = renderHook(() => useWorksheetGenerator())
+
+    let syncedCount: number | null | undefined
+
+    await act(async () => {
+      syncedCount = await result.current.syncTargetQuestionCount(worksheetId)
+    })
+
+    expect(syncedCount).toBeNull()
+    expect(result.current.targetQuestionCount).toBeNull()
+  })
+
+  it("does nothing when resumeActiveJob finds no active job", async () => {
+    getActiveGenerationJobForWorksheetAction.mockResolvedValue({ ok: true, data: null })
+
+    const { result } = renderHook(() => useWorksheetGenerator())
+
+    await act(async () => {
+      await result.current.resumeActiveJob(worksheetId)
+    })
+
+    expect(getGenerationJobAction).not.toHaveBeenCalled()
+    expect(result.current.isGenerating).toBe(false)
+  })
+
+  it("completes appendQuestions when the extend job finishes", async () => {
+    getWorksheetQuestionCountAction.mockResolvedValue({ ok: true, data: { questionCount: 15 } })
+    startAppendGenerationJobAction.mockResolvedValue({
+      ok: true,
+      data: { jobId, worksheetId, newQuestionCount: 15 },
+    })
+    getGenerationJobAction.mockResolvedValue({
+      ok: true,
+      data: terminalPoll({
+        kind: "append",
+        toOrder: 15,
+        targetQuestionCount: 15,
+        progress: { current: 15, total: 15 },
+        statusMessage: "Worksheet extended.",
+      }),
+    })
+
+    const { result } = renderHook(() => useWorksheetGenerator())
+
+    const startingQuestions = Array.from({ length: 10 }, (_, index) => questionAtOrder(index + 1))
+
+    let appendResult: Awaited<ReturnType<typeof result.current.appendQuestions>> | undefined
+
+    await act(async () => {
+      appendResult = await result.current.appendQuestions(worksheetId, 5, {
+        questions: startingQuestions,
+        skippedSlots: [],
+      })
+    })
+
+    expect(appendResult).toEqual({ ok: true, newQuestionCount: 15 })
+    expect(result.current.isGenerating).toBe(false)
+    expect(result.current.statusMessage).toBe("Worksheet extended.")
+    expect(result.current.targetQuestionCount).toBe(15)
+  })
+
+  it("sets an error when append job start fails", async () => {
+    startAppendGenerationJobAction.mockResolvedValue({
+      ok: false,
+      message: "Could not extend worksheet.",
+    })
+
+    const { result } = renderHook(() => useWorksheetGenerator())
+
+    let appendResult: Awaited<ReturnType<typeof result.current.appendQuestions>> | undefined
+
+    await act(async () => {
+      appendResult = await result.current.appendQuestions(worksheetId, 3, {
+        questions: [questionAtOrder(1)],
+        skippedSlots: [],
+      })
+    })
+
+    expect(appendResult).toEqual({ ok: false })
+    expect(result.current.error).toBe("Could not extend worksheet.")
+    expect(result.current.isGenerating).toBe(false)
+    expect(getGenerationJobAction).not.toHaveBeenCalled()
+  })
+
+  it("sets an error when append job start throws", async () => {
+    startAppendGenerationJobAction.mockRejectedValue(new Error("network down"))
+
+    const { result } = renderHook(() => useWorksheetGenerator())
+
+    await act(async () => {
+      await result.current.appendQuestions(worksheetId, 3, {
+        questions: [questionAtOrder(1)],
+        skippedSlots: [],
+      })
+    })
+
+    expect(result.current.error).toBe("Could not append questions. Please try again.")
+    expect(result.current.isGenerating).toBe(false)
+  })
+
+  it("rejects append when additionalCount is negative", async () => {
+    const { result } = renderHook(() => useWorksheetGenerator())
+
+    let appendResult: Awaited<ReturnType<typeof result.current.appendQuestions>> | undefined
+
+    await act(async () => {
+      appendResult = await result.current.appendQuestions(worksheetId, -2, {
+        questions: [],
+        skippedSlots: [],
+      })
+    })
+
+    expect(appendResult).toEqual({ ok: false })
+    expect(startAppendGenerationJobAction).not.toHaveBeenCalled()
+  })
+
+  it("sets an error when append polling returns not ok", async () => {
+    startAppendGenerationJobAction.mockResolvedValue({
+      ok: true,
+      data: { jobId, worksheetId, newQuestionCount: 15 },
+    })
+    getGenerationJobAction.mockResolvedValue({
+      ok: false,
+      code: "UNKNOWN",
+      message: "Could not load extend progress.",
+    })
+
+    const { result } = renderHook(() => useWorksheetGenerator())
+
+    let appendResult: Awaited<ReturnType<typeof result.current.appendQuestions>> | undefined
+
+    await act(async () => {
+      appendResult = await result.current.appendQuestions(worksheetId, 3, {
+        questions: [questionAtOrder(1)],
+        skippedSlots: [],
+      })
+    })
+
+    expect(appendResult).toEqual({ ok: false })
+    expect(result.current.error).toBe("Could not load extend progress.")
+    expect(result.current.isGenerating).toBe(false)
+  })
 })

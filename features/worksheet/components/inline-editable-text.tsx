@@ -29,7 +29,11 @@ export function InlineEditableText({
 
   useEffect(() => {
     if (!isEditing) {
-      setDraft(value)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDraft((current) => {
+        if (current === value) return current
+        return value
+      })
     }
   }, [value, isEditing])
 

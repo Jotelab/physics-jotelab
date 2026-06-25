@@ -80,7 +80,7 @@ function makeWorksheetRow(
   overrides: Partial<{
     id: string
     user_id: string
-    subject: "math" | "physics" | "chemistry"
+    subject: "physics"
     question_count: number
     generation_settings: unknown
   }> = {}

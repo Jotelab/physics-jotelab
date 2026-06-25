@@ -1,6 +1,7 @@
 import { z } from "zod"
 
-import type { GenerationProgress, SkippedSlot, WorksheetQuestion } from "./types"
+import type { GenerationProgress, SkippedSlot, VariantLabel, VariantSkippedSlot, WorksheetQuestion, WorksheetVariant } from "./types"
+import { worksheetVariantSchema } from "./schemas"
 
 export const generationJobStatusSchema = z.enum([
   "queued",
@@ -13,7 +14,7 @@ export const generationJobStatusSchema = z.enum([
 
 export type GenerationJobStatus = z.infer<typeof generationJobStatusSchema>
 
-export const generationJobKindSchema = z.enum(["initial", "append"])
+export const generationJobKindSchema = z.enum(["initial", "append", "variant"])
 
 export type GenerationJobKind = z.infer<typeof generationJobKindSchema>
 
@@ -29,6 +30,8 @@ export type GenerationJobRow = {
   skipped_orders: unknown
   error_message: string | null
   inngest_run_id: string | null
+  variant_labels: VariantLabel[] | null
+  variant_results: unknown
   created_at: string
   updated_at: string
 }
@@ -36,11 +39,34 @@ export type GenerationJobRow = {
 const skippedOrderSchema = z.object({
   order: z.number().int().min(1),
   message: z.string().min(1),
+  label: z.enum(["B", "C", "D"]).optional(),
 })
 
 export function parseSkippedOrders(value: unknown): SkippedSlot[] {
   const parsed = z.array(skippedOrderSchema).safeParse(value)
-  return parsed.success ? parsed.data : []
+  return parsed.success
+    ? parsed.data.map(({ order, message }) => ({ order, message }))
+    : []
+}
+
+export function parseVariantSkippedOrders(value: unknown): VariantSkippedSlot[] {
+  const parsed = z.array(skippedOrderSchema).safeParse(value)
+  if (!parsed.success) {
+    return []
+  }
+
+  return parsed.data.flatMap((slot) =>
+    slot.label ? [{ order: slot.order, label: slot.label, message: slot.message }] : []
+  )
+}
+
+const variantResultsPayloadSchema = z.object({
+  variants: z.array(worksheetVariantSchema),
+})
+
+export function parseVariantResults(value: unknown): WorksheetVariant[] {
+  const parsed = variantResultsPayloadSchema.safeParse(value)
+  return parsed.success ? parsed.data.variants : []
 }
 
 export type GenerationJobPollResult = {
@@ -59,4 +85,7 @@ export type GenerationJobPollResult = {
   creditBalance: number | null
   isTerminal: boolean
   stoppedForCredits: boolean
+  variants?: WorksheetVariant[]
+  variantSkippedSlots?: VariantSkippedSlot[]
+  variantProgress?: GenerationProgress
 }

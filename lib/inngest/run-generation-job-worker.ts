@@ -12,14 +12,11 @@ import {
 } from "@/features/generate/utils/generation-order"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { createClientForProfile } from "@/lib/supabase/user-client"
-
-export type GenerationJobStep = {
-  run: <T>(name: string, fn: () => Promise<T>) => Promise<T>
-}
-
-export const syncGenerationJobStep: GenerationJobStep = {
-  run: async (_name, fn) => fn(),
-}
+import { runVariantGenerationJobWorker } from "@/lib/inngest/run-variant-generation-job-worker"
+import {
+  syncGenerationJobStep,
+  type GenerationJobStep,
+} from "@/lib/inngest/generation-job-step"
 
 async function updateJob(
   admin: ReturnType<typeof createServiceRoleClient>,
@@ -47,6 +44,49 @@ async function updateJob(
 }
 
 export async function runGenerationJobWorker(params: {
+  jobId: string
+  worksheetId: string
+  profileId: string
+  runId?: string
+  step?: GenerationJobStep
+}) {
+  const { jobId, worksheetId, profileId, runId, step = syncGenerationJobStep } = params
+  const admin = createServiceRoleClient()
+
+  const jobKind = await step.run("resolve-job-kind", async () => {
+    const { data, error } = await admin
+      .from("generation_jobs")
+      .select("kind")
+      .eq("id", jobId)
+      .single<{ kind: GenerationJobRow["kind"] }>()
+
+    if (error || !data) {
+      throw new Error("Generation job not found")
+    }
+
+    return data.kind
+  })
+
+  if (jobKind === "variant") {
+    return runVariantGenerationJobWorker({
+      jobId,
+      worksheetId,
+      profileId,
+      runId,
+      step,
+    })
+  }
+
+  return runStandardGenerationJobWorker({
+    jobId,
+    worksheetId,
+    profileId,
+    runId,
+    step,
+  })
+}
+
+async function runStandardGenerationJobWorker(params: {
   jobId: string
   worksheetId: string
   profileId: string

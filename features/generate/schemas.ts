@@ -14,11 +14,16 @@ import {
   MAX_SOLUTION_STEP_LEN,
   MAX_SOLUTION_STEPS,
   MAX_SYMBOL_LEN,
+  MAX_TARGET_VARIABLES,
   MAX_UNIT_LEN,
   MAX_WORKSHEET_QUESTION_COUNT,
 } from "./limits"
 
-export const subjectSchema = z.enum(["math", "physics", "chemistry"])
+export const subjectSchema = z.literal("physics")
+
+export const mathComplexitySchema = z.enum(["integers", "decimals", "scientific"])
+
+export const conceptualDifficultySchema = z.enum(["level_1", "level_2", "level_3"])
 
 export const givenValueSchema = z.object({
   symbol: z.string().min(1).max(MAX_SYMBOL_LEN),
@@ -53,7 +58,10 @@ export const generationSettingsSchema = z.object({
   lesson: z.string().trim().min(1).max(MAX_LESSON_LEN),
   scenario: z.string().trim().min(1).max(MAX_SCENARIO_LEN),
   given_variables: z.array(givenValueSchema).max(MAX_GIVEN_VARIABLES).optional(),
-  target_variables: z.array(targetVariableSchema).max(1).optional(),
+  target_variables: z.array(targetVariableSchema).max(MAX_TARGET_VARIABLES).optional(),
+  target_randomize: z.boolean().optional(),
+  math_complexity: mathComplexitySchema.optional(),
+  conceptual_difficulty: conceptualDifficultySchema.optional(),
   header: worksheetHeaderConfigSchema.optional(),
 })
 
@@ -63,7 +71,10 @@ export const generateWorksheetInputSchema = z.object({
   scenario: z.string().trim().min(1).max(MAX_SCENARIO_LEN),
   question_count: z.number().int().min(1).max(MAX_INITIAL_WORKSHEET_QUESTION_COUNT),
   given_variables: z.array(givenValueSchema).max(MAX_GIVEN_VARIABLES).optional(),
-  target_variables: z.array(targetVariableSchema).max(1).optional(),
+  target_variables: z.array(targetVariableSchema).max(MAX_TARGET_VARIABLES).optional(),
+  target_randomize: z.boolean().optional(),
+  math_complexity: mathComplexitySchema.optional(),
+  conceptual_difficulty: conceptualDifficultySchema.optional(),
 })
 
 const solutionSchema = z.object({
@@ -84,4 +95,30 @@ export const generatedQuestionSchema = z.object({
 export const worksheetQuestionSchema = generatedQuestionSchema.extend({
   id: z.string().uuid(),
   order: z.number().int().min(1).max(MAX_WORKSHEET_QUESTION_COUNT),
+})
+
+export const variantLabelSchema = z.enum(["B", "C", "D"])
+
+export const variantQuestionRollSchema = z.object({
+  order: z.number().int().min(1).max(MAX_WORKSHEET_QUESTION_COUNT),
+  given_values: z.array(givenValueSchema).min(1).max(MAX_GIVEN_VARIABLES),
+  solution: solutionSchema,
+  question_text: z.string().min(1).max(MAX_QUESTION_TEXT_LEN).optional(),
+})
+
+export const worksheetVariantSchema = z.object({
+  id: z.string().uuid(),
+  label: variantLabelSchema,
+  createdAt: z.string().min(1),
+  rolls: z.array(variantQuestionRollSchema).min(1).max(MAX_WORKSHEET_QUESTION_COUNT),
+})
+
+export const worksheetVariantsPayloadSchema = z.object({
+  saved: z.array(worksheetVariantSchema).max(3),
+})
+
+export const variantSkippedSlotSchema = z.object({
+  order: z.number().int().min(1),
+  label: variantLabelSchema,
+  message: z.string().min(1),
 })

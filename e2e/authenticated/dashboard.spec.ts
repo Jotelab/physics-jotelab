@@ -4,7 +4,7 @@ test.describe("authenticated dashboard", () => {
   test("generate page loads builder", async ({ page }) => {
     await page.goto("/generate")
     await expect(page.getByText("Worksheet Preview")).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByRole("button", { name: "Select Math" })).toBeVisible()
+    await expect(page.locator("#lesson-combobox")).toBeVisible()
   })
 
   test("library page loads", async ({ page }) => {

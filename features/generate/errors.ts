@@ -17,6 +17,7 @@ export const GENERATION_ERROR_CODES = [
   "VALIDATION_FAILED",
   "GENERATE_FAILED",
   "REGENERATE_FAILED",
+  "VARIANT_FAILED",
   "SAVE_FAILED",
   "RESERVE_FAILED",
   "UNKNOWN",
@@ -41,6 +42,7 @@ export const GENERATION_ERROR_MESSAGES: Record<GenerationErrorCode, string> = {
   VALIDATION_FAILED: "Please check your input and try again.",
   GENERATE_FAILED: "We could not generate the question.",
   REGENERATE_FAILED: "Could not regenerate the question. No credits were spent.",
+  VARIANT_FAILED: "Could not generate the variant. No credits were spent.",
   SAVE_FAILED: "Could not save the generated question.",
   RESERVE_FAILED: "Could not reserve a credit for this question.",
   UNKNOWN: "Something went wrong. Please try again.",
@@ -49,6 +51,7 @@ export const GENERATION_ERROR_MESSAGES: Record<GenerationErrorCode, string> = {
 const RETRYABLE_CODES = new Set<GenerationErrorCode>([
   "UNKNOWN",
   "GENERATE_FAILED",
+  "VARIANT_FAILED",
   "SAVE_FAILED",
   "RESERVE_FAILED",
 ])

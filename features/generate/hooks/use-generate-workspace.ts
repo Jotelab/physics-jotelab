@@ -7,20 +7,24 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import type { WorksheetConfigPanelProps } from "@/features/generate/components/worksheet-config-panel"
 import type { WorksheetPreviewPanelProps } from "@/features/generate/components/worksheet-preview-panel"
 import { useWorksheetConfigForm } from "@/features/generate/hooks/use-worksheet-config-form"
+import { getWorksheetSavedVariantsAction } from "@/features/generate/actions"
+import { resolveLessonKey } from "@/features/generate/data/generation-presets"
 import { useWorksheetCreditLimits } from "@/features/generate/hooks/use-worksheet-credit-limits"
 import { useWorksheetGenerator } from "@/features/generate/hooks/use-worksheet-generator"
 import { useWorksheetQuestionActions } from "@/features/generate/hooks/use-worksheet-question-actions"
-import { getSubjectLabel } from "@/features/generate/utils/subject-label"
 import type { WorksheetViewMode } from "@/features/worksheet/components/worksheet-preview"
 import { useWorksheetHeaderConfig } from "@/features/worksheet/hooks/use-worksheet-header-config"
+import type { WorksheetVariant } from "@/features/generate/types"
 
 export function useGenerateWorkspace({ creditBalance }: { creditBalance: number }) {
   const router = useRouter()
   const t = useTranslations("generate")
   const tCommon = useTranslations("common")
   const [viewMode, setViewMode] = useState<WorksheetViewMode>("worksheet")
+  const [savedVariants, setSavedVariants] = useState<WorksheetVariant[]>([])
   const configForm = useWorksheetConfigForm()
   const setCreditOverrideRef = useRef<(balance: number) => void>(() => {})
+  const savedVariantsEpochRef = useRef(0)
 
   const {
     isGenerating,
@@ -83,17 +87,59 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
     void syncTargetQuestionCount(worksheetId)
   }, [worksheetId, creditLimits.hasGenerated, isGenerating, syncTargetQuestionCount])
 
+  useEffect(() => {
+    if (!worksheetId) {
+      savedVariantsEpochRef.current += 1
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSavedVariants((current) => {
+        if (current.length === 0) return current
+        return []
+      })
+      return
+    }
+
+    let cancelled = false
+    const epochAtFetch = savedVariantsEpochRef.current
+
+    void getWorksheetSavedVariantsAction(worksheetId).then((result) => {
+      if (
+        cancelled ||
+        !result.ok ||
+        savedVariantsEpochRef.current !== epochAtFetch
+      ) {
+        return
+      }
+
+      setSavedVariants(result.data.savedVariants)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [worksheetId])
+
+
+
+  const lessonDisplay = useMemo(() => {
+    const trimmed = configForm.trimmedLesson
+    if (!trimmed) return ""
+    const key = resolveLessonKey(trimmed)
+    if (key.isPreset && key.lessonId) {
+      return t(`presets.lessons.${key.lessonId}`)
+    }
+    return trimmed
+  }, [configForm.trimmedLesson, t])
+
   const worksheetTitle = useMemo(() => {
     if (creditLimits.hasActiveWorksheet && creditLimits.activeWorksheetMeta) {
       return `${creditLimits.activeWorksheetMeta.subjectLabel}: ${creditLimits.activeWorksheetMeta.lesson}`
     }
-    if (!configForm.subject || !configForm.trimmedLesson) return t("worksheetPreview")
-    return `${getSubjectLabel(configForm.subject, tCommon)}: ${configForm.trimmedLesson}`
+    if (!lessonDisplay) return t("worksheetPreview")
+    return `${tCommon("subjects.physics")}: ${lessonDisplay}`
   }, [
     creditLimits.activeWorksheetMeta,
     creditLimits.hasActiveWorksheet,
-    configForm.subject,
-    configForm.trimmedLesson,
+    lessonDisplay,
     t,
     tCommon,
   ])
@@ -144,7 +190,7 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
     }
 
     creditLimits.setActiveWorksheetMeta({
-      subjectLabel: getSubjectLabel(parsed.data.subject, tCommon),
+      subjectLabel: tCommon("subjects.physics"),
       lesson: parsed.data.lesson,
       scenario: parsed.data.scenario,
       questionCount: parsed.data.question_count,
@@ -190,19 +236,23 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
   const configPanelProps: WorksheetConfigPanelProps = {
     activeTab: configForm.activeTab,
     onActiveTabChange: configForm.setActiveTab,
-    subject: configForm.subject,
     lesson: configForm.lesson,
     resolvedScenarioId: configForm.resolvedScenarioId,
     givenVariableIds: configForm.givenVariableIds,
-    targetVariableId: configForm.targetVariableId,
+    findVariableIds: configForm.findVariableIds,
+    targetRandomize: configForm.targetRandomize,
     onGivenVariableIdsChange: configForm.setGivenVariableIds,
-    onTargetVariableIdChange: configForm.setTargetVariableId,
+    onFindVariableIdsChange: configForm.handleFindChange,
+    onTargetRandomizeChange: configForm.handleTargetRandomizeChange,
+    mathComplexity: configForm.mathComplexity,
+    conceptualDifficulty: configForm.conceptualDifficulty,
+    onMathComplexityChange: configForm.setMathComplexity,
+    onConceptualDifficultyChange: configForm.setConceptualDifficulty,
     controlsDisabled,
     effectiveQuestionCount: creditLimits.effectiveQuestionCount,
     maxQuestionCount: creditLimits.maxQuestionCount,
     availableCredits: creditLimits.availableCredits,
     hasNoCredits: creditLimits.hasNoCredits,
-    onSubjectChange: configForm.handleSubjectChange,
     onLessonChange: configForm.handleLessonChange,
     onLessonSuggestionSelect: configForm.handleLessonSuggestionSelect,
     onScenarioChange: configForm.handleScenarioChange,
@@ -239,6 +289,22 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
     questions,
     skippedSlots,
     questionActions: questionActions.questionActions,
+    worksheetId,
+    creditBalance: creditLimits.availableCredits,
+    savedVariants,
+    isWorksheetComplete:
+      creditLimits.hasGenerated &&
+      questions.length >= (targetQuestionCount ?? questions.length) &&
+      skippedSlots.length === 0 &&
+      !isGenerating,
+    onCreditBalanceUpdated: creditLimits.setLocalCreditBalanceOverride,
+    onVariantsSaved: (variants) => {
+      savedVariantsEpochRef.current += 1
+      setSavedVariants(variants)
+      router.refresh()
+    },
+    onVariantActionMessage: questionActions.setActionMessage,
+    onVariantActionError: questionActions.setActionError,
   }
 
   return {

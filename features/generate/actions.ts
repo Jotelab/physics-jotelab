@@ -13,8 +13,12 @@ import {
 } from "./errors"
 import { regenerateQuestionForWorksheet } from "./generate-question-core"
 import type { ActionResult } from "./result-types"
-import { generatedQuestionSchema, worksheetQuestionSchema } from "./schemas"
-import type { WorksheetQuestion } from "./types"
+import {
+  generatedQuestionSchema,
+  worksheetQuestionSchema,
+  worksheetVariantsPayloadSchema,
+} from "./schemas"
+import type { WorksheetQuestion, Subject, WorksheetVariant } from "./types"
 import { fetchWorksheetQuestions } from "./utils/fetch-worksheet-questions"
 
 const questionActionInputSchema = z.object({
@@ -28,7 +32,7 @@ const editQuestionInputSchema = questionActionInputSchema.extend({
 
 type WorksheetRow = {
   id: string
-  subject: "math" | "physics" | "chemistry"
+  subject: Subject
   question_count: number
   generation_settings: unknown
 }
@@ -203,4 +207,42 @@ export async function getWorksheetQuestionCountAction(
   }
 
   return { ok: true, data: { questionCount: worksheet.question_count } }
+}
+
+export async function getWorksheetSavedVariantsAction(
+  worksheetId: string
+): Promise<ActionResult<{ savedVariants: WorksheetVariant[] }>> {
+  const parsed = z.string().uuid().safeParse(worksheetId)
+
+  if (!parsed.success) {
+    return localizedFailure("VALIDATION_FAILED", "invalidWorksheet")
+  }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return localizedFailure("NOT_AUTHENTICATED", "notAuthenticatedView")
+  }
+
+  const { data: worksheet, error: worksheetError } = await supabase
+    .from("worksheets")
+    .select("variants")
+    .eq("id", parsed.data)
+    .single<{ variants: unknown }>()
+
+  if (worksheetError || !worksheet) {
+    return localizedFailure("WORKSHEET_ACCESS_DENIED")
+  }
+
+  const variantsPayload = worksheetVariantsPayloadSchema.safeParse(worksheet.variants)
+
+  return {
+    ok: true,
+    data: {
+      savedVariants: variantsPayload.success ? variantsPayload.data.saved : [],
+    },
+  }
 }

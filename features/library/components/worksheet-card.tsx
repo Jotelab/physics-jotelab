@@ -21,7 +21,6 @@ function MoreMenu({
   worksheetId: string
   worksheetTitle: string
 }) {
-  const t = useTranslations("library")
   const tCommon = useTranslations("common")
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -90,7 +89,6 @@ export function WorksheetCard({
   worksheet: LibraryWorksheetSummary
 }) {
   const t = useTranslations("library")
-  const tCommon = useTranslations("common")
   const locale = useLocale()
   const dateFormatter = useMemo(
     () =>
@@ -111,12 +109,6 @@ export function WorksheetCard({
         href={`/library/${worksheet.id}`}
         className="flex aspect-[1/1.414] w-full flex-col rounded-xl border bg-background shadow-sm transition-all duration-200 hover:border-foreground/30 hover:shadow-md"
       >
-        <div className="p-4 pb-0 md:p-6 md:pb-0">
-          <span className="inline-block rounded-lg border px-3 py-1 text-base font-medium text-muted-foreground">
-            {tCommon(`subjects.${worksheet.subject}`)}
-          </span>
-        </div>
-
         <div className="flex-1" />
 
         <div className="p-4 pt-4 md:p-6 md:pt-4">

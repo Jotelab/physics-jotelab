@@ -18,7 +18,7 @@ import { validGeneratedQuestion, validWorksheetQuestion } from "@/tests/fixtures
 describe("generateWorksheetInputSchema", () => {
   it("accepts valid input", () => {
     const result = generateWorksheetInputSchema.safeParse({
-      subject: "math",
+      subject: "physics",
       lesson: "Linear equations",
       scenario: "Solve for x.",
       question_count: 10,
@@ -26,10 +26,21 @@ describe("generateWorksheetInputSchema", () => {
     expect(result.success).toBe(true)
   })
 
-  it("rejects empty lesson and scenario", () => {
+  it("rejects non-physics subject", () => {
     expect(
       generateWorksheetInputSchema.safeParse({
         subject: "math",
+        lesson: "Motion",
+        scenario: "Find velocity.",
+        question_count: 5,
+      }).success
+    ).toBe(false)
+  })
+
+  it("rejects empty lesson and scenario", () => {
+    expect(
+      generateWorksheetInputSchema.safeParse({
+        subject: "physics",
         lesson: "   ",
         scenario: "Solve.",
         question_count: 5,
@@ -57,7 +68,7 @@ describe("generateWorksheetInputSchema", () => {
     expect(result.success).toBe(true)
   })
 
-  it("rejects more than one target variable", () => {
+  it("accepts multiple target variables", () => {
     const result = generateWorksheetInputSchema.safeParse({
       subject: "physics",
       lesson: "Motion",
@@ -67,14 +78,15 @@ describe("generateWorksheetInputSchema", () => {
         { symbol: "v", label: "velocity" },
         { symbol: "a", label: "acceleration" },
       ],
+      target_randomize: true,
     })
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
   })
 
   it("rejects lesson and scenario over max length", () => {
     expect(
       generateWorksheetInputSchema.safeParse({
-        subject: "math",
+        subject: "physics",
         lesson: "x".repeat(MAX_LESSON_LEN + 1),
         scenario: "Solve.",
         question_count: 5,
@@ -82,7 +94,7 @@ describe("generateWorksheetInputSchema", () => {
     ).toBe(false)
     expect(
       generateWorksheetInputSchema.safeParse({
-        subject: "math",
+        subject: "physics",
         lesson: "Trig",
         scenario: "x".repeat(MAX_SCENARIO_LEN + 1),
         question_count: 5,
@@ -93,7 +105,7 @@ describe("generateWorksheetInputSchema", () => {
   it("rejects question_count outside 1–20", () => {
     expect(
       generateWorksheetInputSchema.safeParse({
-        subject: "math",
+        subject: "physics",
         lesson: "Trig",
         scenario: "Find angle.",
         question_count: 0,
@@ -101,7 +113,7 @@ describe("generateWorksheetInputSchema", () => {
     ).toBe(false)
     expect(
       generateWorksheetInputSchema.safeParse({
-        subject: "math",
+        subject: "physics",
         lesson: "Trig",
         scenario: "Find angle.",
         question_count: MAX_INITIAL_WORKSHEET_QUESTION_COUNT + 1,

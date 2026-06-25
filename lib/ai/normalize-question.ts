@@ -1,4 +1,7 @@
-import type { GeneratedQuestion } from "@/features/generate/types"
+import type { GeneratedQuestion, MathComplexity } from "@/features/generate/types"
+import { DEFAULT_MATH_COMPLEXITY } from "@/features/generate/constants/difficulty-settings"
+
+import { formatNumericValue } from "./format-math-complexity"
 
 function omitEmptyUnit(unit: string | undefined) {
   const trimmed = unit?.trim()
@@ -18,13 +21,31 @@ function coerceValue(value: number | string): number | string {
   return value
 }
 
-export function normalizeGeneratedQuestion(raw: GeneratedQuestion): GeneratedQuestion {
+function formatGivenValue(value: number | string, mathComplexity: MathComplexity): number | string {
+  if (typeof value === "number") {
+    return formatNumericValue(value, mathComplexity)
+  }
+
+  const coerced = coerceValue(value)
+  if (typeof coerced === "number") {
+    return formatNumericValue(coerced, mathComplexity)
+  }
+
+  return coerced
+}
+
+export function normalizeGeneratedQuestion(
+  raw: GeneratedQuestion,
+  options?: { mathComplexity?: MathComplexity }
+): GeneratedQuestion {
+  const mathComplexity = options?.mathComplexity ?? DEFAULT_MATH_COMPLEXITY
+
   return {
     question_text: raw.question_text.trim(),
     given_values: raw.given_values.map((given) => ({
       symbol: given.symbol.trim(),
       label: given.label.trim(),
-      value: coerceValue(given.value),
+      value: formatGivenValue(given.value, mathComplexity),
       ...omitEmptyUnit(given.unit),
     })),
     target_variable: {

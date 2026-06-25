@@ -30,20 +30,17 @@
     "english": "English",
     "thai": "ไทย",
     "subjects": {
-      "math": "คณิตศาสตร์",
-      "physics": "ฟิสิกส์",
-      "chemistry": "เคมี"
-    },
-    "selectSubject": "เลือก{subject}"
+      "physics": "ฟิสิกส์"
+    }
   },
   "metadata": {
     "defaultTitle": "PhysicsJotelab",
-    "defaultDescription": "สร้างใบงานคำนวณระดับมัธยมปลายด้วย AI — คณิตศาสตร์ ฟิสิกส์ และเคมี",
+    "defaultDescription": "สร้างใบงานคำนวณฟิสิกส์ระดับมัธยมปลายด้วย AI",
     "titleTemplate": "{title} | PhysicsJotelab",
     "loginTitle": "เข้าสู่ระบบ",
     "loginDescription": "เข้าสู่ระบบ PhysicsJotelab เพื่อสร้างใบงานคำนวณระดับมัธยมปลาย",
     "generateTitle": "สร้าง",
-    "generateDescription": "ตั้งค่าและสร้างใบงานคำนวณสำหรับคณิตศาสตร์ ฟิสิกส์ หรือเคมี",
+    "generateDescription": "ตั้งค่าและสร้างใบงานคำนวณฟิสิกส์",
     "libraryTitle": "คลัง",
     "libraryDescription": "เรียกดูและเปิดใบงานที่บันทึกไว้ใน PhysicsJotelab",
     "accountTitle": "บัญชี",
@@ -55,7 +52,9 @@
   },
   "auth": {
     "tagline": "สร้างใบงานคำนวณระดับมัธยมปลายได้ในไม่กี่วินาที",
-    "loginWithGoogle": "เข้าสู่ระบบด้วย Google"
+    "loginWithGoogle": "เข้าสู่ระบบด้วย Google",
+    "loginErrorOauth": "ไม่สามารถเริ่มเข้าสู่ระบบด้วย Google ได้ กรุณาลองอีกครั้ง",
+    "loginErrorCallback": "เข้าสู่ระบบไม่สำเร็จ กรุณาลองอีกครั้ง"
   },
   "account": {
     "title": "บัญชี",
@@ -96,9 +95,20 @@
     "configureWorksheet": "ตั้งค่าใบงาน",
     "basic": "พื้นฐาน",
     "advanced": "ขั้นสูง",
-    "subject": "วิชา",
     "lesson": "บทเรียน",
     "scenario": "สถานการณ์",
+    "mathComplexity": {
+      "title": "ความซับซ้อนของตัวเลข",
+      "integers": "จำนวนเต็ม",
+      "decimals": "ทศนิยม",
+      "scientific": "สัญกรณ์วิทยาศาสตร์"
+    },
+    "conceptualDifficulty": {
+      "title": "ระดับความยากเชิงแนวคิด",
+      "level_1": "ระดับ 1: ใช้สูตรโดยตรง",
+      "level_2": "ระดับ 2: แปลงหน่วย",
+      "level_3": "ระดับ 3: ข้อมูลรบกวน"
+    },
     "questions": "จำนวนข้อ",
     "numberOfQuestions": "จำนวนข้อ",
     "limitedQuestions": "จำกัดที่ {count} ข้อตามยอดเครดิตของคุณ",
@@ -119,24 +129,34 @@
     "confirmAppend": "ยืนยันการเพิ่ม",
     "devToggle": "[dev] สลับมุมมองหลังสร้าง",
     "variablesHint": "ตัวแปรที่เลือกจะถูกบันทึกกับใบงานและรวมในคำสั่งสร้าง AI",
-    "chooseSubjectFirst": "เลือกวิชาก่อน",
-    "chooseSubjectFirstScenario": "เลือกวิชาก่อน",
     "enterLessonFirst": "กรอกบทเรียนก่อน",
     "chooseScenario": "เลือกสถานการณ์",
-    "lessonPlaceholder": "Motion in one dimension",
+    "lessonPlaceholder": "การเคลื่อนที่ในหนึ่งมิติ",
+    "selectLessonForVariables": "เลือกบทเรียนเพื่อดูตัวแปรที่เกี่ยวข้อง",
+    "findSectionTitle": "หาค่า",
+    "findSectionHint": "เลือกตัวแปรที่ต้องการหาอย่างน้อยหนึ่งตัว ข้อจะสลับตามลำดับที่เลือก เว้นแต่เปิดโหมดสุ่ม",
+    "givenSectionTitle": "ค่าที่ให้ (ไม่บังคับ)",
+    "givenSectionHint": "ค่าที่มักใช้เป็นข้อมูลให้สำหรับตัวแปรที่เลือกหา ปล่อยว่างเพื่อให้ AI เลือกค่า",
+    "targetRandomize": "สุ่มแต่ละข้อ",
+    "targetRotateSummary": "ข้อจะสลับตามลำดับ: {symbols}",
+    "targetRandomSummary": "แต่ละข้อจะสุ่มจาก: {symbols}",
+    "chooseFindFirst": "เลือกตัวแปรที่ต้องการหาอย่างน้อยหนึ่งตัว หรือเปิดโหมดสุ่ม เพื่อตั้งค่าค่าที่ให้",
+    "noCompatibleGivens": "ไม่มีค่าที่ให้ที่เหมาะสมสำหรับตัวเลือกนี้ — AI จะเลือกค่าให้",
+    "givenNotTypicalForFind": "มักไม่ใช้เมื่อหา {symbols}",
+    "showAllGivens": "แสดงตัวแปรทั้งหมดในบทเรียน",
+    "hideExtraGivens": "ซ่อนตัวแปรเพิ่มเติม",
     "toggleLessonSuggestions": "แสดง/ซ่อนคำแนะนำบทเรียน",
     "lessonSuggestions": "คำแนะนำบทเรียน",
     "generalScenariosHint": "ใช้สถานการณ์ทั่วไป — เลือกบทเรียนที่แนะนำเพื่อตัวเลือกเฉพาะบทเรียน",
     "given": "ค่าที่ให้",
     "find": "หาค่า",
     "targetVariable": "ตัวแปรเป้าหมาย",
-    "chooseSubjectForVariables": "เลือกวิชาในแท็บพื้นฐานเพื่อตั้งค่าตัวแปร",
     "defaultValue": "ค่าเริ่มต้น: {value}{unit}",
     "unitOnly": "หน่วย: {unit}",
     "worksheetPreview": "ตัวอย่างใบงาน",
-    "previewHint": "เลือกวิชา บทเรียน และสถานการณ์เพื่อดูรูปแบบใบงาน",
+    "previewHint": "เลือกบทเรียนและสถานการณ์เพื่อดูรูปแบบใบงาน",
     "questionsSubtitle": "{count} ข้อ - {scenario}",
-    "validationRequired": "กรุณาเลือกวิชา บทเรียน และสถานการณ์",
+    "validationRequired": "กรุณาเลือกบทเรียนและสถานการณ์",
     "worksheet": "ใบงาน",
     "answer": "เฉลย",
     "answerKey": "เฉลย",
@@ -153,8 +173,109 @@
     "generateBeforeRegenerate": "สร้างใบงานก่อนสร้างคำถามใหม่",
     "checkEditedFields": "กรุณาตรวจสอบฟิลด์ที่แก้ไข",
     "questionRegenerated": "สร้างคำถามใหม่แล้ว",
+    "generateVariants": "สร้างชุดข้อสอบแทน",
+    "generateVariantsDescription": "สร้างเวอร์ชันอื่นที่มีโจทย์เหมือนกันแต่ตัวเลขต่างกัน เพื่อป้องกันการลอกข้อสอบ",
+    "variantCountLabel": "ต้องการเวอร์ชันเพิ่มอีกกี่ชุด?",
+    "variantCountOption": "รวม {total} เวอร์ชัน",
+    "variantCreditPreview": "ใช้เครดิต {cost} ({count} ข้อ × แต่ละเวอร์ชันใหม่)",
+    "variantInsufficientCredits": "เครดิตไม่เพียงพอสำหรับจำนวนเวอร์ชันนี้",
+    "variantCancel": "ยกเลิก",
+    "confirmGenerateVariants": "สร้างชุดข้อสอบแทน",
+    "generatingVariants": "กำลังสร้างชุดข้อสอบแทน…",
+    "generatingVariantsProgress": "กำลังสร้างชุดข้อสอบแทน {current}/{total}…",
+    "saveVariants": "บันทึกชุดข้อสอบแทน",
+    "savingVariants": "กำลังบันทึก…",
+    "printAllVersions": "พิมพ์ทุกเวอร์ชัน",
+    "versionLabel": "เวอร์ชัน {label}",
+    "versionLabelShort": "{label}",
+    "variantsSaved": "บันทึกชุดข้อสอบแทนแล้ว",
+    "variantsUnsavedWarningTitle": "ยังไม่ได้บันทึกชุดข้อสอบแทน",
+    "variantsUnsavedWarning": "คุณมีชุดข้อสอบแทนที่ยังไม่ได้บันทึก การออกจากหน้านี้จะทำให้ข้อมูลหายไป",
+    "leaveWithoutSaving": "ออกโดยไม่บันทึก",
     "appendedQuestions": "เพิ่ม {count} ข้อแล้ว",
     "extendedStoppedCredits": "ขยายใบงานเป็น {count} ข้อ การสร้างหยุด — เครดิตไม่พอสำหรับช่องที่เหลือ",
+    "presets": {
+      "lessons": {
+        "motion-1d": "การเคลื่อนที่ในหนึ่งมิติ",
+        "newtons-laws": "กฎของนิวตัน",
+        "energy-work": "พลังงานและงาน",
+        "circular-motion": "การเคลื่อนที่วงกลม",
+        "momentum-collisions": "โมเมนตัมและการชน",
+        "waves-oscillations": "คลื่นและการสั่น",
+        "electrostatics": "ไฟฟ้าสถิต",
+        "magnetic-fields": "สนามแม่เหล็ก"
+      },
+      "scenarios": {
+        "motion-1d": {
+          "1": { "label": "หาความเร็วสุดท้าย", "description": "หาความเร็วสุดท้ายจากความเร็วเริ่มต้น ความเร่ง และเวลา" },
+          "2": { "label": "หาตำแหน่ง", "description": "หาตำแหน่งจากความเร็วเริ่มต้น ความเร่ง และเวลา" },
+          "3": { "label": "หาความเร่ง", "description": "หาความเร่งจากความเร็วเริ่มต้น ความเร็วสุดท้าย และเวลา" },
+          "4": { "label": "หาเวลา", "description": "หาเวลาที่ใช้ในการถึงความเร็วที่กำหนดภายใต้ความเร่งคงที่" }
+        },
+        "newtons-laws": {
+          "1": { "label": "หาแรงลัพธ์", "description": "หาแรงลัพธ์จากมวลและความเร่ง (F = ma)" },
+          "2": { "label": "หาความเร่ง", "description": "หาความเร่งจากแรงที่กระทำและมวล" },
+          "3": { "label": "แรงเสียดทานบนพื้นผิว", "description": "แก้ปัญหาเกี่ยวกับแรงเสียดทานจลน์หรือสถิต" },
+          "4": { "label": "ระนาบเอียง", "description": "วิเคราะห์แรงที่กระทำต่อวัตถุบนระนาบเอียง" }
+        },
+        "energy-work": {
+          "1": { "label": "พลังงานจลน์", "description": "คำนวณพลังงานจลน์จากมวลและความเร็ว" },
+          "2": { "label": "พลังงานศักย์โน้มถ่วง", "description": "คำนวณพลังงานศักย์โน้มถ่วงใกล้พื้นผิวโลก" },
+          "3": { "label": "งานที่ทำ", "description": "คำนวณงานที่แรงคงที่ทำเมื่อวัตถุเคลื่อนที่" },
+          "4": { "label": "การอนุรักษ์พลังงาน", "description": "ใช้การอนุรักษ์พลังงานกลเพื่อหาค่าที่ไม่ทราบ" }
+        },
+        "circular-motion": {
+          "1": { "label": "ความเร่งจูงใจ", "description": "หาความเร่งจูงใจจากความเร็วและรัศมี" },
+          "2": { "label": "แรงจูงใจ", "description": "หาแรงจูงใจที่จำเป็นสำหรับการเคลื่อนที่วงกลม" },
+          "3": { "label": "คาบและความถี่", "description": "เชื่อมโยงคาบ ความถี่ และความเร็วเชิงมุมในการเคลื่อนที่วงกลมสม่ำเสมอ" },
+          "4": { "label": "ทางโค้งเอียง", "description": "วิเคราะห์แรงที่กระทำต่อยานพาหนะบนทางโค้งเอียง" }
+        },
+        "momentum-collisions": {
+          "1": { "label": "โมเมนตัม", "description": "คำนวณโมเมนตัมจากมวลและความเร็ว" },
+          "2": { "label": "การชนอย่างยืดหยุ่น", "description": "แก้ปัญหาการชนอย่างยืดหยุ่นในหนึ่งมิติ" },
+          "3": { "label": "การชนอย่างไม่ยืดหยุ่น", "description": "แก้ปัญหาการชนอย่างไม่ยืดหยุ่นสมบูรณ์" },
+          "4": { "label": "แรงกระแทก", "description": "เชื่อมโยงแรงกระแทกกับการเปลี่ยนแปลงโมเมนตัม" }
+        },
+        "waves-oscillations": {
+          "1": { "label": "ความเร็วคลื่น", "description": "หาความเร็วคลื่นจากความถี่และความยาวคลื่น" },
+          "2": { "label": "คาบการสั่นแบบฮาร์มอนิก", "description": "หาคาบของระบบมวลสปริงหรือลูกตุ้มอย่างง่าย" },
+          "3": { "label": "คลื่นยืน", "description": "หาความยาวคลื่นหรือความถี่ของคลื่นยืนบนเส้น" },
+          "4": { "label": "เอฟเฟกต์ดอปเพลอร์", "description": "คำนวณความถี่ที่สังเกตได้โดยใช้เอฟเฟกต์ดอปเพลอร์" }
+        },
+        "electrostatics": {
+          "1": { "label": "แรงคูลอมบ์", "description": "คำนวณแรงไฟฟ้าสถิตระหว่างประจุจุดสองจุด" },
+          "2": { "label": "สนามไฟฟ้า", "description": "หาความเข้มสนามไฟฟ้าที่จุดหนึ่งจากประจุ" },
+          "3": { "label": "ศักย์ไฟฟ้า", "description": "คำนวณศักย์ไฟฟ้าหรือความต่างศักย์" },
+          "4": { "label": "พลังงานในตัวเก็บประจุ", "description": "หาพลังงานที่เก็บในตัวเก็บประจุหรือประจุบนแผ่น" }
+        },
+        "magnetic-fields": {
+          "1": { "label": "แรงแม่เหล็กบนสายไฟ", "description": "หาแรงแม่เหล็กที่กระทำต่อสายไฟที่มีกระแสในสนามแม่เหล็ก" },
+          "2": { "label": "แรงบนประจุเคลื่อนที่", "description": "คำนวณแรงแม่เหล็กที่กระทำต่ออนุภาคชาร์จที่เคลื่อนที่" },
+          "3": { "label": "แรงเหนี่ยวนำ", "description": "ใช้กฎของฟาราเดย์หาแรงเหนี่ยวนำ" },
+          "4": { "label": "สนามในโซลินอยด์", "description": "ประมาณสนามแม่เหล็กภายในโซลินอยด์" }
+        },
+        "fallback": {
+          "1": { "label": "หาความเร็วสุดท้าย", "description": "หาความเร็วสุดท้ายจากความเร็วเริ่มต้น ความเร่ง และเวลา" },
+          "2": { "label": "หาแรง", "description": "หาแรงโดยใช้กฎข้อที่สองของนิวตันหรือหลักการที่เกี่ยวข้อง" },
+          "3": { "label": "คำนวณพลังงาน", "description": "คำนวณพลังงานจลน์หรือศักย์ในระบบทางฟิสิกส์" },
+          "4": { "label": "แปลงหน่วย", "description": "แปลงปริมาณทางฟิสิกส์ระหว่างหน่วย SI และแก้ปัญหา" }
+        }
+      },
+      "variables": {
+        "phys-v": "ความเร็วสุดท้าย",
+        "phys-v0": "ความเร็วเริ่มต้น",
+        "phys-a": "ความเร่ง",
+        "phys-t": "เวลา",
+        "phys-s": "ตำแหน่ง",
+        "phys-f": "แรง",
+        "phys-m": "มวล",
+        "phys-ek": "พลังงานจลน์",
+        "phys-ep": "พลังงานศักย์",
+        "phys-p": "โมเมนตัม",
+        "phys-r": "รัศมี",
+        "phys-q": "ประจุไฟฟ้า"
+      }
+    },
     "headerSettings": "ตั้งค่าหัวใบงาน",
     "headerTitleEdit": "แก้ไขชื่อใบงาน",
     "headerInstructionsEdit": "แก้ไขคำแนะนำใบงาน",
@@ -227,6 +348,13 @@
     "worksheetNotFound": "ไม่พบใบงาน",
     "couldNotLoadJob": "ไม่สามารถโหลดงานสร้างได้",
     "couldNotLoadProgress": "ไม่สามารถโหลดความคืบหน้าการสร้างได้",
-    "couldNotSaveEdit": "ไม่สามารถบันทึกการแก้ไขได้"
+    "couldNotSaveEdit": "ไม่สามารถบันทึกการแก้ไขได้",
+    "VARIANT_FAILED": "ไม่สามารถสร้างชุดข้อสอบแทนได้ ไม่มีการใช้เครดิต",
+    "invalidVariantCount": "กรุณาเลือกจำนวนเวอร์ชันที่ถูกต้อง",
+    "worksheetIncompleteForVariants": "ต้องสร้างแบบฝึกหัดให้ครบก่อนจึงจะสร้างชุดข้อสอบแทนได้",
+    "generationJobAlreadyActive": "มีงานสร้างคำถามกำลังทำงานอยู่แล้ว",
+    "couldNotStartVariantJob": "ไม่สามารถเริ่มสร้างชุดข้อสอบแทนได้",
+    "invalidVariantPayload": "ข้อมูลชุดข้อสอบแทนไม่ถูกต้อง",
+    "couldNotSaveVariants": "ไม่สามารถบันทึกชุดข้อสอบแทนได้"
   }
 }

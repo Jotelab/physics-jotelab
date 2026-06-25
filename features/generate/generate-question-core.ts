@@ -18,18 +18,26 @@ import type { GenerateQuestionResult } from "./result-types"
 import { buildScenarioPrompt } from "./utils/build-scenario-prompt"
 import { buildGenerateIdempotencyKey, buildRegenerateIdempotencyKey } from "./utils/idempotency-key"
 import {
+  DEFAULT_CONCEPTUAL_DIFFICULTY,
+  DEFAULT_MATH_COMPLEXITY,
+} from "./constants/difficulty-settings"
+import {
+  getTargetPoolFromSettings,
+  resolveQuestionTarget,
+} from "./utils/resolve-question-target"
+import {
   completeResponseWasDbRefunded,
   parseCompleteResponse,
 } from "./utils/parse-complete-response"
 import { parseReserveResponse } from "./utils/parse-reservation-response"
 import { generationSettingsSchema, worksheetQuestionSchema } from "./schemas"
 import { fetchWorksheetQuestions } from "./utils/fetch-worksheet-questions"
-import type { WorksheetQuestion } from "./types"
+import type { Subject } from "./types"
 
 type WorksheetRow = {
   id: string
   user_id: string
-  subject: "math" | "physics" | "chemistry"
+  subject: Subject
   question_count: number
   generation_settings: unknown
 }
@@ -44,12 +52,23 @@ function parseGenerationSettings(settings: unknown) {
 }
 
 function getPromptScenario(
-  generationSettings: z.infer<typeof generationSettingsSchema>
+  generationSettings: z.infer<typeof generationSettingsSchema>,
+  order: number,
+  worksheetId: string
 ) {
+  const pool = getTargetPoolFromSettings(generationSettings)
+  const activeTarget = resolveQuestionTarget(generationSettings, order, worksheetId)
+
   return buildScenarioPrompt(
     generationSettings.scenario,
     generationSettings.given_variables,
-    generationSettings.target_variables
+    activeTarget,
+    {
+      pool: pool.length > 1 ? pool : undefined,
+      mode: generationSettings.target_randomize ? "random" : "rotate",
+      conceptualDifficulty:
+        generationSettings.conceptual_difficulty ?? DEFAULT_CONCEPTUAL_DIFFICULTY,
+    }
   )
 }
 
@@ -227,8 +246,9 @@ export async function generateQuestionForWorksheet(params: {
     const generatedQuestion = await generateWorksheetQuestion({
       subject: worksheet.subject,
       lesson: generationSettings.lesson,
-      scenario: getPromptScenario(generationSettings),
+      scenario: getPromptScenario(generationSettings, order, worksheet.id),
       previousQuestionsContext,
+      mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
     })
 
     const question = worksheetQuestionSchema.parse({
@@ -359,8 +379,13 @@ export async function regenerateQuestionForWorksheet(params: {
     const generatedQuestion = await regenerateWorksheetQuestion({
       subject: worksheet.subject,
       lesson: generationSettings.lesson,
-      scenario: getPromptScenario(generationSettings),
+      scenario: getPromptScenario(
+        generationSettings,
+        originalQuestion.order,
+        worksheet.id
+      ),
       existingQuestionText: originalQuestion.question_text,
+      mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
     })
 
     const replacementQuestion = worksheetQuestionSchema.parse({

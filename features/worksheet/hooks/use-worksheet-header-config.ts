@@ -49,14 +49,23 @@ export function useWorksheetHeaderConfig({
   const worksheetIdRef = useRef(worksheetId)
   const previousWorksheetIdRef = useRef<string | null>(worksheetId)
 
-  latestConfigRef.current = config
-  worksheetIdRef.current = worksheetId
+  useEffect(() => {
+    latestConfigRef.current = config
+    worksheetIdRef.current = worksheetId
+  }, [config, worksheetId])
 
   useEffect(() => {
     if (savedHeader != null) {
       titleTouchedRef.current = Boolean(savedHeader.title?.trim())
       instructionsTouchedRef.current = Boolean(savedHeader.instructions?.trim())
-      setConfig(buildConfigFromSaved(savedHeader, defaults))
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setConfig((current) => {
+        const next = buildConfigFromSaved(savedHeader, defaults)
+        if (current.title === next.title && current.instructions === next.instructions && current.fields === next.fields) {
+          return current
+        }
+        return next
+      })
       previousWorksheetIdRef.current = worksheetId
       return
     }
@@ -75,11 +84,17 @@ export function useWorksheetHeaderConfig({
     if (shouldResetDraft) {
       titleTouchedRef.current = false
       instructionsTouchedRef.current = false
-      setConfig(buildConfigFromSaved(null, defaults))
+      setConfig((current) => {
+        const next = buildConfigFromSaved(null, defaults)
+        if (current.title === next.title && current.instructions === next.instructions && current.fields === next.fields) {
+          return current
+        }
+        return next
+      })
     }
 
     previousWorksheetIdRef.current = worksheetId
-  }, [savedHeader, worksheetId, defaults.title, defaults.instructions])
+  }, [savedHeader, worksheetId, defaults])
 
   useEffect(() => {
     setConfig((current) => {
@@ -182,7 +197,7 @@ export function useWorksheetHeaderConfig({
 
     const resolved = resolveHeaderConfig(latestConfigRef.current, defaults)
     schedulePersist(latestConfigRef.current, resolved)
-  }, [worksheetId, defaults.title, defaults.instructions, schedulePersist])
+  }, [worksheetId, defaults, schedulePersist])
 
   return {
     resolvedHeader,

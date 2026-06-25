@@ -5,7 +5,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(9);
+select plan(15);
 
 do $$
 declare
@@ -47,6 +47,13 @@ declare
       )
     )
   );
+  v_valid_settings_with_difficulty jsonb := jsonb_build_object(
+    'lesson', 'Linear equations',
+    'scenario', 'Solve for x.',
+    'math_complexity', 'decimals',
+    'conceptual_difficulty', 'level_2',
+    'target_randomize', true
+  );
   v_many_given jsonb;
 begin
   select jsonb_agg(
@@ -58,6 +65,7 @@ begin
   perform set_config('test.valid_question', v_valid_question::text, true);
   perform set_config('test.valid_settings', v_valid_settings::text, true);
   perform set_config('test.valid_settings_with_header', v_valid_settings_with_header::text, true);
+  perform set_config('test.valid_settings_with_difficulty', v_valid_settings_with_difficulty::text, true);
   perform set_config(
     'test.oversized_header_title_settings',
     jsonb_build_object(
@@ -96,6 +104,58 @@ begin
   perform set_config(
     'test.oversized_lesson_settings',
     jsonb_build_object('lesson', repeat('l', 161), 'scenario', 'ok')::text,
+    true
+  );
+  perform set_config(
+    'test.invalid_math_complexity_settings',
+    jsonb_build_object(
+      'lesson', 'ok',
+      'scenario', 'ok',
+      'math_complexity', 'fractions'
+    )::text,
+    true
+  );
+  perform set_config(
+    'test.invalid_conceptual_difficulty_settings',
+    jsonb_build_object(
+      'lesson', 'ok',
+      'scenario', 'ok',
+      'conceptual_difficulty', 'level_9'
+    )::text,
+    true
+  );
+  perform set_config(
+    'test.invalid_target_randomize_settings',
+    jsonb_build_object(
+      'lesson', 'ok',
+      'scenario', 'ok',
+      'target_randomize', 'yes'
+    )::text,
+    true
+  );
+  perform set_config(
+    'test.valid_multi_target_settings',
+    jsonb_build_object(
+      'lesson', 'Motion',
+      'scenario', 'Find values.',
+      'target_variables', jsonb_build_array(
+        jsonb_build_object('symbol', 'v', 'label', 'velocity'),
+        jsonb_build_object('symbol', 'a', 'label', 'acceleration')
+      ),
+      'target_randomize', true
+    )::text,
+    true
+  );
+  perform set_config(
+    'test.oversized_target_settings',
+    jsonb_build_object(
+      'lesson', 'Motion',
+      'scenario', 'Find values.',
+      'target_variables', (
+        select jsonb_agg(jsonb_build_object('symbol', 'x' || n, 'label', 'target ' || n))
+        from generate_series(1, 7) as n
+      )
+    )::text,
     true
   );
 end;
@@ -144,6 +204,36 @@ select ok(
 select ok(
   not public.is_valid_generation_settings(current_setting('test.invalid_header_field_settings')::jsonb),
   'invalid header field keys are rejected'
+);
+
+select ok(
+  public.is_valid_generation_settings(current_setting('test.valid_settings_with_difficulty')::jsonb),
+  'valid generation settings with difficulty fields passes'
+);
+
+select ok(
+  not public.is_valid_generation_settings(current_setting('test.invalid_math_complexity_settings')::jsonb),
+  'invalid math_complexity value is rejected'
+);
+
+select ok(
+  not public.is_valid_generation_settings(current_setting('test.invalid_conceptual_difficulty_settings')::jsonb),
+  'invalid conceptual_difficulty value is rejected'
+);
+
+select ok(
+  not public.is_valid_generation_settings(current_setting('test.invalid_target_randomize_settings')::jsonb),
+  'non-boolean target_randomize is rejected'
+);
+
+select ok(
+  public.is_valid_generation_settings(current_setting('test.valid_multi_target_settings')::jsonb),
+  'valid generation settings with multiple target_variables passes'
+);
+
+select ok(
+  not public.is_valid_generation_settings(current_setting('test.oversized_target_settings')::jsonb),
+  'more than 6 target_variables is rejected'
 );
 
 select ok(

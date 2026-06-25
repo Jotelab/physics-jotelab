@@ -36,12 +36,12 @@ function HeaderConfigHarness({
 }) {
   const result = useWorksheetHeaderConfig(args)
   const onHeaderChangeRef = useRef(result.onHeaderChange)
-  onHeaderChangeRef.current = result.onHeaderChange
 
   useEffect(() => {
+    onHeaderChangeRef.current = result.onHeaderChange
     snapshotRef.current = {
       resolvedHeader: result.resolvedHeader,
-      onHeaderChange: onHeaderChangeRef.current,
+      onHeaderChange: result.onHeaderChange,
     }
   })
 

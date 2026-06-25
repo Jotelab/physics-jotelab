@@ -10,28 +10,35 @@ import { formLabelClass } from "@/lib/ui-classes"
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LessonCombobox } from "@/features/generate/components/lesson-combobox"
+import {
+  ConceptualDifficultySelect,
+  MathComplexitySelect,
+} from "@/features/generate/components/difficulty-select"
 import { ScenarioSelect } from "@/features/generate/components/scenario-select"
-import { SubjectSelector } from "@/features/generate/components/subject-selector"
-import { VariableCheckboxPicker } from "@/features/generate/components/variable-checkbox-picker"
+import { VariableConstraintPicker } from "@/features/generate/components/variable-constraint-picker"
 import { MAX_INITIAL_WORKSHEET_QUESTION_COUNT } from "@/features/generate/limits"
-import type { GenerationProgress, Subject } from "@/features/generate/types"
+import type { ConceptualDifficulty, GenerationProgress, MathComplexity } from "@/features/generate/types"
 
 export type WorksheetConfigPanelProps = {
   activeTab: "basic" | "advanced"
   onActiveTabChange: (tab: "basic" | "advanced") => void
-  subject: Subject | ""
   lesson: string
   resolvedScenarioId: string
   givenVariableIds: string[]
-  targetVariableId: string
+  findVariableIds: string[]
+  targetRandomize: boolean
   onGivenVariableIdsChange: (ids: string[]) => void
-  onTargetVariableIdChange: (id: string) => void
+  onFindVariableIdsChange: (ids: string[]) => void
+  onTargetRandomizeChange: (enabled: boolean) => void
+  mathComplexity: MathComplexity
+  conceptualDifficulty: ConceptualDifficulty
+  onMathComplexityChange: (value: MathComplexity) => void
+  onConceptualDifficultyChange: (value: ConceptualDifficulty) => void
   controlsDisabled: boolean
   effectiveQuestionCount: number
   maxQuestionCount: number
   availableCredits: number
   hasNoCredits: boolean
-  onSubjectChange: (subject: Subject) => void
   onLessonChange: (lesson: string) => void
   onLessonSuggestionSelect: () => void
   onScenarioChange: (id: string, description: string) => void
@@ -60,7 +67,6 @@ export type WorksheetConfigPanelProps = {
 }
 
 function WorksheetBasicFields({
-  subject,
   lesson,
   resolvedScenarioId,
   controlsDisabled,
@@ -68,14 +74,16 @@ function WorksheetBasicFields({
   maxQuestionCount,
   availableCredits,
   hasNoCredits,
-  onSubjectChange,
   onLessonChange,
   onLessonSuggestionSelect,
   onScenarioChange,
   onQuestionCountChange,
+  mathComplexity,
+  conceptualDifficulty,
+  onMathComplexityChange,
+  onConceptualDifficultyChange,
 }: Pick<
   WorksheetConfigPanelProps,
-  | "subject"
   | "lesson"
   | "resolvedScenarioId"
   | "controlsDisabled"
@@ -83,20 +91,20 @@ function WorksheetBasicFields({
   | "maxQuestionCount"
   | "availableCredits"
   | "hasNoCredits"
-  | "onSubjectChange"
   | "onLessonChange"
   | "onLessonSuggestionSelect"
   | "onScenarioChange"
   | "onQuestionCountChange"
+  | "mathComplexity"
+  | "conceptualDifficulty"
+  | "onMathComplexityChange"
+  | "onConceptualDifficultyChange"
 >) {
   const t = useTranslations("generate")
 
   return (
     <div className="space-y-6">
-      <SubjectSelector value={subject} onChange={onSubjectChange} disabled={controlsDisabled} />
-
       <LessonCombobox
-        subject={subject}
         value={lesson}
         onChange={onLessonChange}
         onSuggestionSelect={onLessonSuggestionSelect}
@@ -104,10 +112,21 @@ function WorksheetBasicFields({
       />
 
       <ScenarioSelect
-        subject={subject}
         lesson={lesson}
         value={resolvedScenarioId}
         onChange={onScenarioChange}
+        disabled={controlsDisabled}
+      />
+
+      <MathComplexitySelect
+        value={mathComplexity}
+        onChange={onMathComplexityChange}
+        disabled={controlsDisabled}
+      />
+
+      <ConceptualDifficultySelect
+        value={conceptualDifficulty}
+        onChange={onConceptualDifficultyChange}
         disabled={controlsDisabled}
       />
 
@@ -374,7 +393,6 @@ export function WorksheetConfigPanel({
 
   const basicFields = (
     <WorksheetBasicFields
-      subject={props.subject}
       lesson={props.lesson}
       resolvedScenarioId={props.resolvedScenarioId}
       controlsDisabled={props.controlsDisabled}
@@ -382,11 +400,14 @@ export function WorksheetConfigPanel({
       maxQuestionCount={props.maxQuestionCount}
       availableCredits={props.availableCredits}
       hasNoCredits={props.hasNoCredits}
-      onSubjectChange={props.onSubjectChange}
       onLessonChange={props.onLessonChange}
       onLessonSuggestionSelect={props.onLessonSuggestionSelect}
       onScenarioChange={props.onScenarioChange}
       onQuestionCountChange={props.onQuestionCountChange}
+      mathComplexity={props.mathComplexity}
+      conceptualDifficulty={props.conceptualDifficulty}
+      onMathComplexityChange={props.onMathComplexityChange}
+      onConceptualDifficultyChange={props.onConceptualDifficultyChange}
     />
   )
 
@@ -437,12 +458,14 @@ export function WorksheetConfigPanel({
           <div className="space-y-7">
             {basicFields}
 
-            <VariableCheckboxPicker
-              subject={props.subject}
+            <VariableConstraintPicker
+              lesson={props.lesson}
+              findVariableIds={props.findVariableIds}
+              targetRandomize={props.targetRandomize}
               givenVariableIds={props.givenVariableIds}
-              targetVariableId={props.targetVariableId}
+              onFindChange={props.onFindVariableIdsChange}
+              onTargetRandomizeChange={props.onTargetRandomizeChange}
               onGivenChange={props.onGivenVariableIdsChange}
-              onTargetChange={props.onTargetVariableIdChange}
               disabled={props.controlsDisabled}
             />
 

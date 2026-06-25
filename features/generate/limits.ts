@@ -11,6 +11,7 @@ export const MAX_LABEL_LEN = 120
 export const MAX_UNIT_LEN = 32
 export const MAX_GIVEN_STRING_VALUE_LEN = 64
 export const MAX_GIVEN_VARIABLES = 12
+export const MAX_TARGET_VARIABLES = 6
 export const MAX_QUESTION_TEXT_LEN = 4000
 export const MAX_SOLUTION_STEPS = 24
 export const MAX_SOLUTION_STEP_LEN = 2000

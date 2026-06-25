@@ -30,20 +30,17 @@
     "english": "English",
     "thai": "ไทย",
     "subjects": {
-      "math": "Math",
-      "physics": "Physics",
-      "chemistry": "Chemistry"
-    },
-    "selectSubject": "Select {subject}"
+      "physics": "Physics"
+    }
   },
   "metadata": {
     "defaultTitle": "PhysicsJotelab",
-    "defaultDescription": "Generate high-school calculation worksheets with AI — Math, Physics, and Chemistry.",
+    "defaultDescription": "Generate high-school physics calculation worksheets with AI.",
     "titleTemplate": "{title} | PhysicsJotelab",
     "loginTitle": "Login",
     "loginDescription": "Sign in to PhysicsJotelab to generate high-school calculation worksheets.",
     "generateTitle": "Generate",
-    "generateDescription": "Configure and generate a custom calculation worksheet for Math, Physics, or Chemistry.",
+    "generateDescription": "Configure and generate a custom physics calculation worksheet.",
     "libraryTitle": "Library",
     "libraryDescription": "Browse and open your saved PhysicsJotelab worksheets.",
     "accountTitle": "Account",
@@ -55,7 +52,9 @@
   },
   "auth": {
     "tagline": "Generate high-school calculation worksheets in seconds.",
-    "loginWithGoogle": "Login with Google"
+    "loginWithGoogle": "Login with Google",
+    "loginErrorOauth": "Could not start Google sign-in. Please try again.",
+    "loginErrorCallback": "Sign-in failed. Please try again."
   },
   "account": {
     "title": "Account",
@@ -96,9 +95,20 @@
     "configureWorksheet": "Configure worksheet",
     "basic": "Basic",
     "advanced": "Advanced",
-    "subject": "Subject",
     "lesson": "Lesson",
     "scenario": "Scenario",
+    "mathComplexity": {
+      "title": "Math complexity",
+      "integers": "Clean integers",
+      "decimals": "Decimals",
+      "scientific": "Scientific notation"
+    },
+    "conceptualDifficulty": {
+      "title": "Conceptual difficulty",
+      "level_1": "Level 1: Direct formula",
+      "level_2": "Level 2: Unit conversions",
+      "level_3": "Level 3: Distractor data"
+    },
     "questions": "Questions",
     "numberOfQuestions": "Number of questions",
     "limitedQuestions": "Limited to {count, plural, one {# question} other {# questions}} by your credit balance.",
@@ -119,24 +129,34 @@
     "confirmAppend": "Confirm append",
     "devToggle": "[dev] toggle post-generation view",
     "variablesHint": "Selected variables are stored with the worksheet and included in AI generation prompts.",
-    "chooseSubjectFirst": "Choose a subject first",
-    "chooseSubjectFirstScenario": "Choose a subject first",
     "enterLessonFirst": "Enter a lesson first",
     "chooseScenario": "Choose a scenario",
     "lessonPlaceholder": "Motion in one dimension",
+    "selectLessonForVariables": "Select a lesson to see relevant variables.",
+    "findSectionTitle": "What to find",
+    "findSectionHint": "Choose one or more unknowns. Questions rotate through your selection unless random is enabled.",
+    "givenSectionTitle": "Known values (optional)",
+    "givenSectionHint": "Typical givens for your find selection. Leave empty to let AI choose values.",
+    "targetRandomize": "Random each question",
+    "targetRotateSummary": "Questions will rotate: {symbols}",
+    "targetRandomSummary": "Each question picks randomly from: {symbols}",
+    "chooseFindFirst": "Choose at least one variable to find, or enable random, to configure known values.",
+    "noCompatibleGivens": "No typical given values for this find selection — AI will choose givens.",
+    "givenNotTypicalForFind": "Not typically used when finding {symbols}",
+    "showAllGivens": "Show all lesson variables",
+    "hideExtraGivens": "Hide extra variables",
     "toggleLessonSuggestions": "Toggle lesson suggestions",
     "lessonSuggestions": "Lesson suggestions",
     "generalScenariosHint": "Using general scenarios — pick a suggested lesson for lesson-specific options.",
     "given": "Given",
     "find": "Find",
     "targetVariable": "Target variable",
-    "chooseSubjectForVariables": "Choose a subject on the Basic tab to configure variables.",
     "defaultValue": "Default: {value}{unit}",
     "unitOnly": "Unit: {unit}",
     "worksheetPreview": "Worksheet Preview",
-    "previewHint": "Choose a subject, lesson, and scenario to preview the worksheet format.",
+    "previewHint": "Choose a lesson and scenario to preview the worksheet format.",
     "questionsSubtitle": "{count} questions - {scenario}",
-    "validationRequired": "Please choose a subject, lesson, and scenario.",
+    "validationRequired": "Please choose a lesson and scenario.",
     "worksheet": "Worksheet",
     "answer": "Answer",
     "answerKey": "Answer Key",
@@ -153,8 +173,109 @@
     "generateBeforeRegenerate": "Generate a worksheet before regenerating questions.",
     "checkEditedFields": "Please check the edited question fields.",
     "questionRegenerated": "Question regenerated.",
+    "generateVariants": "Generate Variants",
+    "generateVariantsDescription": "Create alternate versions with the same scenarios but different numbers for adjacent seating.",
+    "variantCountLabel": "How many additional versions?",
+    "variantCountOption": "{total} total versions",
+    "variantCreditPreview": "Cost: {cost} credits ({count} questions × each new version)",
+    "variantInsufficientCredits": "You do not have enough credits for this many variants.",
+    "variantCancel": "Cancel",
+    "confirmGenerateVariants": "Generate variants",
+    "generatingVariants": "Generating variants…",
+    "generatingVariantsProgress": "Generating variant rolls {current}/{total}…",
+    "saveVariants": "Save Variants",
+    "savingVariants": "Saving variants…",
+    "printAllVersions": "Print All Versions",
+    "versionLabel": "Version {label}",
+    "versionLabelShort": "{label}",
+    "variantsSaved": "Variants saved to this worksheet.",
+    "variantsUnsavedWarningTitle": "Unsaved variants",
+    "variantsUnsavedWarning": "You have generated variants that are not saved yet. Leaving now will discard them.",
+    "leaveWithoutSaving": "Leave without saving",
     "appendedQuestions": "Appended {count, plural, one {# question} other {# questions}}.",
     "extendedStoppedCredits": "Worksheet extended to {count} questions. Generation stopped — not enough credits for the remaining slots.",
+    "presets": {
+      "lessons": {
+        "motion-1d": "Motion in one dimension",
+        "newtons-laws": "Newton's laws",
+        "energy-work": "Energy & work",
+        "circular-motion": "Circular motion",
+        "momentum-collisions": "Momentum & collisions",
+        "waves-oscillations": "Waves & oscillations",
+        "electrostatics": "Electrostatics",
+        "magnetic-fields": "Magnetic fields"
+      },
+      "scenarios": {
+        "motion-1d": {
+          "1": { "label": "Find final velocity", "description": "Find final velocity given initial velocity, acceleration, and time." },
+          "2": { "label": "Find displacement", "description": "Find displacement given initial velocity, acceleration, and time." },
+          "3": { "label": "Find acceleration", "description": "Find acceleration given initial velocity, final velocity, and time." },
+          "4": { "label": "Find time", "description": "Find time required to reach a given velocity under constant acceleration." }
+        },
+        "newtons-laws": {
+          "1": { "label": "Find net force", "description": "Find net force given mass and acceleration (F = ma)." },
+          "2": { "label": "Find acceleration", "description": "Find acceleration from applied forces and mass." },
+          "3": { "label": "Friction on a surface", "description": "Solve a problem involving kinetic or static friction." },
+          "4": { "label": "Inclined plane", "description": "Analyze forces on an object on an inclined plane." }
+        },
+        "energy-work": {
+          "1": { "label": "Kinetic energy", "description": "Calculate kinetic energy from mass and speed." },
+          "2": { "label": "Gravitational PE", "description": "Calculate gravitational potential energy near Earth's surface." },
+          "3": { "label": "Work done", "description": "Calculate work done by a constant force over a displacement." },
+          "4": { "label": "Conservation of energy", "description": "Use conservation of mechanical energy to find an unknown." }
+        },
+        "circular-motion": {
+          "1": { "label": "Centripetal acceleration", "description": "Find centripetal acceleration from speed and radius." },
+          "2": { "label": "Centripetal force", "description": "Find centripetal force required for circular motion." },
+          "3": { "label": "Period and frequency", "description": "Relate period, frequency, and angular speed for uniform circular motion." },
+          "4": { "label": "Banked curve", "description": "Analyze forces on a vehicle moving around a banked curve." }
+        },
+        "momentum-collisions": {
+          "1": { "label": "Momentum", "description": "Calculate momentum from mass and velocity." },
+          "2": { "label": "Elastic collision", "description": "Solve a one-dimensional elastic collision problem." },
+          "3": { "label": "Inelastic collision", "description": "Solve a perfectly inelastic collision problem." },
+          "4": { "label": "Impulse", "description": "Relate impulse to change in momentum." }
+        },
+        "waves-oscillations": {
+          "1": { "label": "Wave speed", "description": "Find wave speed from frequency and wavelength." },
+          "2": { "label": "Simple harmonic period", "description": "Find the period of a mass-spring or simple pendulum system." },
+          "3": { "label": "Standing waves", "description": "Determine wavelength or frequency for a standing wave on a string." },
+          "4": { "label": "Doppler effect", "description": "Calculate observed frequency using the Doppler effect." }
+        },
+        "electrostatics": {
+          "1": { "label": "Coulomb force", "description": "Calculate electrostatic force between two point charges." },
+          "2": { "label": "Electric field", "description": "Find electric field strength at a point due to charges." },
+          "3": { "label": "Electric potential", "description": "Calculate electric potential or potential difference." },
+          "4": { "label": "Capacitor energy", "description": "Find energy stored in a capacitor or charge on plates." }
+        },
+        "magnetic-fields": {
+          "1": { "label": "Magnetic force on wire", "description": "Find magnetic force on a current-carrying wire in a field." },
+          "2": { "label": "Force on moving charge", "description": "Calculate magnetic force on a moving charged particle." },
+          "3": { "label": "Induced EMF", "description": "Apply Faraday's law to find induced EMF." },
+          "4": { "label": "Solenoid field", "description": "Estimate magnetic field inside a solenoid." }
+        },
+        "fallback": {
+          "1": { "label": "Find final velocity", "description": "Find final velocity given initial velocity, acceleration, and time." },
+          "2": { "label": "Find force", "description": "Find force using Newton's second law or related principles." },
+          "3": { "label": "Energy calculation", "description": "Calculate kinetic or potential energy in a physical system." },
+          "4": { "label": "Unit conversion", "description": "Convert physical quantities between SI units and solve." }
+        }
+      },
+      "variables": {
+        "phys-v": "final velocity",
+        "phys-v0": "initial velocity",
+        "phys-a": "acceleration",
+        "phys-t": "time",
+        "phys-s": "displacement",
+        "phys-f": "force",
+        "phys-m": "mass",
+        "phys-ek": "kinetic energy",
+        "phys-ep": "potential energy",
+        "phys-p": "momentum",
+        "phys-r": "radius",
+        "phys-q": "charge"
+      }
+    },
     "headerSettings": "Header settings",
     "headerTitleEdit": "Edit worksheet title",
     "headerInstructionsEdit": "Edit worksheet instructions",
@@ -227,6 +348,13 @@
     "worksheetNotFound": "Worksheet not found.",
     "couldNotLoadJob": "Could not load generation job.",
     "couldNotLoadProgress": "Could not load generation progress.",
-    "couldNotSaveEdit": "Could not save the edited question."
+    "couldNotSaveEdit": "Could not save the edited question.",
+    "VARIANT_FAILED": "Could not generate the variant. No credits were spent.",
+    "invalidVariantCount": "Please choose a valid number of variants.",
+    "worksheetIncompleteForVariants": "The worksheet must be fully generated before creating variants.",
+    "generationJobAlreadyActive": "A generation job is already running for this worksheet.",
+    "couldNotStartVariantJob": "Could not start variant generation.",
+    "invalidVariantPayload": "Invalid variant data.",
+    "couldNotSaveVariants": "Could not save variants."
   }
 }
