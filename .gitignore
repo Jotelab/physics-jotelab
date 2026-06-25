@@ -75,7 +75,7 @@ next-env.d.ts
 # Repomix
 repomix-output.*
 repomix-outputs/
-repomix.config.ts
+# repomix.config.ts
 
 
 # Supabase CLI local state
