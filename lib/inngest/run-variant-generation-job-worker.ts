@@ -8,6 +8,7 @@ import {
   parseVariantSkippedOrders,
 } from "@/features/generate/generation-job-types"
 import type { VariantLabel, VariantQuestionRoll, WorksheetVariant } from "@/features/generate/types"
+import { deriveVariantId } from "@/features/generate/utils/variant-identity"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { createClientForProfile } from "@/lib/supabase/user-client"
 
@@ -49,17 +50,21 @@ async function updateVariantJob(
 
 function getOrCreateVariant(
   variants: WorksheetVariant[],
-  label: VariantLabel
+  label: VariantLabel,
+  identity: { jobId: string; createdAt: string }
 ): WorksheetVariant {
   const existing = variants.find((variant) => variant.label === label)
   if (existing) {
     return existing
   }
 
+  // id/createdAt are derived deterministically (not random / wall-clock) so the
+  // variant's identity is stable across Inngest replays and retries; otherwise
+  // the per-roll persist step and the finalize step could write different ids.
   const created: WorksheetVariant = {
-    id: crypto.randomUUID(),
+    id: deriveVariantId(identity.jobId, label),
     label,
-    createdAt: new Date().toISOString(),
+    createdAt: identity.createdAt,
     rolls: [],
   }
   variants.push(created)
@@ -184,7 +189,10 @@ export async function runVariantGenerationJobWorker(params: {
     })
 
     if (stepResult.type === "saved") {
-      const variant = getOrCreateVariant(variants, stepResult.label)
+      const variant = getOrCreateVariant(variants, stepResult.label, {
+        jobId: job.id,
+        createdAt: job.created_at,
+      })
       upsertRoll(variant, stepResult.roll)
       lastCompletedOrder += 1
       skippedOrders = skippedOrders.filter(
