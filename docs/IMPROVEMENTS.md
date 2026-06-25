@@ -62,3 +62,77 @@ The items below are hardening / defense-in-depth, not active exploits.
 - [ ] **Low · S** — Best-effort job-fail cleanup uses the service-role (RLS-bypassing) client in a request path. `markGenerationJobFailed` flips `generation_jobs.status` to `failed` by `jobId` with no ownership check. The `jobId` is server-minted in the same action (not user-supplied), so no IDOR today, but it would become one if the call were ever reached with a client-influenced id. [features/generate/generation-job-actions.ts:46](../features/generate/generation-job-actions.ts#L46), [features/generate/variant-actions.ts:49](../features/generate/variant-actions.ts#L49). _Fix:_ scope the update to the known owner or route via a user-scoped path.
 
 - [ ] **Low · S** — Prompt injection: user-controlled `lesson` / `scenario` (and the existing question text on regenerate) are interpolated unescaped into the generation prompt. Impact is contained — inputs are length-bounded by Zod (`MAX_LESSON_LEN`/`MAX_SCENARIO_LEN`), output is constrained by `generateObject` + `generatedQuestionSchema` + normalize + re-parse, there is no tool use, and the result is stored only in the user's own worksheet (no cross-tenant or exfil channel) — so worst case a user degrades their own output. [lib/ai/generate-question.ts:40](../lib/ai/generate-question.ts#L40) (regenerate [lib/ai/regenerate-question.ts:36](../lib/ai/regenerate-question.ts#L36)). _Fix:_ delimit user content as clearly-marked untrusted data and keep the schema/validation guarantees.
+
+## Maintainability
+
+Findings on duplicated logic, oversized files, weak typing, and test gaps.
+Severity and effort (S/M/L) are estimates. The TypeScript surface is otherwise
+clean — there is exactly one `as unknown as` and zero `: any` / `as any` in
+non-test source.
+
+### High
+
+- [ ] **High · M** — The reserve→generate→complete→cancel flow is triplicated. `generateQuestionForWorksheet`, `regenerateQuestionForWorksheet`, and `generateVariantRollForQuestion` each re-implement the same skeleton (parse reserve failure, branch on `completed`/`failed`/active, `reservationActive` bookkeeping, cancel-on-throw). Bugs get fixed in one copy and not the others. [features/generate/generate-question-core.ts:243](../features/generate/generate-question-core.ts#L243) (regenerate [generate-question-core.ts:381](../features/generate/generate-question-core.ts#L381), variant [generate-variant-core.ts:178](../features/generate/generate-variant-core.ts#L178)). _Fix:_ extract a `withCreditReservation(reserve, generate, complete, cancel)` helper.
+
+### Medium
+
+- [ ] **Med · M** — The two Inngest workers duplicate their whole scaffolding. `runStandardGenerationJobWorker` and `runVariantGenerationJobWorker` repeat mark-running / load-job / load-worksheet / per-item loop / credit-exhaust fan-out / finalize, plus near-identical `updateJob` vs `updateVariantJob` RPC wrappers. [lib/inngest/run-generation-job-worker.ts:89](../lib/inngest/run-generation-job-worker.ts#L89) (variant [run-variant-generation-job-worker.ts:79](../lib/inngest/run-variant-generation-job-worker.ts#L79)). _Fix:_ factor a generic job-runner parameterized by the per-item work function and progress serializer.
+
+- [ ] **Med · M** — No unit coverage on the job-orchestration or auth critical paths. `generate-question-core` and the credit/limit utils are tested, but the workers (retry, skip, credit-exhaust, partial/failed transitions) have no `*.test.ts`, and `features/auth/actions.ts` (sign-in/out) is untested. [lib/inngest/run-generation-job-worker.ts:1](../lib/inngest/run-generation-job-worker.ts#L1), [lib/inngest/run-variant-generation-job-worker.ts:1](../lib/inngest/run-variant-generation-job-worker.ts#L1), [features/auth/actions.ts:1](../features/auth/actions.ts#L1). _Fix:_ test the workers against a fake `GenerationJobStep` + stubbed core.
+
+- [ ] **Med · M** — `worksheet-config-panel.tsx` is a 480-line presentational component with a ~35-field props interface (prop-drilling). Every new control threads another callback prop through the parent. [features/generate/components/worksheet-config-panel.tsx:22](../features/generate/components/worksheet-config-panel.tsx#L22). _Fix:_ group related props into objects or provide form state via context.
+
+### Low
+
+- [ ] **Low · S** — Only unsafe cast in the codebase: `step as unknown as GenerationJobStep` papers over a real type mismatch between Inngest's `step` and the internal step interface. [lib/inngest/functions/generate-worksheet-questions.ts:26](../lib/inngest/functions/generate-worksheet-questions.ts#L26). _Fix:_ define `GenerationJobStep` as the subset Inngest already satisfies, or wrap with a typed adapter.
+
+- [ ] **Low · S** — `getWorksheetForProfile` (select id/user_id/settings, compare `user_id`) is copy-pasted between the generate core and the variant core with slightly different column lists. [features/generate/generate-question-core.ts:75](../features/generate/generate-question-core.ts#L75), [features/generate/generate-variant-core.ts:34](../features/generate/generate-variant-core.ts#L34). _Fix:_ share one ownership-load helper.
+
+- [ ] **Low · M** — JSON/DB rows are typed by hand (`generation_settings: unknown`, `variants: unknown`) and read back through ad-hoc `data as X` casts with no generated Supabase types; `get-user-profile.ts` returns `data as UserProfile` with no runtime validation. [features/auth/get-user-profile.ts:18](../features/auth/get-user-profile.ts#L18), [features/generate/utils/fetch-worksheet-questions.ts:44](../features/generate/utils/fetch-worksheet-questions.ts#L44). _Fix:_ generate `Database` types from Supabase and/or Zod-validate the profile row.
+
+## Scalability
+
+Findings on behavior under load: the generation pipeline, Inngest concurrency,
+Supabase access patterns, and credit checks under concurrency. Severity and
+effort (S/M/L) are estimates. (Indexes for the hot access paths — `worksheet_questions(worksheet_id, question_order)`, `generation_jobs(worksheet_id)` partial-active, `credit_reservations` unique active slots — already exist, so the items below are about request volume and serialization, not missing indexes.)
+
+### High
+
+- [ ] **High · M** — The standard worker re-reads *all* of a worksheet's questions ~3× per order → roughly O(N²) row transfer for an N-question worksheet. Inside each `generate-order-${order}` step it calls `loadWorksheetQuestionsForProfile` (full fetch), then `generateQuestionForWorksheet` calls `fetchWorksheetQuestions` again, then a third `reloaded` fetch after save. [lib/inngest/run-generation-job-worker.ts:156](../lib/inngest/run-generation-job-worker.ts#L156) (reload [run-generation-job-worker.ts:178](../lib/inngest/run-generation-job-worker.ts#L178), inner [generate-question-core.ts:183](../features/generate/generate-question-core.ts#L183)). _Fix:_ pass the already-loaded questions into the core; only fetch the prior-context slice (`question_order < order`).
+
+### Medium
+
+- [ ] **Med · S** — No global/account-level Inngest concurrency cap. `concurrency.key = event.data.worksheetId, limit 1` only serializes a single worksheet; the number of worksheets generating in parallel is unbounded, so a burst fans out into unbounded concurrent model calls and Supabase connections (provider rate-limit / pool exhaustion). [lib/inngest/functions/generate-worksheet-questions.ts:13](../lib/inngest/functions/generate-worksheet-questions.ts#L13). _Fix:_ add a second account- or app-scoped concurrency limit.
+
+- [ ] **Med · M** — Variant generation is fully serial: `labels.length * to_order` rolls, one model call per Inngest step, in a single run. A 40-question worksheet × 3 variants = 120 sequential AI calls (minutes-long job, single point of stall). [lib/inngest/run-variant-generation-job-worker.ts:117](../lib/inngest/run-variant-generation-job-worker.ts#L117) (loop [run-variant-generation-job-worker.ts:149](../lib/inngest/run-variant-generation-job-worker.ts#L149)). _Fix:_ fan rolls out across parallel steps / `step.run` batches with bounded concurrency.
+
+- [ ] **Med · S** — No scheduled sweep for expired reservations or stuck jobs. `cleanup_expired_credit_reservations()` is granted to `service_role` but nothing invokes it on a schedule; only lazy per-user cleanup runs inside `reserve_*`. Reservations from users who never return accumulate, and a stuck `running` job is never reaped, so the `generation_jobs_one_active_per_worksheet` partial-unique index blocks the worksheet permanently (see Bugs §High). [supabase/migrations/20260601000000_credit_reservations.sql:132](../supabase/migrations/20260601000000_credit_reservations.sql#L132). _Fix:_ add a pg_cron / Inngest cron to sweep both.
+
+- [ ] **Med · M** — Generation polling is full-fetch-per-tick. The client polls every 2s and each `getGenerationJobAction` runs job + worksheet + profile selects **plus a full `fetchWorksheetQuestions`**; with many concurrent generations this multiplies DB load and stacks on the O(N²) reload above. [features/generate/hooks/use-worksheet-generator.ts:22](../features/generate/hooks/use-worksheet-generator.ts#L22) (server [generation-job-actions.ts:325](../features/generate/generation-job-actions.ts#L325)). _Fix:_ return only questions newer than the client's last-seen order, or push via Supabase Realtime with polling backoff.
+
+### Low
+
+- [ ] **Low · M** — Per-user credit serialization. Every `reserve_*_credit` takes `select … from profiles … for update` and runs the full `_cleanup_expired_reservations_for_user` loop, so all of one user's concurrent generate/regenerate/variant operations serialize on the profile row and re-scan their reservations each call. Correct, but a throughput ceiling per user. [supabase/migrations/20260601000000_credit_reservations.sql:185](../supabase/migrations/20260601000000_credit_reservations.sql#L185). _Fix:_ keep the lock narrow; gate the cleanup behind an "any expired?" probe instead of an unconditional loop.
+
+## Expandability
+
+Findings on the cost of adding a subject beyond physics. Severity and effort
+(S/M/L) are estimates. The `subject` column is threaded end-to-end, but every
+layer downstream of it assumes physics; there is no subject registry or
+extension point.
+
+### High
+
+- [ ] **High · M** — `subject` is pinned to a single literal at every layer, so a new subject can't even be persisted without coordinated edits: Zod `z.literal("physics")`, the DB `check (subject = 'physics')` + `generate_worksheet_init` reject, and the form default `subject: "physics"`. [features/generate/schemas.ts:22](../features/generate/schemas.ts#L22), [supabase/migrations/20260614000000_physics_only_subject.sql:7](../supabase/migrations/20260614000000_physics_only_subject.sql#L7), [features/generate/hooks/use-worksheet-config-form.ts:81](../features/generate/hooks/use-worksheet-config-form.ts#L81). _Fix:_ make `subjectSchema` an enum and relax the constraint/RPC to an allowlist.
+
+- [ ] **High · L** — Lesson, scenario, and variable content is 100% physics and not keyed by subject. `LESSON_PRESET_IDS`, `SCENARIO_CONTENT`, `VARIABLE_PRESETS` (`phys-*` ids) and the entire `variable-compatibility` formula graph have no subject dimension — a new subject has nowhere to register its topics/variables. [features/generate/data/generation-presets.ts:3](../features/generate/data/generation-presets.ts#L3), [features/generate/data/variable-compatibility.ts:7](../features/generate/data/variable-compatibility.ts#L7). _Fix:_ introduce a `Record<Subject, SubjectContentPack>` registry (lessons, scenarios, variables, compatibility) and select by subject.
+
+### Medium
+
+- [ ] **Med · L** — The generated-question schema is calculation-shaped and can't represent non-quantitative subjects. `generatedQuestionSchema` mandates numeric/string `given_values`, a single `target_variable`, and `solution.steps`/`final_answer` — fine for physics/math, but multiple-choice, labeling, or essay subjects don't fit. [features/generate/schemas.ts:88](../features/generate/schemas.ts#L88). _Fix:_ model question formats as a discriminated union keyed by subject/format.
+
+- [ ] **Med · M** — Prompt construction hardcodes physics-style "calculation question" framing with no subject hook. `buildGenerationPrompt` ("high-school calculation question"), the variant prompt, and `prompt-rules` math-complexity rules all assume numeric givens. [lib/ai/generate-question.ts:36](../lib/ai/generate-question.ts#L36) (variant [variant-question.ts:46](../lib/ai/variant-question.ts#L46), rules [prompt-rules.ts:6](../lib/ai/prompt-rules.ts#L6)). _Fix:_ inject a subject-provided prompt fragment / rule set from the content pack.
+
+### Low
+
+- [ ] **Low · S** — Hardcoded physics naming in shared/global spots: Inngest app id `"physics-jotelab"` and the unconditional `subjects.physics` i18n label in the workspace summary. [lib/inngest/client.ts:3](../lib/inngest/client.ts#L3), [features/generate/hooks/use-generate-workspace.ts:138](../features/generate/hooks/use-generate-workspace.ts#L138). _Fix:_ derive the display label from `worksheet.subject` once subjects are pluralized.
