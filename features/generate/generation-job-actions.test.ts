@@ -121,8 +121,8 @@ function enqueueRpcSuccess(id: string = jobId) {
   return { data: { success: true, jobId: id }, error: null }
 }
 
-function extendRpcSuccess(questionCount: number) {
-  return { data: { success: true, questionCount }, error: null }
+function appendRpcSuccess(questionCount: number, id: string = jobId) {
+  return { data: { success: true, jobId: id, questionCount }, error: null }
 }
 
 function makeWorksheetQuestionRows(
@@ -162,8 +162,8 @@ function mockStartJobRpcs() {
     if (name === "enqueue_generation_job") {
       return enqueueRpcSuccess()
     }
-    if (name === "extend_worksheet_count") {
-      return extendRpcSuccess(5)
+    if (name === "extend_worksheet_and_enqueue_job") {
+      return appendRpcSuccess(5)
     }
     throw new Error(`Unexpected rpc: ${name}`)
   })
@@ -387,12 +387,12 @@ describe("startAppendGenerationJobAction", () => {
     )
   })
 
-  it("returns unknown when extend response lacks questionCount", async () => {
+  it("returns unknown when append response lacks questionCount", async () => {
     mockRpc.mockImplementation(async (name: string) => {
-      if (name === "extend_worksheet_count") {
-        return { data: { success: true }, error: null }
+      if (name === "extend_worksheet_and_enqueue_job") {
+        return { data: { success: true, jobId }, error: null }
       }
-      return enqueueRpcSuccess()
+      throw new Error(`Unexpected rpc: ${name}`)
     })
 
     const result = await startAppendGenerationJobAction({
@@ -405,7 +405,7 @@ describe("startAppendGenerationJobAction", () => {
     )
   })
 
-  it("extends, enqueues append job, and sends inngest event", async () => {
+  it("extends and enqueues append job atomically, then sends inngest event", async () => {
     const result = await startAppendGenerationJobAction({
       worksheetId,
       additionalCount: 2,
@@ -415,18 +415,13 @@ describe("startAppendGenerationJobAction", () => {
       ok: true,
       data: { jobId, worksheetId, newQuestionCount: 5 },
     })
-    expect(mockRpc).toHaveBeenCalledWith("extend_worksheet_count", {
+    expect(mockRpc).toHaveBeenCalledWith("extend_worksheet_and_enqueue_job", {
       p_worksheet_id: worksheetId,
       p_additional_count: 2,
     })
-    expect(mockRpc).toHaveBeenCalledWith(
+    expect(mockRpc).not.toHaveBeenCalledWith(
       "enqueue_generation_job",
-      expect.objectContaining({
-        p_worksheet_id: worksheetId,
-        p_from_order: 4,
-        p_to_order: 5,
-        p_kind: "append",
-      })
+      expect.anything()
     )
     expect(mockInngestSend).toHaveBeenCalledWith({
       name: "worksheet/generation.requested",

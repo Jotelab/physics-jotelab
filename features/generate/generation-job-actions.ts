@@ -211,47 +211,29 @@ export async function startAppendGenerationJobAction(
     return localizedFailure("PROFILE_NOT_FOUND")
   }
 
-  const { data: extendData, error: extendError } = await supabase.rpc(
-    "extend_worksheet_count",
+  const { data: appendData, error: appendError } = await supabase.rpc(
+    "extend_worksheet_and_enqueue_job",
     {
       p_worksheet_id: parsed.data.worksheetId,
       p_additional_count: parsed.data.additionalCount,
     }
   )
 
-  const extendFailure = parseRpcActionFailure<{
+  const appendFailure = parseRpcActionFailure<{
     jobId: string
     worksheetId: string
     newQuestionCount: number
-  }>(extendData, extendError, t("couldNotExtendWorksheet"))
-  if (extendFailure) {
-    return extendFailure
+  }>(appendData, appendError, t("couldNotStartAppendJob"))
+  if (appendFailure) {
+    return appendFailure
   }
 
-  const newQuestionCount = parseRpcSuccessNumberField(extendData, "questionCount")
+  const newQuestionCount = parseRpcSuccessNumberField(appendData, "questionCount")
   if (newQuestionCount === null) {
     return localizedFailure("UNKNOWN", "couldNotExtendWorksheet")
   }
 
-  const fromOrder = newQuestionCount - parsed.data.additionalCount + 1
-
-  const { data: jobData, error: enqueueError } = await supabase.rpc("enqueue_generation_job", {
-    p_worksheet_id: parsed.data.worksheetId,
-    p_from_order: fromOrder,
-    p_to_order: newQuestionCount,
-    p_kind: "append",
-  })
-
-  const enqueueFailure = parseRpcActionFailure<{
-    jobId: string
-    worksheetId: string
-    newQuestionCount: number
-  }>(jobData, enqueueError, t("couldNotStartAppendJob"))
-  if (enqueueFailure) {
-    return enqueueFailure
-  }
-
-  const jobId = parseRpcSuccessStringField(jobData, "jobId")
+  const jobId = parseRpcSuccessStringField(appendData, "jobId")
   if (!jobId) {
     return localizedFailure("UNKNOWN", "couldNotStartAppendJob")
   }

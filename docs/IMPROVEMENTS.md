@@ -17,7 +17,7 @@ and the idempotency/retry logic. Severity and effort (S/M/L) are estimates.
 
 - [x] **Med · M** — Variant identity is generated non-deterministically outside Inngest steps. `getOrCreateVariant` calls `crypto.randomUUID()` / `new Date()` in the function body, so the variant `id`/`createdAt` change across replays/retries while per-roll persist steps stay memoized → unstable identity / possible duplicate variant on client merge. [lib/inngest/run-variant-generation-job-worker.ts:59](../lib/inngest/run-variant-generation-job-worker.ts#L59) (invoked at line 187). _Fix:_ mint id/createdAt inside a memoized `step.run`, or derive deterministically from jobId+label.
 
-- [ ] **Med · M** — Append is non-atomic across two RPCs. `extend_worksheet_count` commits the new `question_count` before `enqueue_generation_job`; a failure (e.g. "already active") or a failed Inngest send between them leaves the count inflated with no job to fill it, and retrying inflates it further. [features/generate/generation-job-actions.ts:214](../features/generate/generation-job-actions.ts#L214). _Fix:_ extend + enqueue in one transaction/RPC, or roll back the count on failure.
+- [x] **Med · M** — Append is non-atomic across two RPCs. `extend_worksheet_count` commits the new `question_count` before `enqueue_generation_job`; a failure (e.g. "already active") or a failed Inngest send between them leaves the count inflated with no job to fill it, and retrying inflates it further. [features/generate/generation-job-actions.ts:214](../features/generate/generation-job-actions.ts#L214). _Fix:_ extend + enqueue in one transaction/RPC, or roll back the count on failure.
 
 ### Low
 
