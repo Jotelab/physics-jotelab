@@ -1,4 +1,5 @@
 import {
+  markGenerationJobFailed,
   runGenerationJobWorker,
 } from "@/lib/inngest/run-generation-job-worker"
 import type { GenerationJobStep } from "@/lib/inngest/generation-job-step"
@@ -13,6 +14,13 @@ export const generateWorksheetQuestions = inngest.createFunction(
     concurrency: {
       key: "event.data.worksheetId",
       limit: 1,
+    },
+    // Without this, an unexpected throw that exhausts all retries leaves the job
+    // row stuck in `running`, and the `one active per worksheet` partial-unique
+    // index then blocks every future job for that worksheet permanently.
+    onFailure: async ({ event, error }) => {
+      const { jobId } = event.data.event.data
+      await markGenerationJobFailed(jobId, error.message)
     },
   },
   async ({ event, step, runId }) => {

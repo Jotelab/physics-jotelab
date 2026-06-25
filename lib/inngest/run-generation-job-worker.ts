@@ -43,6 +43,25 @@ async function updateJob(
   }
 }
 
+/**
+ * Best-effort flip of a job to `failed`, used by the Inngest function's
+ * `onFailure` handler after all retries are exhausted. Without this, a job that
+ * throws unexpectedly stays `running` forever and the
+ * `generation_jobs_one_active_per_worksheet` index blocks the worksheet.
+ */
+export async function markGenerationJobFailed(jobId: string, errorMessage: string) {
+  try {
+    const admin = createServiceRoleClient()
+    await updateJob(admin, {
+      jobId,
+      status: "failed",
+      errorMessage,
+    })
+  } catch {
+    // Swallow: this is last-ditch cleanup and must not itself throw.
+  }
+}
+
 export async function runGenerationJobWorker(params: {
   jobId: string
   worksheetId: string
