@@ -306,8 +306,9 @@ export async function regenerateQuestionForWorksheet(params: {
   profileId: string
   worksheetId: string
   questionId: string
+  attemptId: string
 }): Promise<GenerateQuestionResult> {
-  const { supabase, profileId, worksheetId, questionId } = params
+  const { supabase, profileId, worksheetId, questionId, attemptId } = params
 
   const worksheet = await getWorksheetForProfile(supabase, worksheetId, profileId)
 
@@ -333,7 +334,11 @@ export async function regenerateQuestionForWorksheet(params: {
     return failure("QUESTION_NOT_FOUND")
   }
 
-  const idempotencyKey = buildRegenerateIdempotencyKey(worksheet.id, originalQuestion.id)
+  const idempotencyKey = buildRegenerateIdempotencyKey(
+    worksheet.id,
+    originalQuestion.id,
+    attemptId
+  )
 
   const { data: reserveResult, error: reserveError } = await supabase.rpc(
     "reserve_regenerate_question_credit",

@@ -76,6 +76,7 @@ import { revalidatePath } from "next/cache"
 const worksheetId = "a1b2c3d4-e5f6-4789-a012-3456789abcde"
 const profileId = "11111111-1111-4111-8111-111111111111"
 const questionId = validWorksheetQuestion.id
+const attemptId = "99999999-9999-4999-8999-999999999999"
 
 function makeWorksheetRow(
   overrides: Partial<{
@@ -377,6 +378,7 @@ describe("regenerateQuestionAction", () => {
     const result = await regenerateQuestionAction({
       worksheetId,
       questionId,
+      attemptId,
     })
 
     expect(result).toEqual(
@@ -389,6 +391,7 @@ describe("regenerateQuestionAction", () => {
     const result = await regenerateQuestionAction({
       worksheetId,
       questionId,
+      attemptId,
     })
 
     expect(result).toEqual({
@@ -403,6 +406,7 @@ describe("regenerateQuestionAction", () => {
         profileId,
         worksheetId,
         questionId,
+        attemptId,
       })
     )
     expect(revalidatePath).toHaveBeenCalledWith("/generate")

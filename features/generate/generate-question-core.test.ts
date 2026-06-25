@@ -73,8 +73,9 @@ const worksheetId = "a1b2c3d4-e5f6-4789-a012-3456789abcde"
 const profileId = "11111111-1111-4111-8111-111111111111"
 const otherProfileId = "22222222-2222-4222-8222-222222222222"
 const questionId = validWorksheetQuestion.id
+const attemptId = "99999999-9999-4999-8999-999999999999"
 const generateIdempotencyKey = buildGenerateIdempotencyKey(worksheetId, 1)
-const regenerateIdempotencyKey = buildRegenerateIdempotencyKey(worksheetId, questionId)
+const regenerateIdempotencyKey = buildRegenerateIdempotencyKey(worksheetId, questionId, attemptId)
 
 function makeWorksheetRow(
   overrides: Partial<{
@@ -493,6 +494,7 @@ describe("regenerateQuestionForWorksheet", () => {
       profileId,
       worksheetId,
       questionId,
+      attemptId,
     })
 
     expect(result.ok).toBe(true)
@@ -534,6 +536,7 @@ describe("regenerateQuestionForWorksheet", () => {
       profileId,
       worksheetId,
       questionId,
+      attemptId,
     })
 
     expect(result).toEqual(failure("WORKSHEET_ACCESS_DENIED"))
@@ -553,6 +556,7 @@ describe("regenerateQuestionForWorksheet", () => {
       profileId,
       worksheetId,
       questionId,
+      attemptId,
     })
 
     expect(result).toEqual(failure("INSUFFICIENT_CREDITS"))
@@ -567,6 +571,7 @@ describe("regenerateQuestionForWorksheet", () => {
       profileId,
       worksheetId,
       questionId: "00000000-0000-4000-8000-000000000099",
+      attemptId,
     })
 
     expect(result).toEqual(failure("QUESTION_NOT_FOUND"))
@@ -586,6 +591,7 @@ describe("regenerateQuestionForWorksheet", () => {
       profileId,
       worksheetId,
       questionId,
+      attemptId,
     })
 
     expect(result).toEqual(failure("QUESTIONS_LOAD_FAILED"))
@@ -607,6 +613,7 @@ describe("regenerateQuestionForWorksheet", () => {
       profileId,
       worksheetId,
       questionId,
+      attemptId,
     })
 
     expect(result).toEqual(failure("GENERATION_SETTINGS_MISSING"))
@@ -623,6 +630,7 @@ describe("regenerateQuestionForWorksheet", () => {
       profileId,
       worksheetId,
       questionId,
+      attemptId,
     })
 
     expect(result.ok).toBe(false)
@@ -652,6 +660,7 @@ describe("regenerateQuestionForWorksheet", () => {
       profileId,
       worksheetId,
       questionId,
+      attemptId,
     })
 
     expect(result.ok).toBe(false)
@@ -688,6 +697,7 @@ describe("regenerateQuestionForWorksheet", () => {
       profileId,
       worksheetId,
       questionId,
+      attemptId,
     })
 
     expect(result).toEqual(failure("REGENERATE_FAILED"))
@@ -725,6 +735,7 @@ describe("regenerateQuestionForWorksheet", () => {
       profileId,
       worksheetId,
       questionId,
+      attemptId,
     })
 
     expect(result.ok).toBe(false)

@@ -26,6 +26,12 @@ const questionActionInputSchema = z.object({
   questionId: z.string().uuid(),
 })
 
+const regenerateQuestionInputSchema = questionActionInputSchema.extend({
+  // A fresh per-click nonce so each regenerate gets a distinct idempotency key
+  // and is not short-circuited by the previous attempt's completed row.
+  attemptId: z.string().uuid(),
+})
+
 const editQuestionInputSchema = questionActionInputSchema.extend({
   editedQuestion: generatedQuestionSchema,
 })
@@ -145,9 +151,9 @@ export async function editQuestionAction(
 }
 
 export async function regenerateQuestionAction(
-  input: z.infer<typeof questionActionInputSchema>
+  input: z.infer<typeof regenerateQuestionInputSchema>
 ): Promise<ActionResult<{ question: WorksheetQuestion; creditBalance: number }>> {
-  const parsed = questionActionInputSchema.safeParse(input)
+  const parsed = regenerateQuestionInputSchema.safeParse(input)
 
   if (!parsed.success) {
     return localizedFailure("VALIDATION_FAILED", "couldNotRegenerate")
@@ -173,6 +179,7 @@ export async function regenerateQuestionAction(
     profileId,
     worksheetId: parsed.data.worksheetId,
     questionId: parsed.data.questionId,
+    attemptId: parsed.data.attemptId,
   })
 
   if (result.ok) {
