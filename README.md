@@ -1,31 +1,56 @@
 # PhysicsJotelab
 
-PhysicsJotelab is a worksheet generation platform for high-school math, physics, and chemistry practice.
+PhysicsJotelab is a physics worksheet generation platform for high-school practice. Teachers can generate customized calculation worksheets with AI-powered question generation, preview them on an A4 canvas, create anti-cheating exam variants, and export worksheets as PDFs.
 
-Users can generate customized calculation worksheets, preview them on an A4 canvas, view answers, regenerate individual questions, and export worksheets as PDFs.
+## Features
 
-## MVP
+- **Google OAuth login** — secure sign-in via Supabase Auth
+- **Credit system** — new users receive 50 free credits
+- **AI-powered question generation** — multi-provider support (Google Gemini, OpenAI)
+- **Lesson-scoped presets** — pick from physics lesson presets with variable pickers
+- **Math complexity & conceptual difficulty** — toggles for worksheet difficulty tuning
+- **Anti-cheating exam variants** — generate shuffled worksheet variants for distribution
+- **A4 worksheet preview** — live preview with LaTeX-rendered equations (KaTeX)
+- **Worksheet / Answer toggle** — switch between student and answer views
+- **Regenerate individual questions** — re-roll any single question without regenerating the whole sheet
+- **Export PDF** — native browser print to PDF
+- **Library** — browse and manage previously generated worksheets
+- **Account page** — view profile and credit balance
+- **Internationalization** — English and Thai language support (next-intl)
+- **Background generation** — long-running worksheet generation via Inngest workflows
 
-- Google OAuth login
-- New users receive 50 credits
-- Generate worksheet (Subject, Lesson, Scenario)
-- A4 worksheet preview
-- Worksheet / Answer toggle
-- Regenerate individual question
-- Export PDF (native browser print)
-- Library
-- Account page
+## Getting Started
+
+### Prerequisites
+
+- Node.js v22+
+- [pnpm](https://pnpm.io/) v11.5+
+
+### Install & Run
+
+```bash
+pnpm install
+pnpm dev
+```
+
+### Environment Variables
+
+Copy `.env.example` to `.env.local` and fill in the required values:
+
+```bash
+cp .env.example .env.local
+```
 
 ## Testing
 
 ```bash
-npm test              # Vitest unit + component tests
-npm run test:watch    # Vitest in watch mode
-npm run test:coverage # Same as CI; enforces generate coverage thresholds
-npm run test:e2e      # Playwright E2E (starts dev server locally)
-npm run test:e2e:public  # Public auth-guard tests only
-npm run test:e2e:authenticated  # Authenticated E2E (requires local Supabase)
-npm run test:e2e:ui   # Playwright UI mode
+pnpm test              # Vitest unit + component tests
+pnpm test:watch        # Vitest in watch mode
+pnpm test:coverage     # Coverage with enforced thresholds
+pnpm test:e2e          # Playwright E2E (starts dev server locally)
+pnpm test:e2e:public   # Public auth-guard tests only
+pnpm test:e2e:authenticated  # Authenticated E2E (requires local Supabase)
+pnpm test:e2e:ui       # Playwright UI mode
 ```
 
 Public E2E tests (auth redirects, login page) run without Supabase. Authenticated E2E uses a **local Docker Supabase** stack (`supabase start`) with stub generation — no remote secrets required.
@@ -35,25 +60,25 @@ Public E2E tests (auth redirects, login page) run without Supabase. Authenticate
 ```bash
 supabase start
 eval "$(bash scripts/ci-supabase-e2e-env.sh)"
-E2E_STUB_GENERATION=true npm run build
-E2E_STUB_GENERATION=true npm run test:e2e:authenticated
+E2E_STUB_GENERATION=true pnpm build
+E2E_STUB_GENERATION=true pnpm test:e2e:authenticated
 ```
 
 Golden-path only (preset → preview → generate):
 
 ```bash
-E2E_STUB_GENERATION=true npm run test:e2e:authenticated e2e/authenticated/generate-golden-path.spec.ts
+E2E_STUB_GENERATION=true pnpm test:e2e:authenticated e2e/authenticated/generate-golden-path.spec.ts
 ```
 
 **CI authenticated E2E**: add the `run-e2e` label to a pull request. GitHub Actions starts local Supabase in Docker, runs migrations, and executes the authenticated Playwright suite. No repository secrets or variables are required. Create the `run-e2e` label in GitHub (Issues → Labels) if it does not exist yet.
 
-AI integration smoke test (not part of `npm test`):
+AI integration smoke test (not part of `pnpm test`):
 
 ```bash
-npm run test:generate-question
+pnpm test:generate-question
 ```
 
-### Background worksheet generation (Inngest)
+### Background Worksheet Generation (Inngest)
 
 Multi-question generation runs as an Inngest workflow. Local development:
 
@@ -61,22 +86,48 @@ Multi-question generation runs as an Inngest workflow. Local development:
    - `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` (from the Inngest dashboard or `npx inngest-cli dev`)
    - `SUPABASE_SERVICE_ROLE_KEY` (worker updates jobs and mints user-scoped RPC sessions)
    - `SUPABASE_JWT_SECRET` (project JWT secret from Supabase API settings; used only on the server)
-2. Run `npm run dev` and `npm run dev:inngest` in separate terminals.
+2. Run `pnpm dev` and `pnpm dev:inngest` in separate terminals.
 3. Open the Inngest dev server UI (printed by the CLI) to inspect function runs.
 
 Production: register the app URL `https://physics-jotelab.vercel.app/api/inngest` in Inngest and set the same env vars in Vercel.
 
 ## Tech Stack
 
-- Next.js App Router
-- React
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- Supabase Auth + PostgreSQL
-- Vercel AI SDK
-- Inngest (background worksheet generation)
-- Vercel
+- **Framework** — Next.js App Router (v16)
+- **Language** — TypeScript
+- **UI** — React 19, Tailwind CSS v4, shadcn/ui, Radix UI
+- **Math Rendering** — KaTeX via react-katex
+- **Auth & Database** — Supabase Auth + PostgreSQL
+- **AI** — Vercel AI SDK with Google Gemini & OpenAI providers
+- **Background Jobs** — Inngest
+- **Internationalization** — next-intl (EN / TH)
+- **Package Manager** — pnpm
+- **Hosting** — Vercel
+- **Testing** — Vitest, Testing Library, Playwright
+
+## Project Structure
+
+```
+app/              # Next.js App Router pages and API routes
+  (auth)/         # Auth-gated layout group
+  (dashboard)/    # Dashboard layout group
+  api/            # API routes (Inngest, generation, etc.)
+  auth/           # OAuth callback handler
+components/       # Shared UI components (shadcn/ui based)
+features/         # Feature modules
+  auth/           # Authentication logic
+  generate/       # Worksheet generation UI and actions
+  i18n/           # Internationalization utilities
+  library/        # Worksheet library
+  worksheet/      # Worksheet preview, variants, and export
+i18n/             # next-intl routing and config
+lib/              # Shared utilities and Supabase client
+messages/         # Locale JSON files (en.json, th.json)
+scripts/          # Helper scripts (CI, test utilities)
+supabase/         # Migrations and Supabase config
+e2e/              # Playwright E2E test suites
+tests/            # Vitest unit and component tests
+```
 
 ## Docs
 
@@ -87,7 +138,7 @@ Production: register the app URL `https://physics-jotelab.vercel.app/api/inngest
 - `docs/implementation-guide.md` — architecture, coding rules, and implementation order
 - `docs/ux-ui-spec.md` — high-level design principles, layout strategies, and user flows
 
-## Google OAuth setup (production)
+## Google OAuth Setup (Production)
 
 OAuth redirect URLs are resolved at runtime from request headers (`x-forwarded-host`, `host`, `referer`). Configure these external services so login works on all domains.
 
@@ -112,7 +163,7 @@ Ensure the hosted project has the `ensure_user_profile()` RPC (see `supabase/mig
 
 - `https://<project-ref>.supabase.co/auth/v1/callback`
 
-### Vercel environment variables
+### Vercel Environment Variables
 
 Set for Production (and Preview if needed):
 
@@ -126,3 +177,7 @@ Set for Production (and Preview if needed):
 - `GOOGLE_GENERATIVE_AI_API_KEY` (optional if using Vercel AI Gateway)
 
 Redeploy after changing environment variables.
+
+## License
+
+Private — all rights reserved.
