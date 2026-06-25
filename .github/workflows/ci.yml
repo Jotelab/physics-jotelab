@@ -12,18 +12,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: npm
+          node-version: "22"
+          cache: pnpm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
-      - run: npm run lint
+      - run: pnpm run lint
 
-      - run: npm run test:coverage
+      - run: pnpm run test:coverage
 
-      - run: npm run build
+      - run: pnpm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
@@ -34,21 +38,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: npm
+          node-version: "22"
+          cache: pnpm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
-      - run: npx playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium
 
-      - run: npm run build
+      - run: pnpm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
 
-      - run: npm run test:e2e:public
+      - run: pnpm run test:e2e:public
         env:
           CI: true
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
@@ -64,12 +72,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: npm
+          node-version: "22"
+          cache: pnpm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       - uses: supabase/setup-cli@v2
         with:
@@ -81,14 +93,14 @@ jobs:
       - name: Export Supabase env for app and Playwright
         run: bash scripts/ci-supabase-e2e-env.sh >> $GITHUB_ENV
 
-      - run: npx playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium
 
-      - run: npm run build
+      - run: pnpm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ env.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
-      - run: npx playwright test --project=setup --project=authenticated
+      - run: pnpm exec playwright test --project=setup --project=authenticated
         env:
           CI: true
           E2E_STUB_GENERATION: "true"
