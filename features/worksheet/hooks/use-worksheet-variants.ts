@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 
 import type {
   WorksheetQuestion,
@@ -21,11 +21,15 @@ export function useWorksheetVariants(params: {
   const { masterQuestions, savedVariants } = params
   const [activeLabel, setActiveLabel] = useState<WorksheetVersionLabel>("A")
   const [ephemeralVariants, setEphemeralVariants] = useState<WorksheetVariant[]>([])
-  const [localSavedVariants, setLocalSavedVariants] = useState(savedVariants)
+  const [savedOverride, setSavedOverride] = useState<{
+    baseProp: WorksheetVariant[]
+    variants: WorksheetVariant[]
+  } | null>(null)
 
-  useEffect(() => {
-    setLocalSavedVariants(savedVariants)
-  }, [savedVariants])
+  const localSavedVariants =
+    savedOverride && savedOverride.baseProp === savedVariants
+      ? savedOverride.variants
+      : savedVariants
 
   const allVariants = useMemo(
     () => mergeSavedAndEphemeralVariants(localSavedVariants, ephemeralVariants),
@@ -61,8 +65,8 @@ export function useWorksheetVariants(params: {
 
   const markVariantsSaved = useCallback((variants: WorksheetVariant[]) => {
     setEphemeralVariants([])
-    setLocalSavedVariants(variants)
-  }, [])
+    setSavedOverride({ baseProp: savedVariants, variants })
+  }, [savedVariants])
 
   return {
     activeLabel,
@@ -77,3 +81,4 @@ export function useWorksheetVariants(params: {
     markVariantsSaved,
   }
 }
+

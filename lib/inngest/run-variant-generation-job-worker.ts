@@ -110,7 +110,7 @@ export async function runVariantGenerationJobWorker(params: {
 
   let skippedOrders = parseVariantSkippedOrders(job.skipped_orders)
   let lastCompletedOrder = job.last_completed_order ?? 0
-  let variants = parseVariantResults(job.variant_results)
+  const variants = parseVariantResults(job.variant_results)
   let terminalStatus: GenerationJobRow["status"] | null = null
 
   const labels = job.variant_labels ?? []

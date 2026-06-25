@@ -34,6 +34,7 @@ export function useVariantGeneration(params: {
   const [variantError, setVariantError] = useState<string | null>(null)
   const [isSavingVariants, setIsSavingVariants] = useState(false)
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pollVariantJobRef = useRef<((jobId: string) => Promise<void>) | null>(null)
 
   const clearPollTimer = useCallback(() => {
     if (pollTimerRef.current) {
@@ -83,11 +84,15 @@ export function useVariantGeneration(params: {
       }
 
       pollTimerRef.current = setTimeout(() => {
-        void pollVariantJob(jobId)
+        void pollVariantJobRef.current?.(jobId)
       }, POLL_INTERVAL_MS)
     },
     [onCreditBalanceUpdated, onVariantsGenerated]
   )
+
+  useEffect(() => {
+    pollVariantJobRef.current = pollVariantJob
+  })
 
   const startVariantGeneration = useCallback(
     async (additionalCount: number) => {

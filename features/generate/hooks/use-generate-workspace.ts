@@ -90,7 +90,11 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
   useEffect(() => {
     if (!worksheetId) {
       savedVariantsEpochRef.current += 1
-      setSavedVariants([])
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSavedVariants((current) => {
+        if (current.length === 0) return current
+        return []
+      })
       return
     }
 
@@ -113,6 +117,8 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
       cancelled = true
     }
   }, [worksheetId])
+
+
 
   const lessonDisplay = useMemo(() => {
     const trimmed = configForm.trimmedLesson

@@ -1,7 +1,7 @@
 "use client"
 
 import { FocusScope } from "@radix-ui/react-focus-scope"
-import { useEffect, useRef, useState, type RefObject } from "react"
+import { useRef, useState, type RefObject } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
@@ -245,12 +245,6 @@ export function Sidebar({ profile }: { profile?: UserProfile | null }) {
   const t = useTranslations("common")
   const [isCollapsed, setIsCollapsed] = useState(false)
   const isSettingsDomain = useIsSettingsDomain()
-
-  useEffect(() => {
-    if (isSettingsDomain && isCollapsed) {
-      setIsCollapsed(false)
-    }
-  }, [isSettingsDomain, isCollapsed])
 
   const effectiveCollapsed = isSettingsDomain ? false : isCollapsed
 

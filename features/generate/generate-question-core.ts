@@ -32,7 +32,7 @@ import {
 import { parseReserveResponse } from "./utils/parse-reservation-response"
 import { generationSettingsSchema, worksheetQuestionSchema } from "./schemas"
 import { fetchWorksheetQuestions } from "./utils/fetch-worksheet-questions"
-import type { WorksheetQuestion, Subject } from "./types"
+import type { Subject } from "./types"
 
 type WorksheetRow = {
   id: string

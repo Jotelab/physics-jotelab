@@ -2,7 +2,7 @@
 
 import { useTheme } from "next-themes"
 import { useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 
 import {
   Select,
@@ -19,11 +19,11 @@ type Theme = (typeof themes)[number]
 export function ThemeSwitcher({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme()
   const t = useTranslations("settings")
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = useSyncExternalStore(
+    (cb) => { cb(); return () => {}; },
+    () => true,
+    () => false
+  )
 
   if (!mounted) {
     return (

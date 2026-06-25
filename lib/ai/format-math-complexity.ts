@@ -12,7 +12,7 @@ function formatScientificNotation(value: number): string {
   const abs = Math.abs(value)
   if (abs >= 1000 || abs < 0.01) {
     let exponent = Math.floor(Math.log10(abs))
-    let mantissa = value / 10 ** exponent
+    const mantissa = value / 10 ** exponent
     let roundedMantissa = Math.round(mantissa * 10) / 10
 
     if (Math.abs(roundedMantissa) >= 10) {

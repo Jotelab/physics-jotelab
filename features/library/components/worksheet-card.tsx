@@ -21,7 +21,6 @@ function MoreMenu({
   worksheetId: string
   worksheetTitle: string
 }) {
-  const t = useTranslations("library")
   const tCommon = useTranslations("common")
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)

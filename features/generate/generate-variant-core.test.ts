@@ -5,7 +5,6 @@ import {
   reservationId,
   validGeneratedVariantQuestion,
   validVariantRoll,
-  validWorksheetQuestion,
   variantCompleteFailureRpcResponse,
   variantCompleteRpcResponse,
   variantReserveAlreadyCompletedResponse,
