@@ -267,8 +267,8 @@ export async function generateQuestionForWorksheet(params: {
     )
 
     if (completeError || !completeResult) {
-      await cancelGenerateReservation(supabase, reservation.reservationId, idempotencyKey)
       reservationActive = false
+      await cancelGenerateReservation(supabase, reservation.reservationId, idempotencyKey)
 
       return parseRpcFailure(completeError, "SAVE_FAILED")
     }
@@ -276,11 +276,11 @@ export async function generateQuestionForWorksheet(params: {
     const parsedCompleteResult = parseCompleteResponse(completeResult)
 
     if (!parsedCompleteResult.ok) {
+      reservationActive = false
+
       if (!completeResponseWasDbRefunded(completeResult)) {
         await cancelGenerateReservation(supabase, reservation.reservationId, idempotencyKey)
       }
-
-      reservationActive = false
 
       return mapInvalidCompleteFailure(parsedCompleteResult, "SAVE_FAILED")
     }
@@ -409,8 +409,8 @@ export async function regenerateQuestionForWorksheet(params: {
     )
 
     if (completeError || !completeResult) {
-      await cancelRegenerateReservation(supabase, reservation.reservationId, idempotencyKey)
       reservationActive = false
+      await cancelRegenerateReservation(supabase, reservation.reservationId, idempotencyKey)
 
       return parseRpcFailure(completeError, REGENERATE_FALLBACK_CODE)
     }
@@ -418,11 +418,11 @@ export async function regenerateQuestionForWorksheet(params: {
     const parsedCompleteResult = parseCompleteResponse(completeResult)
 
     if (!parsedCompleteResult.ok) {
+      reservationActive = false
+
       if (!completeResponseWasDbRefunded(completeResult)) {
         await cancelRegenerateReservation(supabase, reservation.reservationId, idempotencyKey)
       }
-
-      reservationActive = false
 
       return mapInvalidCompleteFailure(parsedCompleteResult, REGENERATE_FALLBACK_CODE)
     }

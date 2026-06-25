@@ -196,8 +196,8 @@ export async function generateVariantRollForQuestion(params: {
     )
 
     if (completeError || !completeResult) {
-      await cancelVariantRollReservation(supabase, reservation.reservationId, idempotencyKey)
       reservationActive = false
+      await cancelVariantRollReservation(supabase, reservation.reservationId, idempotencyKey)
 
       return parseRpcFailure(completeError, VARIANT_FALLBACK_CODE)
     }
@@ -205,8 +205,8 @@ export async function generateVariantRollForQuestion(params: {
     const parsedCompleteResult = parseVariantRollCompleteResponse(completeResult)
 
     if (!parsedCompleteResult.ok) {
-      await cancelVariantRollReservation(supabase, reservation.reservationId, idempotencyKey)
       reservationActive = false
+      await cancelVariantRollReservation(supabase, reservation.reservationId, idempotencyKey)
 
       return parsedCompleteResult
     }

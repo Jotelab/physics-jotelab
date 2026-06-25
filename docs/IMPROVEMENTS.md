@@ -21,7 +21,7 @@ and the idempotency/retry logic. Severity and effort (S/M/L) are estimates.
 
 ### Low
 
-- [ ] **Low · S** — Double-cancel on reservation cleanup error. If `cancelGenerateReservation` throws, `reservationActive` is never cleared, so the `catch` cancels again (same shape in regenerate and variant paths). [features/generate/generate-question-core.ts:269](../features/generate/generate-question-core.ts#L269). _Fix:_ set `reservationActive = false` before awaiting the cancel.
+- [x] **Low · S** — Double-cancel on reservation cleanup error. If `cancelGenerateReservation` throws, `reservationActive` is never cleared, so the `catch` cancels again (same shape in regenerate and variant paths). [features/generate/generate-question-core.ts:269](../features/generate/generate-question-core.ts#L269). _Fix:_ set `reservationActive = false` before awaiting the cancel.
 
 - [ ] **Low · S** — Shared poll-abort refs let two polling loops run concurrently. `startGeneration` doesn't guard on `isGeneratingRef`, and `pollJobUntilTerminal` resets the shared `pollAbortRef` on entry, so overlapping calls fight over `setState`. [features/generate/hooks/use-worksheet-generator.ts:210](../features/generate/hooks/use-worksheet-generator.ts#L210) (reset at line 127). _Fix:_ guard `startGeneration`, or use a per-poll abort token.
 
