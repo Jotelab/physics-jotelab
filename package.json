@@ -21,6 +21,7 @@
   "dependencies": {
     "@ai-sdk/google": "^3.0.74",
     "@ai-sdk/openai": "^3.0.73",
+    "@radix-ui/react-focus-scope": "^1.1.10",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
     "@vercel/analytics": "^2.0.1",
