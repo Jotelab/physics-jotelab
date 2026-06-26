@@ -67,13 +67,16 @@ export function useWorksheetGenerator({
   const [state, setState] = useState<GeneratorState>(initialState)
   const isMountedRef = useRef(true)
   const isGeneratingRef = useRef(false)
-  const pollAbortRef = useRef(false)
+  // Monotonic token identifying the active poll loop. Each new poll (or abort)
+  // bumps it, so a superseded loop sees its captured token go stale and exits
+  // instead of two loops racing on a shared boolean and fighting over setState.
+  const pollTokenRef = useRef(0)
 
   useEffect(() => {
     isMountedRef.current = true
     return () => {
       isMountedRef.current = false
-      pollAbortRef.current = true
+      pollTokenRef.current += 1
     }
   }, [])
 
@@ -124,9 +127,9 @@ export function useWorksheetGenerator({
 
   const pollJobUntilTerminal = useCallback(
     async (jobId: string): Promise<GenerationJobPollResult | null> => {
-      pollAbortRef.current = false
+      const token = (pollTokenRef.current += 1)
 
-      while (isMountedRef.current && !pollAbortRef.current) {
+      while (isMountedRef.current && pollTokenRef.current === token) {
         const result = await getGenerationJobAction(jobId).catch(() => null)
 
         if (!result?.ok) {
@@ -159,7 +162,7 @@ export function useWorksheetGenerator({
       runGenerationJob({
         ...params,
         abortPoll: () => {
-          pollAbortRef.current = true
+          pollTokenRef.current += 1
         },
         pollUntilTerminal: pollJobUntilTerminal,
         syncTargetQuestionCount,
