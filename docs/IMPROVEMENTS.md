@@ -72,7 +72,7 @@ non-test source.
 
 ### High
 
-- [ ] **High · M** — The reserve→generate→complete→cancel flow is triplicated. `generateQuestionForWorksheet`, `regenerateQuestionForWorksheet`, and `generateVariantRollForQuestion` each re-implement the same skeleton (parse reserve failure, branch on `completed`/`failed`/active, `reservationActive` bookkeeping, cancel-on-throw). Bugs get fixed in one copy and not the others. [features/generate/generate-question-core.ts:243](../features/generate/generate-question-core.ts#L243) (regenerate [generate-question-core.ts:381](../features/generate/generate-question-core.ts#L381), variant [generate-variant-core.ts:178](../features/generate/generate-variant-core.ts#L178)). _Fix:_ extract a `withCreditReservation(reserve, generate, complete, cancel)` helper.
+- [x] **High · M** — The reserve→generate→complete→cancel flow is triplicated. `generateQuestionForWorksheet`, `regenerateQuestionForWorksheet`, and `generateVariantRollForQuestion` each re-implement the same skeleton (parse reserve failure, branch on `completed`/`failed`/active, `reservationActive` bookkeeping, cancel-on-throw). Bugs get fixed in one copy and not the others. [features/generate/generate-question-core.ts:243](../features/generate/generate-question-core.ts#L243) (regenerate [generate-question-core.ts:381](../features/generate/generate-question-core.ts#L381), variant [generate-variant-core.ts:178](../features/generate/generate-variant-core.ts#L178)). _Fix:_ extract a `withCreditReservation(reserve, generate, complete, cancel)` helper.
 
 ### Medium
 

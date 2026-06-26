@@ -2,19 +2,13 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { z } from "zod"
 
 import { generateWorksheetQuestion } from "@/lib/ai/generate-question"
-import {
-  getGenerationFailure,
-  logGenerationError,
-} from "@/lib/ai/generation-errors"
 import { regenerateWorksheetQuestion } from "@/lib/ai/regenerate-question"
 
-import {
-  failure,
-  parseRpcFailure,
-  parseStructuredRpcFailure,
-} from "./errors"
+import { failure, parseRpcFailure } from "./errors"
 import type { AppFailure, GenerationErrorCode } from "./errors"
 import type { GenerateQuestionResult } from "./result-types"
+import { withCreditReservation } from "./utils/with-credit-reservation"
+import type { ParsedReservation } from "./utils/with-credit-reservation"
 import { buildScenarioPrompt } from "./utils/build-scenario-prompt"
 import { buildGenerateIdempotencyKey, buildRegenerateIdempotencyKey } from "./utils/idempotency-key"
 import {
@@ -32,7 +26,7 @@ import {
 import { parseReserveResponse } from "./utils/parse-reservation-response"
 import { generationSettingsSchema, worksheetQuestionSchema } from "./schemas"
 import { fetchWorksheetQuestions } from "./utils/fetch-worksheet-questions"
-import type { Subject } from "./types"
+import type { Subject, WorksheetQuestion } from "./types"
 
 type WorksheetRow = {
   id: string
@@ -138,21 +132,26 @@ function mapInvalidCompleteFailure(
   return result
 }
 
-function parseReserveRpcFailure(
-  reserveResult: unknown,
-  reserveError: unknown,
-  fallbackCode: "RESERVE_FAILED" | "REGENERATE_FAILED"
-) {
-  const structured = parseStructuredRpcFailure(reserveResult, fallbackCode)
-  if (structured) {
-    return structured
+function toParsedQuestionReservation(
+  reserveResult: unknown
+): ParsedReservation<{ question: WorksheetQuestion; creditBalance: number }> | null {
+  const reservation = parseReserveResponse(reserveResult)
+
+  if (!reservation) {
+    return null
   }
 
-  if (reserveError || !reserveResult) {
-    return parseRpcFailure(reserveError, fallbackCode)
+  if (reservation.kind === "completed") {
+    return {
+      kind: "completed",
+      data: {
+        question: reservation.question,
+        creditBalance: reservation.creditBalance,
+      },
+    }
   }
 
-  return null
+  return reservation
 }
 
 export async function generateQuestionForWorksheet(params: {
@@ -206,99 +205,64 @@ export async function generateQuestionForWorksheet(params: {
 
   const idempotencyKey = buildGenerateIdempotencyKey(worksheet.id, order)
 
-  const { data: reserveResult, error: reserveError } = await supabase.rpc(
-    "reserve_generate_question_credit",
-    {
-      p_worksheet_id: worksheet.id,
-      p_order: order,
-      p_idempotency_key: idempotencyKey,
-    }
-  )
-
-  const reserveFailure = parseReserveRpcFailure(reserveResult, reserveError, "RESERVE_FAILED")
-  if (reserveFailure) {
-    return reserveFailure
-  }
-
-  const reservation = parseReserveResponse(reserveResult)
-
-  if (!reservation) {
-    return failure("RESERVE_FAILED")
-  }
-
-  if (reservation.kind === "failed") {
-    return failure(reservation.code, reservation.message)
-  }
-
-  if (reservation.kind === "completed") {
-    return {
-      ok: true,
-      data: {
-        question: reservation.question,
-        creditBalance: reservation.creditBalance,
-      },
-    }
-  }
-
-  let reservationActive = true
-
-  try {
-    const generatedQuestion = await generateWorksheetQuestion({
-      subject: worksheet.subject,
-      lesson: generationSettings.lesson,
-      scenario: getPromptScenario(generationSettings, order, worksheet.id),
-      previousQuestionsContext,
-      mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
-    })
-
-    const question = worksheetQuestionSchema.parse({
-      id: reservation.pendingQuestionId ?? crypto.randomUUID(),
-      order,
-      ...generatedQuestion,
-    })
-
-    const { data: completeResult, error: completeError } = await supabase.rpc(
-      "complete_generate_question_reservation",
-      {
-        p_reservation_id: reservation.reservationId,
-        p_question: question,
+  return withCreditReservation({
+    errorContext: "generateQuestionForWorksheet",
+    fallbackCode: "GENERATE_FAILED",
+    reserveFallbackCode: "RESERVE_FAILED",
+    reserve: () =>
+      supabase.rpc("reserve_generate_question_credit", {
+        p_worksheet_id: worksheet.id,
+        p_order: order,
         p_idempotency_key: idempotencyKey,
+      }),
+    parseReservation: toParsedQuestionReservation,
+    cancel: (reservationId) =>
+      cancelGenerateReservation(supabase, reservationId, idempotencyKey),
+    run: async (context) => {
+      const generatedQuestion = await generateWorksheetQuestion({
+        subject: worksheet.subject,
+        lesson: generationSettings.lesson,
+        scenario: getPromptScenario(generationSettings, order, worksheet.id),
+        previousQuestionsContext,
+        mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
+      })
+
+      const question = worksheetQuestionSchema.parse({
+        id: context.pendingQuestionId ?? crypto.randomUUID(),
+        order,
+        ...generatedQuestion,
+      })
+
+      const { data: completeResult, error: completeError } = await supabase.rpc(
+        "complete_generate_question_reservation",
+        {
+          p_reservation_id: context.reservationId,
+          p_question: question,
+          p_idempotency_key: idempotencyKey,
+        }
+      )
+
+      if (completeError || !completeResult) {
+        return {
+          ok: false,
+          failure: parseRpcFailure(completeError, "SAVE_FAILED"),
+          cancel: true,
+        }
       }
-    )
 
-    if (completeError || !completeResult) {
-      reservationActive = false
-      await cancelGenerateReservation(supabase, reservation.reservationId, idempotencyKey)
+      const parsedCompleteResult = parseCompleteResponse(completeResult)
 
-      return parseRpcFailure(completeError, "SAVE_FAILED")
-    }
-
-    const parsedCompleteResult = parseCompleteResponse(completeResult)
-
-    if (!parsedCompleteResult.ok) {
-      reservationActive = false
-
-      if (!completeResponseWasDbRefunded(completeResult)) {
-        await cancelGenerateReservation(supabase, reservation.reservationId, idempotencyKey)
+      if (!parsedCompleteResult.ok) {
+        return {
+          ok: false,
+          failure: mapInvalidCompleteFailure(parsedCompleteResult, "SAVE_FAILED"),
+          cancel: !completeResponseWasDbRefunded(completeResult),
+        }
       }
 
-      return mapInvalidCompleteFailure(parsedCompleteResult, "SAVE_FAILED")
-    }
-
-    reservationActive = false
-
-    return {
-      ok: true,
-      data: parsedCompleteResult.data,
-    }
-  } catch (error) {
-    if (reservationActive) {
-      await cancelGenerateReservation(supabase, reservation.reservationId, idempotencyKey)
-    }
-
-    logGenerationError("generateQuestionForWorksheet", error)
-    return getGenerationFailure(error)
-  }
+      return { ok: true, data: parsedCompleteResult.data }
+    },
+  })
 }
 
 export async function regenerateQuestionForWorksheet(params: {
@@ -340,107 +304,68 @@ export async function regenerateQuestionForWorksheet(params: {
     attemptId
   )
 
-  const { data: reserveResult, error: reserveError } = await supabase.rpc(
-    "reserve_regenerate_question_credit",
-    {
-      p_worksheet_id: worksheet.id,
-      p_question_id: originalQuestion.id,
-      p_idempotency_key: idempotencyKey,
-    }
-  )
-
-  const reserveFailure = parseReserveRpcFailure(
-    reserveResult,
-    reserveError,
-    "REGENERATE_FAILED"
-  )
-  if (reserveFailure) {
-    return reserveFailure
-  }
-
-  const reservation = parseReserveResponse(reserveResult)
-
-  if (!reservation) {
-    return failure(REGENERATE_FALLBACK_CODE)
-  }
-
-  if (reservation.kind === "failed") {
-    return failure(reservation.code, reservation.message)
-  }
-
-  if (reservation.kind === "completed") {
-    return {
-      ok: true,
-      data: {
-        question: reservation.question,
-        creditBalance: reservation.creditBalance,
-      },
-    }
-  }
-
-  let reservationActive = true
-
-  try {
-    const generatedQuestion = await regenerateWorksheetQuestion({
-      subject: worksheet.subject,
-      lesson: generationSettings.lesson,
-      scenario: getPromptScenario(
-        generationSettings,
-        originalQuestion.order,
-        worksheet.id
-      ),
-      existingQuestionText: originalQuestion.question_text,
-      mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
-    })
-
-    const replacementQuestion = worksheetQuestionSchema.parse({
-      id: originalQuestion.id,
-      order: originalQuestion.order,
-      ...generatedQuestion,
-    })
-
-    const { data: completeResult, error: completeError } = await supabase.rpc(
-      "complete_regenerate_question_reservation",
-      {
-        p_reservation_id: reservation.reservationId,
-        p_new_question: replacementQuestion,
+  return withCreditReservation({
+    errorContext: "regenerateQuestionForWorksheet",
+    fallbackCode: REGENERATE_FALLBACK_CODE,
+    reserveFallbackCode: REGENERATE_FALLBACK_CODE,
+    reserve: () =>
+      supabase.rpc("reserve_regenerate_question_credit", {
+        p_worksheet_id: worksheet.id,
+        p_question_id: originalQuestion.id,
         p_idempotency_key: idempotencyKey,
+      }),
+    parseReservation: toParsedQuestionReservation,
+    cancel: (reservationId) =>
+      cancelRegenerateReservation(supabase, reservationId, idempotencyKey),
+    run: async (context) => {
+      const generatedQuestion = await regenerateWorksheetQuestion({
+        subject: worksheet.subject,
+        lesson: generationSettings.lesson,
+        scenario: getPromptScenario(
+          generationSettings,
+          originalQuestion.order,
+          worksheet.id
+        ),
+        existingQuestionText: originalQuestion.question_text,
+        mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
+      })
+
+      const replacementQuestion = worksheetQuestionSchema.parse({
+        id: originalQuestion.id,
+        order: originalQuestion.order,
+        ...generatedQuestion,
+      })
+
+      const { data: completeResult, error: completeError } = await supabase.rpc(
+        "complete_regenerate_question_reservation",
+        {
+          p_reservation_id: context.reservationId,
+          p_new_question: replacementQuestion,
+          p_idempotency_key: idempotencyKey,
+        }
+      )
+
+      if (completeError || !completeResult) {
+        return {
+          ok: false,
+          failure: parseRpcFailure(completeError, REGENERATE_FALLBACK_CODE),
+          cancel: true,
+        }
       }
-    )
 
-    if (completeError || !completeResult) {
-      reservationActive = false
-      await cancelRegenerateReservation(supabase, reservation.reservationId, idempotencyKey)
+      const parsedCompleteResult = parseCompleteResponse(completeResult)
 
-      return parseRpcFailure(completeError, REGENERATE_FALLBACK_CODE)
-    }
-
-    const parsedCompleteResult = parseCompleteResponse(completeResult)
-
-    if (!parsedCompleteResult.ok) {
-      reservationActive = false
-
-      if (!completeResponseWasDbRefunded(completeResult)) {
-        await cancelRegenerateReservation(supabase, reservation.reservationId, idempotencyKey)
+      if (!parsedCompleteResult.ok) {
+        return {
+          ok: false,
+          failure: mapInvalidCompleteFailure(parsedCompleteResult, REGENERATE_FALLBACK_CODE),
+          cancel: !completeResponseWasDbRefunded(completeResult),
+        }
       }
 
-      return mapInvalidCompleteFailure(parsedCompleteResult, REGENERATE_FALLBACK_CODE)
-    }
-
-    reservationActive = false
-
-    return {
-      ok: true,
-      data: parsedCompleteResult.data,
-    }
-  } catch (error) {
-    if (reservationActive) {
-      await cancelRegenerateReservation(supabase, reservation.reservationId, idempotencyKey)
-    }
-
-    logGenerationError("regenerateQuestionForWorksheet", error)
-    return getGenerationFailure(error, REGENERATE_FALLBACK_CODE)
-  }
+      return { ok: true, data: parsedCompleteResult.data }
+    },
+  })
 }
 
 export async function loadWorksheetQuestionsForProfile(
