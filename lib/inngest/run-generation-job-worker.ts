@@ -4,6 +4,7 @@ import {
 } from "@/features/generate/generate-question-core"
 import type { GenerationJobRow } from "@/features/generate/generation-job-types"
 import { parseSkippedOrders } from "@/features/generate/generation-job-types"
+import type { SkippedSlot, WorksheetQuestion } from "@/features/generate/types"
 import { getUnfilledOrders } from "@/features/generate/utils/get-unfilled-orders"
 import {
   appendCreditExhaustedSkips,
@@ -11,37 +12,15 @@ import {
   generateQuestionWithRetry,
 } from "@/features/generate/utils/generation-order"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
-import { createClientForProfile } from "@/lib/supabase/user-client"
 import { runVariantGenerationJobWorker } from "@/lib/inngest/run-variant-generation-job-worker"
+import {
+  runGenerationJob,
+  updateGenerationJobProgress,
+} from "@/lib/inngest/generation-job-runner"
 import {
   syncGenerationJobStep,
   type GenerationJobStep,
 } from "@/lib/inngest/generation-job-step"
-
-async function updateJob(
-  admin: ReturnType<typeof createServiceRoleClient>,
-  params: {
-    jobId: string
-    status: GenerationJobRow["status"]
-    lastCompletedOrder?: number
-    skippedOrders?: { order: number; message: string }[]
-    errorMessage?: string | null
-    inngestRunId?: string
-  }
-) {
-  const { error } = await admin.rpc("update_generation_job_progress", {
-    p_job_id: params.jobId,
-    p_status: params.status,
-    p_last_completed_order: params.lastCompletedOrder ?? null,
-    p_skipped_orders: params.skippedOrders ?? null,
-    p_error_message: params.errorMessage ?? null,
-    p_inngest_run_id: params.inngestRunId ?? null,
-  })
-
-  if (error) {
-    throw new Error(error.message)
-  }
-}
 
 /**
  * Best-effort flip of a job to `failed`, used by the Inngest function's
@@ -52,7 +31,7 @@ async function updateJob(
 export async function markGenerationJobFailed(jobId: string, errorMessage: string) {
   try {
     const admin = createServiceRoleClient()
-    await updateJob(admin, {
+    await updateGenerationJobProgress(admin, {
       jobId,
       status: "failed",
       errorMessage,
@@ -112,6 +91,17 @@ export async function runGenerationJobWorker(params: {
   })
 }
 
+type StandardState = {
+  skippedOrders: SkippedSlot[]
+  lastCompletedOrder: number
+  questions: WorksheetQuestion[]
+}
+
+type StandardSaved = {
+  questions: WorksheetQuestion[]
+  creditBalance: number
+}
+
 async function runStandardGenerationJobWorker(params: {
   jobId: string
   worksheetId: string
@@ -119,174 +109,110 @@ async function runStandardGenerationJobWorker(params: {
   runId?: string
   step?: GenerationJobStep
 }) {
-  const { jobId, worksheetId, profileId, runId, step = syncGenerationJobStep } = params
-  const admin = createServiceRoleClient()
+  const { jobId, worksheetId, profileId, runId, step } = params
 
-  await step.run("mark-running", async () => {
-    await updateJob(admin, {
-      jobId,
-      status: "running",
-      inngestRunId: runId,
-    })
-  })
+  return runGenerationJob<number, StandardSaved, StandardState, { status: GenerationJobRow["status"] }>({
+    jobId,
+    worksheetId,
+    profileId,
+    runId,
+    step,
+    config: {
+      loadJob: async (admin) => {
+        const { data, error } = await admin
+          .from("generation_jobs")
+          .select("*")
+          .eq("id", jobId)
+          .single<GenerationJobRow>()
 
-  const job = await step.run("load-job", async () => {
-    const { data, error } = await admin
-      .from("generation_jobs")
-      .select("*")
-      .eq("id", jobId)
-      .single<GenerationJobRow>()
-
-    if (error || !data) {
-      throw new Error("Generation job not found")
-    }
-
-    return data
-  })
-
-  let skippedOrders = parseSkippedOrders(job.skipped_orders)
-  let lastCompletedOrder = job.last_completed_order ?? 0
-  let terminalStatus: GenerationJobRow["status"] | null = null
-
-  const loaded = await step.run("load-worksheet", async () => {
-    const userClient = await createClientForProfile(profileId)
-    return loadWorksheetQuestionsForProfile(userClient, worksheetId, profileId)
-  })
-
-  if (!loaded) {
-    await step.run("fail-missing-worksheet", async () => {
-      await updateJob(admin, {
-        jobId,
-        status: "failed",
-        errorMessage: "Worksheet not found",
-        skippedOrders,
-        lastCompletedOrder,
-      })
-    })
-    return { status: "failed" as const }
-  }
-
-  let questions = loaded.questions
-
-  const ordersToFill = getUnfilledOrders(questions, job.to_order).filter(
-    (order) => order >= job.from_order && order <= job.to_order
-  )
-
-  for (const order of ordersToFill) {
-    if (terminalStatus) {
-      break
-    }
-
-    const stepResult = await step.run(`generate-order-${order}`, async () => {
-      const userClient = await createClientForProfile(profileId)
-      const fresh = await loadWorksheetQuestionsForProfile(userClient, worksheetId, profileId)
-
-      if (!fresh) {
-        return { type: "failed" as const, message: "Worksheet not found" }
-      }
-
-      const context = buildPreviousQuestionsContext(fresh.questions, order)
-
-      const result = await generateQuestionWithRetry({
-        order,
-        previousQuestionsContext: context,
-        generateQuestion: (currentOrder, previousQuestionsContext) =>
-          generateQuestionForWorksheet({
-            supabase: userClient,
-            profileId,
-            worksheetId,
-            order: currentOrder,
-            previousQuestionsContext,
-          }),
-      })
-
-      if (result.ok) {
-        const reloaded = await loadWorksheetQuestionsForProfile(
-          userClient,
-          worksheetId,
-          profileId
-        )
-        return {
-          type: "saved" as const,
-          order,
-          questions: reloaded?.questions ?? [...fresh.questions, result.data.question],
-          creditBalance: result.data.creditBalance,
+        if (error || !data) {
+          throw new Error("Generation job not found")
         }
-      }
 
-      if (result.code === "INSUFFICIENT_CREDITS") {
-        return { type: "credits" as const }
-      }
+        return data
+      },
+      initState: (job) => ({
+        skippedOrders: parseSkippedOrders(job.skipped_orders),
+        lastCompletedOrder: job.last_completed_order ?? 0,
+        questions: [],
+      }),
+      onWorksheetLoaded: (state, questions) => {
+        state.questions = questions
+      },
+      buildWorkItems: (job, questions) =>
+        getUnfilledOrders(questions, job.to_order).filter(
+          (order) => order >= job.from_order && order <= job.to_order
+        ),
+      workStepId: (order) => `generate-order-${order}`,
+      persistStepId: (order) => `persist-progress-${order}`,
+      runItem: async ({ item: order, userClient }) => {
+        const fresh = await loadWorksheetQuestionsForProfile(userClient, worksheetId, profileId)
 
-      return {
-        type: "skipped" as const,
-        order,
-        message: result.message,
-      }
-    })
+        if (!fresh) {
+          return { type: "failed", message: "Worksheet not found" }
+        }
 
-    if (stepResult.type === "saved") {
-      questions = stepResult.questions
-      lastCompletedOrder = Math.max(lastCompletedOrder, order)
-      skippedOrders = skippedOrders.filter((slot) => slot.order !== order)
+        const context = buildPreviousQuestionsContext(fresh.questions, order)
 
-      await step.run(`persist-progress-${order}`, async () => {
-        await updateJob(admin, {
-          jobId,
-          status: "running",
-          lastCompletedOrder,
-          skippedOrders,
+        const result = await generateQuestionWithRetry({
+          order,
+          previousQuestionsContext: context,
+          generateQuestion: (currentOrder, previousQuestionsContext) =>
+            generateQuestionForWorksheet({
+              supabase: userClient,
+              profileId,
+              worksheetId,
+              order: currentOrder,
+              previousQuestionsContext,
+            }),
         })
-      })
-      continue
-    }
 
-    if (stepResult.type === "credits") {
-      skippedOrders = [
-        ...skippedOrders,
-        ...appendCreditExhaustedSkips({
-          fromOrder: order,
-          toOrder: job.to_order,
-          questions,
-          skippedSlots: skippedOrders,
-        }),
-      ]
+        if (result.ok) {
+          const reloaded = await loadWorksheetQuestionsForProfile(
+            userClient,
+            worksheetId,
+            profileId
+          )
+          return {
+            type: "saved",
+            saved: {
+              questions: reloaded?.questions ?? [...fresh.questions, result.data.question],
+              creditBalance: result.data.creditBalance,
+            },
+          }
+        }
 
-      terminalStatus = "partial"
-      break
-    }
+        if (result.code === "INSUFFICIENT_CREDITS") {
+          return { type: "credits" }
+        }
 
-    if (stepResult.type === "skipped") {
-      skippedOrders.push({
-        order: stepResult.order,
-        message: stepResult.message,
-      })
-      continue
-    }
-
-    if (stepResult.type === "failed") {
-      terminalStatus = "failed"
-      await step.run("fail-job", async () => {
-        await updateJob(admin, {
-          jobId,
-          status: "failed",
-          errorMessage: stepResult.message,
-          skippedOrders,
-          lastCompletedOrder,
-        })
-      })
-      return { status: "failed" as const }
-    }
-  }
-
-  await step.run("finalize", async () => {
-    await updateJob(admin, {
-      jobId,
-      status: terminalStatus ?? "completed",
-      lastCompletedOrder,
-      skippedOrders,
-    })
+        return { type: "skipped", message: result.message }
+      },
+      onSaved: (order, saved, state) => {
+        state.questions = saved.questions
+        state.lastCompletedOrder = Math.max(state.lastCompletedOrder, order)
+        state.skippedOrders = state.skippedOrders.filter((slot) => slot.order !== order)
+      },
+      onCredits: (order, _items, state, job) => {
+        state.skippedOrders = [
+          ...state.skippedOrders,
+          ...appendCreditExhaustedSkips({
+            fromOrder: order,
+            toOrder: job.to_order,
+            questions: state.questions,
+            skippedSlots: state.skippedOrders,
+          }),
+        ]
+      },
+      onSkipped: (order, message, state) => {
+        state.skippedOrders.push({ order, message })
+      },
+      serializeProgress: (state) => ({
+        lastCompletedOrder: state.lastCompletedOrder,
+        skippedOrders: state.skippedOrders,
+      }),
+      finalizeStepId: "finalize",
+      buildResult: (status) => ({ status }),
+    },
   })
-
-  return { status: terminalStatus ?? "completed" }
 }
