@@ -12,6 +12,8 @@ const mockGenerationJobSingle = vi.fn()
 const mockGenerationJobsLimit = vi.fn()
 const mockInngestSend = vi.fn()
 const mockAdminRpc = vi.fn()
+const mockAdminJobUpdate = vi.fn()
+const mockAdminJobUpdateEq = vi.fn()
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => ({
@@ -83,6 +85,20 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/supabase/admin", () => ({
   createServiceRoleClient: vi.fn(() => ({
     rpc: mockAdminRpc,
+    from: vi.fn(() => ({
+      update: (payload: unknown) => {
+        mockAdminJobUpdate(payload)
+        const chain = {
+          eq: (column: string, value: unknown) => {
+            mockAdminJobUpdateEq(column, value)
+            return chain
+          },
+          then: (resolve: (result: { data: null; error: null }) => unknown) =>
+            resolve({ data: null, error: null }),
+        }
+        return chain
+      },
+    })),
   })),
 }))
 
@@ -445,13 +461,11 @@ describe("startAppendGenerationJobAction", () => {
     })
 
     expect(result).toEqual(failure("UNKNOWN", "send failed"))
-    expect(mockAdminRpc).toHaveBeenCalledWith(
-      "update_generation_job_progress",
-      expect.objectContaining({
-        p_job_id: jobId,
-        p_status: "failed",
-      })
+    expect(mockAdminJobUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "failed" })
     )
+    expect(mockAdminJobUpdateEq).toHaveBeenCalledWith("id", jobId)
+    expect(mockAdminJobUpdateEq).toHaveBeenCalledWith("user_id", profileId)
   })
 })
 

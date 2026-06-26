@@ -41,14 +41,21 @@ async function getProfileForAuthUser(
   return data ?? null
 }
 
-async function markGenerationJobFailed(jobId: string, errorMessage: string) {
+async function markGenerationJobFailed(
+  jobId: string,
+  profileId: string,
+  errorMessage: string
+) {
   try {
     const admin = createServiceRoleClient()
-    await admin.rpc("update_generation_job_progress", {
-      p_job_id: jobId,
-      p_status: "failed",
-      p_error_message: errorMessage,
-    })
+    // Scope the cleanup to the authenticated owner: the service-role client
+    // bypasses RLS, so matching on user_id (not just the server-minted jobId)
+    // ensures a stray/client-influenced id could never fail another user's job.
+    await admin
+      .from("generation_jobs")
+      .update({ status: "failed", error_message: errorMessage })
+      .eq("id", jobId)
+      .eq("user_id", profileId)
   } catch {
     // Best-effort cleanup so a failed Inngest send does not leave a blocking queued job.
   }
@@ -262,7 +269,7 @@ export async function startAppendGenerationJobAction(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : t("couldNotStartBackground")
-    await markGenerationJobFailed(jobId, message)
+    await markGenerationJobFailed(jobId, profile.id, message)
     return failure("UNKNOWN", message)
   }
 
