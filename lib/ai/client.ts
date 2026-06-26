@@ -12,6 +12,8 @@ RUNPOD_API_KEY=
 RUNPOD_MODEL_ID=
 */
 
+import "server-only"
+
 import { google } from "@ai-sdk/google"
 import { createOpenAI } from "@ai-sdk/openai"
 import type { LanguageModel } from "ai"

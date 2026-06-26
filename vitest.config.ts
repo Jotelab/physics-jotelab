@@ -14,6 +14,12 @@ export default defineConfig({
         find: "@/features/worksheet/actions/update-worksheet-header",
         replacement: path.resolve(rootDir, "tests/mocks/update-worksheet-header.ts"),
       },
+      {
+        // `server-only` is resolved by the Next.js bundler, not a real package;
+        // map it to a no-op so server modules guarded by it can be unit-tested.
+        find: "server-only",
+        replacement: path.resolve(rootDir, "tests/mocks/server-only.ts"),
+      },
     ],
     tsconfigPaths: true,
   },
