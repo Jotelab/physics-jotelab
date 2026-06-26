@@ -5,6 +5,7 @@ import { validWorksheetQuestion } from "@/tests/fixtures/worksheet-question"
 const mockGetUser = vi.fn()
 const mockRpc = vi.fn()
 const mockWorksheetsSingle = vi.fn()
+const mockWorksheetsDelete = vi.fn()
 const mockWorksheetQuestionsOrder = vi.fn()
 const mockProfilesSingle = vi.fn()
 const mockGenerationJobSingle = vi.fn()
@@ -24,6 +25,9 @@ vi.mock("@/lib/supabase/server", () => ({
             eq: vi.fn(() => ({
               single: mockWorksheetsSingle,
             })),
+          })),
+          delete: vi.fn(() => ({
+            eq: mockWorksheetsDelete,
           })),
         }
       }
@@ -175,6 +179,7 @@ describe("startWorksheetGenerationJobAction", () => {
     vi.stubEnv("INNGEST_EVENT_KEY", "test-key")
     mockInngestSend.mockResolvedValue(undefined)
     mockAdminRpc.mockResolvedValue({ data: null, error: null })
+    mockWorksheetsDelete.mockResolvedValue({ data: null, error: null })
     mockAuthenticatedWithProfile()
     mockStartJobRpcs()
   })
@@ -302,7 +307,7 @@ describe("startWorksheetGenerationJobAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/generate")
   })
 
-  it("returns unknown when inngest is not configured", async () => {
+  it("returns unknown and deletes the orphan worksheet when inngest is not configured", async () => {
     vi.stubEnv("INNGEST_EVENT_KEY", "")
 
     const result = await startWorksheetGenerationJobAction(generateInput)
@@ -311,29 +316,30 @@ describe("startWorksheetGenerationJobAction", () => {
     if (!result.ok) {
       expect(result.message).toContain("INNGEST_EVENT_KEY")
     }
-    expect(mockAdminRpc).toHaveBeenCalledWith(
-      "update_generation_job_progress",
-      expect.objectContaining({
-        p_job_id: jobId,
-        p_status: "failed",
-      })
-    )
+    expect(mockWorksheetsDelete).toHaveBeenCalledWith("id", worksheetId)
   })
 
-  it("marks job failed when inngest send throws", async () => {
+  it("deletes the orphan worksheet when inngest send throws", async () => {
     mockInngestSend.mockRejectedValue(new Error("network down"))
 
     const result = await startWorksheetGenerationJobAction(generateInput)
 
     expect(result).toEqual(failure("UNKNOWN", "network down"))
-    expect(mockAdminRpc).toHaveBeenCalledWith(
-      "update_generation_job_progress",
-      expect.objectContaining({
-        p_job_id: jobId,
-        p_status: "failed",
-        p_error_message: "network down",
-      })
-    )
+    expect(mockWorksheetsDelete).toHaveBeenCalledWith("id", worksheetId)
+  })
+
+  it("deletes the orphan worksheet when the enqueue rpc fails", async () => {
+    mockRpc.mockImplementation(async (name: string) => {
+      if (name === "generate_worksheet_init") {
+        return initRpcSuccess()
+      }
+      return { data: null, error: { message: "enqueue failed" } }
+    })
+
+    const result = await startWorksheetGenerationJobAction(generateInput)
+
+    expect(result.ok).toBe(false)
+    expect(mockWorksheetsDelete).toHaveBeenCalledWith("id", worksheetId)
   })
 })
 

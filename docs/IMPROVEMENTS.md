@@ -25,7 +25,7 @@ and the idempotency/retry logic. Severity and effort (S/M/L) are estimates.
 
 - [x] **Low · S** — Shared poll-abort refs let two polling loops run concurrently. `startGeneration` doesn't guard on `isGeneratingRef`, and `pollJobUntilTerminal` resets the shared `pollAbortRef` on entry, so overlapping calls fight over `setState`. [features/generate/hooks/use-worksheet-generator.ts:210](../features/generate/hooks/use-worksheet-generator.ts#L210) (reset at line 127). _Fix:_ guard `startGeneration`, or use a per-poll abort token.
 
-- [ ] **Low · M** — Orphan worksheet on init failure. `generate_worksheet_init` commits a worksheet row; a later enqueue/Inngest-send failure leaves an empty orphan worksheet (only the job is marked failed). [features/generate/generation-job-actions.ts:128](../features/generate/generation-job-actions.ts#L128). _Fix:_ create + enqueue in one transaction, or delete the worksheet on the failure path.
+- [x] **Low · M** — Orphan worksheet on init failure. `generate_worksheet_init` commits a worksheet row; a later enqueue/Inngest-send failure leaves an empty orphan worksheet (only the job is marked failed). [features/generate/generation-job-actions.ts:128](../features/generate/generation-job-actions.ts#L128). _Fix:_ create + enqueue in one transaction, or delete the worksheet on the failure path.
 
 ## Security
 

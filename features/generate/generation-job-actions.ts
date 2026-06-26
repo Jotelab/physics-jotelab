@@ -54,6 +54,19 @@ async function markGenerationJobFailed(jobId: string, errorMessage: string) {
   }
 }
 
+async function deleteOrphanWorksheet(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  worksheetId: string
+) {
+  try {
+    // Cascades to the generation_jobs row, so an enqueue/send failure after init
+    // does not leave behind an empty worksheet (init charges no credits).
+    await supabase.from("worksheets").delete().eq("id", worksheetId)
+  } catch {
+    // Best-effort cleanup.
+  }
+}
+
 async function sendGenerationJobEvent(params: {
   jobId: string
   worksheetId: string
@@ -159,11 +172,13 @@ export async function startWorksheetGenerationJobAction(
     t("couldNotStartJob")
   )
   if (enqueueFailure) {
+    await deleteOrphanWorksheet(supabase, worksheetId)
     return enqueueFailure
   }
 
   const jobId = parseRpcSuccessStringField(jobData, "jobId")
   if (!jobId) {
+    await deleteOrphanWorksheet(supabase, worksheetId)
     return localizedFailure("UNKNOWN", "couldNotStartJob")
   }
 
@@ -176,7 +191,7 @@ export async function startWorksheetGenerationJobAction(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : t("couldNotStartBackground")
-    await markGenerationJobFailed(jobId, message)
+    await deleteOrphanWorksheet(supabase, worksheetId)
     return failure("UNKNOWN", message)
   }
 
