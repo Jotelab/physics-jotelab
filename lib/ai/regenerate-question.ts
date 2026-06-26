@@ -6,7 +6,13 @@ import type { GeneratedQuestion, Subject } from "@/features/generate/types"
 import { getGenerationModel } from "./client"
 import { getRegenerateErrorMessage, logGenerationError } from "./generation-errors"
 import { normalizeGeneratedQuestion } from "./normalize-question"
-import { CORE_QUESTION_RULES, THAI_LANGUAGE_RULES, buildMathComplexityRules } from "./prompt-rules"
+import {
+  CORE_QUESTION_RULES,
+  THAI_LANGUAGE_RULES,
+  UNTRUSTED_INPUT_NOTICE,
+  buildMathComplexityRules,
+  fenceUntrusted,
+} from "./prompt-rules"
 import type { MathComplexity } from "@/features/generate/types"
 import { DEFAULT_MATH_COMPLEXITY } from "@/features/generate/constants/difficulty-settings"
 
@@ -35,12 +41,14 @@ Return only one structured JSON object that matches the provided schema.
 
 Subject: ${subject}
 
+${UNTRUSTED_INPUT_NOTICE}
+
 Existing question to replace:
-${existingQuestionText}
+${fenceUntrusted("existing_question", existingQuestionText)}
 
 Generation intent:
-Lesson: ${lesson}
-Scenario: ${scenario}
+${fenceUntrusted("lesson", lesson)}
+${fenceUntrusted("scenario", scenario)}
 
 Rules:
 - Keep the same learning intent as the existing question.

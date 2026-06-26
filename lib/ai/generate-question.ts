@@ -8,7 +8,12 @@ import { getGenerationModel } from "./client"
 import { e2eStubGeneratedQuestion } from "./e2e-stub-question"
 import { getGenerationErrorMessage, logGenerationError } from "./generation-errors"
 import { normalizeGeneratedQuestion } from "./normalize-question"
-import { QUESTION_GENERATION_RULES, buildMathComplexityRules } from "./prompt-rules"
+import {
+  QUESTION_GENERATION_RULES,
+  UNTRUSTED_INPUT_NOTICE,
+  buildMathComplexityRules,
+  fenceUntrusted,
+} from "./prompt-rules"
 
 type GenerateQuestionInput = {
   subject: Subject
@@ -38,11 +43,13 @@ function buildGenerationPrompt({
 Return only one structured JSON object that matches the provided schema.
 
 Subject: ${subject}
-Lesson: ${lesson}
-Scenario: ${scenario}
+
+${UNTRUSTED_INPUT_NOTICE}
+${fenceUntrusted("lesson", lesson)}
+${fenceUntrusted("scenario", scenario)}
 
 Previously generated questions (DO NOT REPEAT THESE):
-${formatPreviousQuestions(previousQuestionsContext)}
+${fenceUntrusted("previous_questions", formatPreviousQuestions(previousQuestionsContext))}
 
 ${QUESTION_GENERATION_RULES}
 ${buildMathComplexityRules(mathComplexity)}`
