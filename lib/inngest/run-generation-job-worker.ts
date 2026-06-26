@@ -69,24 +69,31 @@ export async function runGenerationJobWorker(params: {
   runId?: string
   step?: GenerationJobStep
 }) {
-  const { jobId, worksheetId, profileId, runId, step = syncGenerationJobStep } = params
+  const { jobId, worksheetId, runId, step = syncGenerationJobStep } = params
   const admin = createServiceRoleClient()
 
-  const jobKind = await step.run("resolve-job-kind", async () => {
+  // Derive the profile to impersonate from the authoritative job row (loaded via
+  // the admin client) rather than trusting `event.data.profileId`. The event
+  // field is an unauthenticated input; minting a user-scoped JWT for it would
+  // make a privilege-escalation primitive trust a forgeable field. RLS would
+  // fail closed today, but the authoritative `user_id` removes the trust on it.
+  const job = await step.run("resolve-job-kind", async () => {
     const { data, error } = await admin
       .from("generation_jobs")
-      .select("kind")
+      .select("kind, user_id")
       .eq("id", jobId)
-      .single<{ kind: GenerationJobRow["kind"] }>()
+      .single<{ kind: GenerationJobRow["kind"]; user_id: string }>()
 
     if (error || !data) {
       throw new Error("Generation job not found")
     }
 
-    return data.kind
+    return data
   })
 
-  if (jobKind === "variant") {
+  const profileId = job.user_id
+
+  if (job.kind === "variant") {
     return runVariantGenerationJobWorker({
       jobId,
       worksheetId,
