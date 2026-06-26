@@ -80,7 +80,7 @@ non-test source.
 
 - [x] **Med · M** — No unit coverage on the job-orchestration or auth critical paths. `generate-question-core` and the credit/limit utils are tested, but the workers (retry, skip, credit-exhaust, partial/failed transitions) have no `*.test.ts`, and `features/auth/actions.ts` (sign-in/out) is untested. [lib/inngest/run-generation-job-worker.ts:1](../lib/inngest/run-generation-job-worker.ts#L1), [lib/inngest/run-variant-generation-job-worker.ts:1](../lib/inngest/run-variant-generation-job-worker.ts#L1), [features/auth/actions.ts:1](../features/auth/actions.ts#L1). _Fix:_ test the workers against a fake `GenerationJobStep` + stubbed core.
 
-- [ ] **Med · M** — `worksheet-config-panel.tsx` is a 480-line presentational component with a ~35-field props interface (prop-drilling). Every new control threads another callback prop through the parent. [features/generate/components/worksheet-config-panel.tsx:22](../features/generate/components/worksheet-config-panel.tsx#L22). _Fix:_ group related props into objects or provide form state via context.
+- [x] **Med · M** — `worksheet-config-panel.tsx` is a 480-line presentational component with a ~35-field props interface (prop-drilling). Every new control threads another callback prop through the parent. [features/generate/components/worksheet-config-panel.tsx:22](../features/generate/components/worksheet-config-panel.tsx#L22). _Fix:_ group related props into objects or provide form state via context.
 
 ### Low
 
