@@ -84,7 +84,7 @@ non-test source.
 
 ### Low
 
-- [ ] **Low · S** — Only unsafe cast in the codebase: `step as unknown as GenerationJobStep` papers over a real type mismatch between Inngest's `step` and the internal step interface. [lib/inngest/functions/generate-worksheet-questions.ts:26](../lib/inngest/functions/generate-worksheet-questions.ts#L26). _Fix:_ define `GenerationJobStep` as the subset Inngest already satisfies, or wrap with a typed adapter.
+- [x] **Low · S** — Only unsafe cast in the codebase: `step as unknown as GenerationJobStep` papers over a real type mismatch between Inngest's `step` and the internal step interface. [lib/inngest/functions/generate-worksheet-questions.ts:26](../lib/inngest/functions/generate-worksheet-questions.ts#L26). _Fix:_ define `GenerationJobStep` as the subset Inngest already satisfies, or wrap with a typed adapter.
 
 - [ ] **Low · S** — `getWorksheetForProfile` (select id/user_id/settings, compare `user_id`) is copy-pasted between the generate core and the variant core with slightly different column lists. [features/generate/generate-question-core.ts:75](../features/generate/generate-question-core.ts#L75), [features/generate/generate-variant-core.ts:34](../features/generate/generate-variant-core.ts#L34). _Fix:_ share one ownership-load helper.
 
