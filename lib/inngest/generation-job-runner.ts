@@ -84,11 +84,16 @@ export type GenerationJobConfig<TItem, TSaved, TState, TResult> = {
   /** Inngest step id for the work step and the post-save persist step. */
   workStepId: (item: TItem) => string
   persistStepId: (item: TItem) => string
-  /** Per-item work, run inside the work step against a user-scoped client. */
+  /**
+   * Per-item work, run inside the work step against a user-scoped client.
+   * Receives the accumulated `state` (questions generated so far, etc.) so the
+   * work can reuse it instead of re-reading from the DB.
+   */
   runItem: (args: {
     item: TItem
     userClient: SupabaseClient
     job: GenerationJobRow
+    state: TState
   }) => Promise<ItemOutcome<TSaved>>
   /** Mutate state for each terminal outcome of an item. */
   onSaved: (item: TItem, saved: TSaved, state: TState, job: GenerationJobRow) => void
@@ -167,7 +172,7 @@ export async function runGenerationJob<TItem, TSaved, TState, TResult>(params: {
 
     const outcome = await step.run(config.workStepId(item), async () => {
       const userClient = await createClientForProfile(profileId)
-      return config.runItem({ item, userClient, job })
+      return config.runItem({ item, userClient, job, state })
     })
 
     if (outcome.type === "saved") {

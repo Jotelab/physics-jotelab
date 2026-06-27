@@ -135,8 +135,15 @@ export async function generateQuestionForWorksheet(params: {
   worksheetId: string
   order: number
   previousQuestionsContext: string[]
+  /**
+   * The worksheet's already-loaded questions. The worker threads its in-memory
+   * list in to avoid an O(N^2) per-order re-read; when omitted (e.g. a direct
+   * call) the questions are fetched here.
+   */
+  knownQuestions?: WorksheetQuestion[]
 }): Promise<GenerateQuestionResult> {
-  const { supabase, profileId, worksheetId, order, previousQuestionsContext } = params
+  const { supabase, profileId, worksheetId, order, previousQuestionsContext, knownQuestions } =
+    params
 
   const worksheet = await loadOwnedWorksheet(supabase, worksheetId, profileId)
 
@@ -154,7 +161,7 @@ export async function generateQuestionForWorksheet(params: {
     return failure("GENERATION_SETTINGS_MISSING")
   }
 
-  const existingQuestions = await fetchWorksheetQuestions(supabase, worksheetId)
+  const existingQuestions = knownQuestions ?? (await fetchWorksheetQuestions(supabase, worksheetId))
 
   if (existingQuestions === null) {
     return failure("QUESTIONS_LOAD_FAILED")

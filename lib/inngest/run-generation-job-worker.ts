@@ -1,7 +1,4 @@
-import {
-  generateQuestionForWorksheet,
-  loadWorksheetQuestionsForProfile,
-} from "@/features/generate/generate-question-core"
+import { generateQuestionForWorksheet } from "@/features/generate/generate-question-core"
 import type { GenerationJobRow } from "@/features/generate/generation-job-types"
 import { parseSkippedOrders } from "@/features/generate/generation-job-types"
 import type { SkippedSlot, WorksheetQuestion } from "@/features/generate/types"
@@ -145,14 +142,13 @@ async function runStandardGenerationJobWorker(params: {
         ),
       workStepId: (order) => `generate-order-${order}`,
       persistStepId: (order) => `persist-progress-${order}`,
-      runItem: async ({ item: order, userClient }) => {
-        const fresh = await loadWorksheetQuestionsForProfile(userClient, worksheetId, profileId)
-
-        if (!fresh) {
-          return { type: "failed", message: "Worksheet not found" }
-        }
-
-        const context = buildPreviousQuestionsContext(fresh.questions, order)
+      runItem: async ({ item: order, userClient, state }) => {
+        // The worksheet's questions are loaded once (load-worksheet step) and
+        // accumulated in `state` as each order saves, so reuse them for context
+        // and thread them into the core — no per-order re-read. This is what
+        // turns the old O(N^2) row transfer into O(N).
+        const knownQuestions = state.questions
+        const context = buildPreviousQuestionsContext(knownQuestions, order)
 
         const result = await generateQuestionWithRetry({
           order,
@@ -164,19 +160,15 @@ async function runStandardGenerationJobWorker(params: {
               worksheetId,
               order: currentOrder,
               previousQuestionsContext,
+              knownQuestions,
             }),
         })
 
         if (result.ok) {
-          const reloaded = await loadWorksheetQuestionsForProfile(
-            userClient,
-            worksheetId,
-            profileId
-          )
           return {
             type: "saved",
             saved: {
-              questions: reloaded?.questions ?? [...fresh.questions, result.data.question],
+              questions: [...knownQuestions, result.data.question],
               creditBalance: result.data.creditBalance,
             },
           }
@@ -184,6 +176,13 @@ async function runStandardGenerationJobWorker(params: {
 
         if (result.code === "INSUFFICIENT_CREDITS") {
           return { type: "credits" }
+        }
+
+        // A vanished/forbidden worksheet is terminal for the whole job (the
+        // core's ownership load is the authoritative check now that the worker
+        // no longer re-reads per order); other failures skip a single order.
+        if (result.code === "WORKSHEET_ACCESS_DENIED") {
+          return { type: "failed", message: result.message }
         }
 
         return { type: "skipped", message: result.message }

@@ -235,15 +235,16 @@ describe("runGenerationJobWorker (standard)", () => {
     expect(mockGenerate).not.toHaveBeenCalled()
   })
 
-  it("fails the job when the worksheet disappears mid-run", async () => {
+  it("fails the job when generation reports the worksheet is gone", async () => {
     const { admin, rpcCalls } = makeAdmin({
       kindRow: { kind: "initial", user_id: profileId },
       jobRow: makeJobRow(),
     })
     mockAdminFactory.mockReturnValue(admin as never)
-    mockLoad
-      .mockResolvedValueOnce(worksheetLoad([]) as never) // load-worksheet
-      .mockResolvedValue(null) // fresh fetch inside the work step
+    mockLoad.mockResolvedValue(worksheetLoad([]) as never) // load-worksheet succeeds
+    // The worker no longer re-reads per order; the core's ownership load is the
+    // authoritative check, surfaced as WORKSHEET_ACCESS_DENIED.
+    mockGenerate.mockResolvedValue(failure("WORKSHEET_ACCESS_DENIED"))
 
     const { step, names } = recordingStep()
     const result = await runGenerationJobWorker({ jobId, worksheetId, profileId, step })
@@ -252,7 +253,7 @@ describe("runGenerationJobWorker (standard)", () => {
     expect(names).toContain("fail-job")
     expect(progressUpdates(rpcCalls).at(-1)).toMatchObject({
       p_status: "failed",
-      p_error_message: "Worksheet not found",
+      p_error_message: "You do not have access to this worksheet.",
     })
   })
 

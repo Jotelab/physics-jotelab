@@ -98,7 +98,7 @@ effort (S/M/L) are estimates. (Indexes for the hot access paths — `worksheet_q
 
 ### High
 
-- [ ] **High · M** — The standard worker re-reads *all* of a worksheet's questions ~3× per order → roughly O(N²) row transfer for an N-question worksheet. Inside each `generate-order-${order}` step it calls `loadWorksheetQuestionsForProfile` (full fetch), then `generateQuestionForWorksheet` calls `fetchWorksheetQuestions` again, then a third `reloaded` fetch after save. [lib/inngest/run-generation-job-worker.ts:156](../lib/inngest/run-generation-job-worker.ts#L156) (reload [run-generation-job-worker.ts:178](../lib/inngest/run-generation-job-worker.ts#L178), inner [generate-question-core.ts:183](../features/generate/generate-question-core.ts#L183)). _Fix:_ pass the already-loaded questions into the core; only fetch the prior-context slice (`question_order < order`).
+- [x] **High · M** — The standard worker re-reads *all* of a worksheet's questions ~3× per order → roughly O(N²) row transfer for an N-question worksheet. Inside each `generate-order-${order}` step it calls `loadWorksheetQuestionsForProfile` (full fetch), then `generateQuestionForWorksheet` calls `fetchWorksheetQuestions` again, then a third `reloaded` fetch after save. [lib/inngest/run-generation-job-worker.ts:156](../lib/inngest/run-generation-job-worker.ts#L156) (reload [run-generation-job-worker.ts:178](../lib/inngest/run-generation-job-worker.ts#L178), inner [generate-question-core.ts:183](../features/generate/generate-question-core.ts#L183)). _Fix:_ pass the already-loaded questions into the core; only fetch the prior-context slice (`question_order < order`).
 
 ### Medium
 
