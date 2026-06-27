@@ -112,7 +112,7 @@ effort (S/M/L) are estimates. (Indexes for the hot access paths — `worksheet_q
 
 ### Low
 
-- [ ] **Low · M** — Per-user credit serialization. Every `reserve_*_credit` takes `select … from profiles … for update` and runs the full `_cleanup_expired_reservations_for_user` loop, so all of one user's concurrent generate/regenerate/variant operations serialize on the profile row and re-scan their reservations each call. Correct, but a throughput ceiling per user. [supabase/migrations/20260601000000_credit_reservations.sql:185](../supabase/migrations/20260601000000_credit_reservations.sql#L185). _Fix:_ keep the lock narrow; gate the cleanup behind an "any expired?" probe instead of an unconditional loop.
+- [x] **Low · M** — Per-user credit serialization. Every `reserve_*_credit` takes `select … from profiles … for update` and runs the full `_cleanup_expired_reservations_for_user` loop, so all of one user's concurrent generate/regenerate/variant operations serialize on the profile row and re-scan their reservations each call. Correct, but a throughput ceiling per user. [supabase/migrations/20260601000000_credit_reservations.sql:185](../supabase/migrations/20260601000000_credit_reservations.sql#L185). _Fix:_ keep the lock narrow; gate the cleanup behind an "any expired?" probe instead of an unconditional loop.
 
 ## Expandability
 
