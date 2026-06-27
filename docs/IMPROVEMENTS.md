@@ -102,7 +102,7 @@ effort (S/M/L) are estimates. (Indexes for the hot access paths — `worksheet_q
 
 ### Medium
 
-- [ ] **Med · S** — No global/account-level Inngest concurrency cap. `concurrency.key = event.data.worksheetId, limit 1` only serializes a single worksheet; the number of worksheets generating in parallel is unbounded, so a burst fans out into unbounded concurrent model calls and Supabase connections (provider rate-limit / pool exhaustion). [lib/inngest/functions/generate-worksheet-questions.ts:13](../lib/inngest/functions/generate-worksheet-questions.ts#L13). _Fix:_ add a second account- or app-scoped concurrency limit.
+- [x] **Med · S** — No global/account-level Inngest concurrency cap. `concurrency.key = event.data.worksheetId, limit 1` only serializes a single worksheet; the number of worksheets generating in parallel is unbounded, so a burst fans out into unbounded concurrent model calls and Supabase connections (provider rate-limit / pool exhaustion). [lib/inngest/functions/generate-worksheet-questions.ts:13](../lib/inngest/functions/generate-worksheet-questions.ts#L13). _Fix:_ add a second account- or app-scoped concurrency limit.
 
 - [ ] **Med · M** — Variant generation is fully serial: `labels.length * to_order` rolls, one model call per Inngest step, in a single run. A 40-question worksheet × 3 variants = 120 sequential AI calls (minutes-long job, single point of stall). [lib/inngest/run-variant-generation-job-worker.ts:117](../lib/inngest/run-variant-generation-job-worker.ts#L117) (loop [run-variant-generation-job-worker.ts:149](../lib/inngest/run-variant-generation-job-worker.ts#L149)). _Fix:_ fan rolls out across parallel steps / `step.run` batches with bounded concurrency.
 
