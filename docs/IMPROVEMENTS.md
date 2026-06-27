@@ -88,7 +88,7 @@ non-test source.
 
 - [x] **Low · S** — `getWorksheetForProfile` (select id/user_id/settings, compare `user_id`) is copy-pasted between the generate core and the variant core with slightly different column lists. [features/generate/generate-question-core.ts:75](../features/generate/generate-question-core.ts#L75), [features/generate/generate-variant-core.ts:34](../features/generate/generate-variant-core.ts#L34). _Fix:_ share one ownership-load helper.
 
-- [ ] **Low · M** — JSON/DB rows are typed by hand (`generation_settings: unknown`, `variants: unknown`) and read back through ad-hoc `data as X` casts with no generated Supabase types; `get-user-profile.ts` returns `data as UserProfile` with no runtime validation. [features/auth/get-user-profile.ts:18](../features/auth/get-user-profile.ts#L18), [features/generate/utils/fetch-worksheet-questions.ts:44](../features/generate/utils/fetch-worksheet-questions.ts#L44). _Fix:_ generate `Database` types from Supabase and/or Zod-validate the profile row.
+- [x] **Low · M** — JSON/DB rows are typed by hand (`generation_settings: unknown`, `variants: unknown`) and read back through ad-hoc `data as X` casts with no generated Supabase types; `get-user-profile.ts` returns `data as UserProfile` with no runtime validation. [features/auth/get-user-profile.ts:18](../features/auth/get-user-profile.ts#L18), [features/generate/utils/fetch-worksheet-questions.ts:44](../features/generate/utils/fetch-worksheet-questions.ts#L44). _Fix:_ generate `Database` types from Supabase and/or Zod-validate the profile row.
 
 ## Scalability
 

@@ -1,18 +1,23 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { z } from "zod"
 
 import { worksheetQuestionSchema } from "@/features/generate/schemas"
 import type { WorksheetQuestion } from "@/features/generate/types"
 import { logGenerationError } from "@/lib/ai/generation-errors"
 
-type WorksheetQuestionRow = {
-  id: string
-  worksheet_id: string
-  question_order: number
-  question_text: string
-  given_values: unknown
-  target_variable: unknown
-  solution: unknown
-}
+// Validates the raw DB row shape; the question payload (given_values, etc.) is
+// validated by worksheetQuestionSchema once mapped, so it is read as unknown here.
+const worksheetQuestionRowSchema = z.object({
+  id: z.string(),
+  worksheet_id: z.string(),
+  question_order: z.number(),
+  question_text: z.string(),
+  given_values: z.unknown(),
+  target_variable: z.unknown(),
+  solution: z.unknown(),
+})
+
+type WorksheetQuestionRow = z.infer<typeof worksheetQuestionRowSchema>
 
 function rowToQuestion(row: WorksheetQuestionRow): unknown {
   return {
@@ -41,8 +46,14 @@ export async function fetchWorksheetQuestions(
     return null
   }
 
-  const rows = data as WorksheetQuestionRow[]
-  const parsed = worksheetQuestionSchema.array().safeParse(rows.map(rowToQuestion))
+  const rows = z.array(worksheetQuestionRowSchema).safeParse(data)
+
+  if (!rows.success) {
+    logGenerationError("fetchWorksheetQuestions", rows.error)
+    return null
+  }
+
+  const parsed = worksheetQuestionSchema.array().safeParse(rows.data.map(rowToQuestion))
 
   if (!parsed.success) {
     logGenerationError("fetchWorksheetQuestions", parsed.error)
