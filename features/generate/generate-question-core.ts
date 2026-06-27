@@ -26,15 +26,8 @@ import {
 import { parseReserveResponse } from "./utils/parse-reservation-response"
 import { generationSettingsSchema, worksheetQuestionSchema } from "./schemas"
 import { fetchWorksheetQuestions } from "./utils/fetch-worksheet-questions"
-import type { Subject, WorksheetQuestion } from "./types"
-
-type WorksheetRow = {
-  id: string
-  user_id: string
-  subject: Subject
-  question_count: number
-  generation_settings: unknown
-}
+import { loadOwnedWorksheet } from "./utils/load-owned-worksheet"
+import type { WorksheetQuestion } from "./types"
 
 type ProfileRow = {
   credit_balance: number
@@ -64,24 +57,6 @@ function getPromptScenario(
         generationSettings.conceptual_difficulty ?? DEFAULT_CONCEPTUAL_DIFFICULTY,
     }
   )
-}
-
-async function getWorksheetForProfile(
-  supabase: SupabaseClient,
-  worksheetId: string,
-  profileId: string
-): Promise<WorksheetRow | null> {
-  const { data: worksheet, error } = await supabase
-    .from("worksheets")
-    .select("id, user_id, subject, question_count, generation_settings")
-    .eq("id", worksheetId)
-    .single<WorksheetRow>()
-
-  if (error || !worksheet || worksheet.user_id !== profileId) {
-    return null
-  }
-
-  return worksheet
 }
 
 async function getProfileCreditBalance(
@@ -163,7 +138,7 @@ export async function generateQuestionForWorksheet(params: {
 }): Promise<GenerateQuestionResult> {
   const { supabase, profileId, worksheetId, order, previousQuestionsContext } = params
 
-  const worksheet = await getWorksheetForProfile(supabase, worksheetId, profileId)
+  const worksheet = await loadOwnedWorksheet(supabase, worksheetId, profileId)
 
   if (!worksheet) {
     return failure("WORKSHEET_ACCESS_DENIED")
@@ -274,7 +249,7 @@ export async function regenerateQuestionForWorksheet(params: {
 }): Promise<GenerateQuestionResult> {
   const { supabase, profileId, worksheetId, questionId, attemptId } = params
 
-  const worksheet = await getWorksheetForProfile(supabase, worksheetId, profileId)
+  const worksheet = await loadOwnedWorksheet(supabase, worksheetId, profileId)
 
   if (!worksheet) {
     return failure("WORKSHEET_ACCESS_DENIED")
@@ -373,7 +348,7 @@ export async function loadWorksheetQuestionsForProfile(
   worksheetId: string,
   profileId: string
 ) {
-  const worksheet = await getWorksheetForProfile(supabase, worksheetId, profileId)
+  const worksheet = await loadOwnedWorksheet(supabase, worksheetId, profileId)
   if (!worksheet) {
     return null
   }

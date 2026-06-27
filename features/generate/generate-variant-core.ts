@@ -14,36 +14,12 @@ import {
 } from "./utils/parse-variant-roll-response"
 import { withCreditReservation } from "./utils/with-credit-reservation"
 import type { ParsedReservation } from "./utils/with-credit-reservation"
+import { loadOwnedWorksheet } from "./utils/load-owned-worksheet"
 import { DEFAULT_MATH_COMPLEXITY } from "./constants/difficulty-settings"
 
 const VARIANT_FALLBACK_CODE = "VARIANT_FAILED" as const
 
 type VariantRollData = { roll: VariantQuestionRoll; creditBalance: number }
-
-type WorksheetRow = {
-  id: string
-  user_id: string
-  question_count: number
-  generation_settings: unknown
-}
-
-async function getWorksheetForProfile(
-  supabase: SupabaseClient,
-  worksheetId: string,
-  profileId: string
-): Promise<WorksheetRow | null> {
-  const { data: worksheet, error } = await supabase
-    .from("worksheets")
-    .select("id, user_id, question_count, generation_settings")
-    .eq("id", worksheetId)
-    .single<WorksheetRow>()
-
-  if (error || !worksheet || worksheet.user_id !== profileId) {
-    return null
-  }
-
-  return worksheet
-}
 
 async function cancelVariantRollReservation(
   supabase: SupabaseClient,
@@ -106,7 +82,7 @@ export async function generateVariantRollForQuestion(params: {
 }): Promise<VariantRollResult> {
   const { supabase, profileId, worksheetId, label, order } = params
 
-  const worksheet = await getWorksheetForProfile(supabase, worksheetId, profileId)
+  const worksheet = await loadOwnedWorksheet(supabase, worksheetId, profileId)
 
   if (!worksheet) {
     return failure("WORKSHEET_ACCESS_DENIED")

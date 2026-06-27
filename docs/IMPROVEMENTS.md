@@ -86,7 +86,7 @@ non-test source.
 
 - [x] **Low · S** — Only unsafe cast in the codebase: `step as unknown as GenerationJobStep` papers over a real type mismatch between Inngest's `step` and the internal step interface. [lib/inngest/functions/generate-worksheet-questions.ts:26](../lib/inngest/functions/generate-worksheet-questions.ts#L26). _Fix:_ define `GenerationJobStep` as the subset Inngest already satisfies, or wrap with a typed adapter.
 
-- [ ] **Low · S** — `getWorksheetForProfile` (select id/user_id/settings, compare `user_id`) is copy-pasted between the generate core and the variant core with slightly different column lists. [features/generate/generate-question-core.ts:75](../features/generate/generate-question-core.ts#L75), [features/generate/generate-variant-core.ts:34](../features/generate/generate-variant-core.ts#L34). _Fix:_ share one ownership-load helper.
+- [x] **Low · S** — `getWorksheetForProfile` (select id/user_id/settings, compare `user_id`) is copy-pasted between the generate core and the variant core with slightly different column lists. [features/generate/generate-question-core.ts:75](../features/generate/generate-question-core.ts#L75), [features/generate/generate-variant-core.ts:34](../features/generate/generate-variant-core.ts#L34). _Fix:_ share one ownership-load helper.
 
 - [ ] **Low · M** — JSON/DB rows are typed by hand (`generation_settings: unknown`, `variants: unknown`) and read back through ad-hoc `data as X` casts with no generated Supabase types; `get-user-profile.ts` returns `data as UserProfile` with no runtime validation. [features/auth/get-user-profile.ts:18](../features/auth/get-user-profile.ts#L18), [features/generate/utils/fetch-worksheet-questions.ts:44](../features/generate/utils/fetch-worksheet-questions.ts#L44). _Fix:_ generate `Database` types from Supabase and/or Zod-validate the profile row.
 
@@ -136,3 +136,28 @@ extension point.
 ### Low
 
 - [ ] **Low · S** — Hardcoded physics naming in shared/global spots: Inngest app id `"physics-jotelab"` and the unconditional `subjects.physics` i18n label in the workspace summary. [lib/inngest/client.ts:3](../lib/inngest/client.ts#L3), [features/generate/hooks/use-generate-workspace.ts:138](../features/generate/hooks/use-generate-workspace.ts#L138). _Fix:_ derive the display label from `worksheet.subject` once subjects are pluralized.
+
+## Neuro-Symbolic Integration
+
+Findings from comparing this app against `../jotelab-ai` (the constrained SymPy
+symbolic engine) and the Jotelab neuro-symbolic design. Severity and effort
+(S/M/L) are estimates. The engine emits the authoritative `sympy_data` contract
+(numbers, units, worked steps, exact-valued answer — verified at Data Fidelity =
+100%), but it is **not** wired into the app, so today the LLM — not the engine —
+produces every number a student sees, which inverts the project's core claim.
+
+### High
+
+- [ ] **High · L** — The app breaks the core neuro-symbolic invariant: the LLM produces the numbers, not the symbolic engine. `generateWorksheetQuestion` asks `generateObject` for the whole question — `given_values`, `solution.steps`, and `final_answer` — so the model invents and computes every value a student sees (the exact "AI hallucination" Jotelab exists to defeat). The SymPy engine (`../jotelab-ai`, the `sympy_data` source of truth) is not in the loop. [lib/ai/generate-question.ts:66](../lib/ai/generate-question.ts#L66) (schema [features/generate/schemas.ts:88](../features/generate/schemas.ts#L88)). _Fix:_ split generation into two stages — SymPy emits `sympy_data` (numbers/steps/answer), the LLM only phrases it in Thai — and shrink the LLM schema to phrasing-only.
+
+### Medium
+
+- [ ] **Med · M** — No host or call path for the Python engine from the Node worker. The app runs on Vercel/Node; `../jotelab-ai` is Python + SymPy exposing `engine.loop.generate(...) → sympy_data` plus a `python -m engine --json` CLI, but nothing in the Inngest generation worker invokes it. [lib/inngest/run-generation-job-worker.ts:1](../lib/inngest/run-generation-job-worker.ts#L1). _Fix:_ expose the engine as a small FastAPI service (or Vercel Python function) returning the `sympy_data` contract, and `fetch` it from the worker before the LLM phrasing call.
+
+- [ ] **Med · M** — No `sympy_data` / `ai_structured_data` separation in the data model. `worksheet_questions` stores only LLM-shaped fields (`given_values`, `solution`); the proposal's authoritative `sympy_data` jsonb — the audit trail and Data Fidelity oracle — has nowhere to live, so engine output cannot be persisted as the source of truth. [features/generate/schemas.ts:88](../features/generate/schemas.ts#L88). _Fix:_ add a `sympy_data` jsonb column as the source of truth and derive/validate the display fields from it.
+
+- [ ] **Med · S** — No production Data Fidelity gate. Nothing compares the numbers in the model's rendered text against an authoritative source before persisting, so a model that "corrects" or drifts a value ships silently. [lib/ai/generate-question.ts:72](../lib/ai/generate-question.ts#L72). _Fix:_ after phrasing, assert every number/unit in the output appears in `sympy_data`; treat a mismatch as a failed generation and re-roll (bounded).
+
+### Low
+
+- [ ] **Low · L** — Topic-model mismatch between the free-form UI and the templated engine. The app takes free-form `lesson` / `scenario` / `given_variables` across all of "physics"; the engine works in `topic` + `given`/`find` templates and currently covers SUVAT only, so the two do not map 1:1. [features/generate/data/generation-presets.ts:3](../features/generate/data/generation-presets.ts#L3). _Fix:_ roll SUVAT out end-to-end behind a flag first, mapping presets → engine topics via a subject/topic registry (see Expandability §High).
