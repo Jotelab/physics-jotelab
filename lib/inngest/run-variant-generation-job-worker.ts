@@ -15,6 +15,12 @@ import { deriveVariantId } from "@/features/generate/utils/variant-identity"
 import { runGenerationJob } from "@/lib/inngest/generation-job-runner"
 import type { GenerationJobStep } from "@/lib/inngest/generation-job-step"
 
+// Variant rolls are independent of one another, so fan them out across this many
+// concurrent model calls per Inngest batch instead of one-at-a-time. Bounded so a
+// single job can't blow the provider rate-limit / DB pool (the function-wide cap
+// in generate-worksheet-questions is the outer backstop).
+const VARIANT_ROLL_CONCURRENCY = 5
+
 function getOrCreateVariant(
   variants: WorksheetVariant[],
   label: VariantLabel,
@@ -84,6 +90,7 @@ export async function runVariantGenerationJobWorker(params: {
     runId,
     step,
     config: {
+      batchSize: VARIANT_ROLL_CONCURRENCY,
       loadJob: async (admin) => {
         const { data, error } = await admin
           .from("generation_jobs")
@@ -160,10 +167,15 @@ export async function runVariantGenerationJobWorker(params: {
         const remaining = items.slice(currentIndex)
 
         for (const entry of remaining) {
+          // A roll that already landed earlier in the same parallel batch must
+          // not be marked skipped just because a sibling ran out of credits.
+          const alreadyRolled = state.variants
+            .find((variant) => variant.label === entry.label)
+            ?.rolls.some((roll) => roll.order === entry.order)
           const alreadySkipped = state.skippedOrders.some(
             (slot) => slot.label === entry.label && slot.order === entry.order
           )
-          if (!alreadySkipped) {
+          if (!alreadyRolled && !alreadySkipped) {
             state.skippedOrders.push({
               label: entry.label,
               order: entry.order,

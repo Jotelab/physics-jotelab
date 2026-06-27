@@ -69,6 +69,13 @@ export type JobProgressFields = {
  * {@link runGenerationJob}.
  */
 export type GenerationJobConfig<TItem, TSaved, TState, TResult> = {
+  /**
+   * How many items to run concurrently per batch. Defaults to 1 (fully
+   * sequential) for workers whose items depend on each other (e.g. standard
+   * generation, where each order's context is the prior questions). Independent
+   * items (variant rolls) set this higher to fan out the model calls.
+   */
+  batchSize?: number
   /** Fetch + validate the job row inside the `load-job` step (throws on invalid). */
   loadJob: (admin: Admin) => Promise<GenerationJobRow>
   /** Build the initial in-memory progress state from the loaded job. */
@@ -164,52 +171,75 @@ export async function runGenerationJob<TItem, TSaved, TState, TResult>(params: {
   config.onWorksheetLoaded?.(state, loaded.questions)
 
   const items = config.buildWorkItems(job, loaded.questions, state)
+  const batchSize = Math.max(1, config.batchSize ?? 1)
 
-  for (const item of items) {
-    if (terminalStatus) {
-      break
+  for (let start = 0; start < items.length && !terminalStatus; start += batchSize) {
+    const batch = items.slice(start, start + batchSize)
+
+    // Run the per-item work concurrently. Independent items (e.g. variant rolls)
+    // finish in parallel; a sequential worker just uses batchSize 1. Inngest
+    // memoizes each step by id, so Promise.all is replay-safe.
+    const outcomes = await Promise.all(
+      batch.map((item) =>
+        step.run(config.workStepId(item), async () => {
+          const userClient = await createClientForProfile(profileId)
+          return config.runItem({ item, userClient, job, state })
+        })
+      )
+    )
+
+    // Apply every saved item (and persist) first, so a roll that was generated
+    // and charged is never dropped because a sibling in the same batch ran out
+    // of credits or failed. State mutations stay sequential and in batch order,
+    // keeping replay deterministic.
+    for (let i = 0; i < batch.length; i += 1) {
+      const outcome = outcomes[i]
+      if (outcome.type === "saved") {
+        config.onSaved(batch[i], outcome.saved, state, job)
+
+        await step.run(config.persistStepId(batch[i]), async () => {
+          await updateGenerationJobProgress(admin, {
+            jobId,
+            status: "running",
+            ...config.serializeProgress(state),
+          })
+        })
+      }
     }
 
-    const outcome = await step.run(config.workStepId(item), async () => {
-      const userClient = await createClientForProfile(profileId)
-      return config.runItem({ item, userClient, job, state })
-    })
+    for (let i = 0; i < batch.length; i += 1) {
+      const outcome = outcomes[i]
+      if (outcome.type === "skipped") {
+        config.onSkipped(batch[i], outcome.message, state)
+      }
+    }
 
-    if (outcome.type === "saved") {
-      config.onSaved(item, outcome.saved, state, job)
+    const failed = batch
+      .map((item, i) => ({ item, outcome: outcomes[i] }))
+      .find(({ outcome }) => outcome.type === "failed")
 
-      await step.run(config.persistStepId(item), async () => {
+    if (failed && failed.outcome.type === "failed") {
+      terminalStatus = "failed"
+      const errorMessage = failed.outcome.message
+      await step.run("fail-job", async () => {
         await updateGenerationJobProgress(admin, {
           jobId,
-          status: "running",
+          status: "failed",
+          errorMessage,
           ...config.serializeProgress(state),
         })
       })
-      continue
+      return { status: "failed" as const }
     }
 
-    if (outcome.type === "credits") {
-      config.onCredits(item, items, state, job)
+    const creditItem = batch.find((_, i) => outcomes[i].type === "credits")
+
+    if (creditItem) {
+      // Mark the items that did not complete (this batch's credit failures plus
+      // every later item) as credit-skipped, then stop.
+      config.onCredits(creditItem, items, state, job)
       terminalStatus = "partial"
-      break
     }
-
-    if (outcome.type === "skipped") {
-      config.onSkipped(item, outcome.message, state)
-      continue
-    }
-
-    // outcome.type === "failed"
-    terminalStatus = "failed"
-    await step.run("fail-job", async () => {
-      await updateGenerationJobProgress(admin, {
-        jobId,
-        status: "failed",
-        errorMessage: outcome.message,
-        ...config.serializeProgress(state),
-      })
-    })
-    return { status: "failed" as const }
   }
 
   await step.run(config.finalizeStepId, async () => {

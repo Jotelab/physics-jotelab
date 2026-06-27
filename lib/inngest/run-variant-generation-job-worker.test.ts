@@ -224,4 +224,28 @@ describe("runVariantGenerationJobWorker", () => {
     expect(result).toMatchObject({ status: "completed", totalRolls: 1 })
     expect(progressUpdates(rpcCalls).at(-1)).toMatchObject({ p_status: "completed" })
   })
+
+  it("keeps rolls that landed in the same batch where a sibling ran out of credits", async () => {
+    const { admin, rpcCalls } = makeAdmin({ jobRow: makeVariantJobRow({ to_order: 3 }) })
+    mockAdminFactory.mockReturnValue(admin as never)
+    // Orders 1 and 3 succeed, order 2 (between them) runs out of credits — all in
+    // one parallel batch (batchSize 5 > 3). The credit failure must not skip the
+    // already-rolled order 3.
+    mockVariant.mockImplementation(async ({ order }) =>
+      order === 2
+        ? failure("INSUFFICIENT_CREDITS")
+        : { ok: true, data: { roll: rollFor(order), creditBalance: 0 } }
+    )
+
+    const { step } = recordingStep()
+    const result = await runVariantGenerationJobWorker({ jobId, worksheetId, profileId, step })
+
+    expect(mockVariant).toHaveBeenCalledTimes(3)
+    expect(result).toMatchObject({ status: "partial", completedRolls: 2 })
+    expect((result as { variants: WorksheetVariant[] }).variants[0].rolls.map((r) => r.order)).toEqual([
+      1, 3,
+    ])
+    const final = progressUpdates(rpcCalls).at(-1)
+    expect(final?.p_skipped_orders).toEqual([{ label: "B", order: 2, message: "Not enough credits." }])
+  })
 })
