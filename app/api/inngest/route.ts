@@ -2,6 +2,7 @@ import { serve } from "inngest/next"
 
 import { inngest } from "@/lib/inngest/client"
 import { generateWorksheetQuestions } from "@/lib/inngest/functions/generate-worksheet-questions"
+import { sweepStaleGeneration } from "@/lib/inngest/functions/sweep-stale-generation"
 
 const isProduction = process.env.NODE_ENV === "production"
 const signingKey = process.env.INNGEST_SIGNING_KEY
@@ -19,7 +20,7 @@ if (isProduction && !signingKey) {
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [generateWorksheetQuestions],
+  functions: [generateWorksheetQuestions, sweepStaleGeneration],
   signingKey,
   isDev: !isProduction,
 })
