@@ -281,7 +281,8 @@ export async function startAppendGenerationJobAction(
 }
 
 export async function getGenerationJobAction(
-  jobId: string
+  jobId: string,
+  sinceOrder = 0
 ): Promise<ActionResult<ReturnType<typeof mapGenerationJobPoll>>> {
   const parsed = jobIdSchema.safeParse(jobId)
 
@@ -326,7 +327,8 @@ export async function getGenerationJobAction(
 
   const profile = await getProfileForAuthUser(supabase, user.id)
 
-  const questions = await fetchWorksheetQuestions(supabase, worksheet.id)
+  const since = Number.isInteger(sinceOrder) && sinceOrder > 0 ? sinceOrder : 0
+  const questions = await fetchWorksheetQuestions(supabase, worksheet.id, since)
 
   if (questions === null) {
     return localizedFailure("QUESTIONS_LOAD_FAILED")

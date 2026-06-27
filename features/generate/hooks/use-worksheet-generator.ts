@@ -58,6 +58,27 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+/**
+ * Merge an incremental batch of polled questions into the ones already held.
+ * The generation poll returns only questions newer than the client's last-seen
+ * order, so we append/replace by order rather than overwriting the whole list.
+ */
+function mergeQuestions(
+  existing: WorksheetQuestion[],
+  incoming: WorksheetQuestion[]
+): WorksheetQuestion[] {
+  if (incoming.length === 0) {
+    return existing
+  }
+
+  const byOrder = new Map(existing.map((question) => [question.order, question]))
+  for (const question of incoming) {
+    byOrder.set(question.order, question)
+  }
+
+  return [...byOrder.values()].sort((a, b) => a.order - b.order)
+}
+
 export function useWorksheetGenerator({
   onCreditBalanceUpdated,
 }: {
@@ -71,6 +92,9 @@ export function useWorksheetGenerator({
   // bumps it, so a superseded loop sees its captured token go stale and exits
   // instead of two loops racing on a shared boolean and fighting over setState.
   const pollTokenRef = useRef(0)
+  // Highest question order applied so far; sent to the server so each poll fetches
+  // only the new questions instead of the whole worksheet every tick.
+  const lastSeenOrderRef = useRef(0)
 
   useEffect(() => {
     isMountedRef.current = true
@@ -109,12 +133,19 @@ export function useWorksheetGenerator({
         onCreditBalanceUpdated?.(poll.creditBalance)
       }
 
+      if (poll.questions.length > 0) {
+        lastSeenOrderRef.current = Math.max(
+          lastSeenOrderRef.current,
+          ...poll.questions.map((question) => question.order)
+        )
+      }
+
       setState((current) => ({
         ...current,
         worksheetId: poll.worksheetId,
         activeJobId: poll.jobId,
         targetQuestionCount: poll.targetQuestionCount,
-        questions: poll.questions,
+        questions: mergeQuestions(current.questions, poll.questions),
         skippedSlots: poll.skippedSlots,
         progress: poll.progress,
         statusMessage: poll.statusMessage,
@@ -128,9 +159,13 @@ export function useWorksheetGenerator({
   const pollJobUntilTerminal = useCallback(
     async (jobId: string): Promise<GenerationJobPollResult | null> => {
       const token = (pollTokenRef.current += 1)
+      // Fresh loop: re-fetch from the start, then only deltas as orders arrive.
+      lastSeenOrderRef.current = 0
 
       while (isMountedRef.current && pollTokenRef.current === token) {
-        const result = await getGenerationJobAction(jobId).catch(() => null)
+        const result = await getGenerationJobAction(jobId, lastSeenOrderRef.current).catch(
+          () => null
+        )
 
         if (!result?.ok) {
           if (isMountedRef.current) {

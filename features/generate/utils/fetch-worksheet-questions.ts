@@ -32,15 +32,24 @@ function rowToQuestion(row: WorksheetQuestionRow): unknown {
 
 export async function fetchWorksheetQuestions(
   supabase: SupabaseClient,
-  worksheetId: string
+  worksheetId: string,
+  sinceOrder = 0
 ): Promise<WorksheetQuestion[] | null> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("worksheet_questions")
     .select(
       "id, worksheet_id, question_order, question_text, given_values, target_variable, solution"
     )
     .eq("worksheet_id", worksheetId)
-    .order("question_order", { ascending: true })
+
+  // Incremental fetch: callers that already hold the earlier questions (the
+  // generation poll) ask only for orders past their last-seen one, instead of
+  // re-transferring the whole worksheet every 2s tick.
+  if (sinceOrder > 0) {
+    query = query.gt("question_order", sinceOrder)
+  }
+
+  const { data, error } = await query.order("question_order", { ascending: true })
 
   if (error || !data) {
     return null

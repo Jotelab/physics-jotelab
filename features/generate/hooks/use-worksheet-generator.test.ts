@@ -121,7 +121,7 @@ describe("useWorksheetGenerator", () => {
     expect(result.current.statusMessage).toBe("Worksheet complete.")
     expect(onCreditBalanceUpdated).toHaveBeenCalledWith(8)
     expect(startWorksheetGenerationJobAction).toHaveBeenCalledWith(generateInput)
-    expect(getGenerationJobAction).toHaveBeenCalledWith(jobId)
+    expect(getGenerationJobAction).toHaveBeenCalledWith(jobId, 0)
   })
 
   it("sets an error when job start fails", async () => {
@@ -334,7 +334,7 @@ describe("useWorksheetGenerator", () => {
     })
 
     expect(getActiveGenerationJobForWorksheetAction).toHaveBeenCalledWith(worksheetId)
-    expect(getGenerationJobAction).toHaveBeenCalledWith(jobId)
+    expect(getGenerationJobAction).toHaveBeenCalledWith(jobId, 0)
     expect(result.current.isGenerating).toBe(false)
   })
 
