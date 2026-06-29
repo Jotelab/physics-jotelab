@@ -14,7 +14,7 @@ import {
   DEFAULT_CONCEPTUAL_DIFFICULTY,
   DEFAULT_MATH_COMPLEXITY,
 } from "@/features/generate/constants/difficulty-settings"
-import { generateWorksheetInputSchema } from "@/features/generate/schemas"
+import { DEFAULT_SUBJECT, generateWorksheetInputSchema } from "@/features/generate/schemas"
 import type { ConceptualDifficulty, MathComplexity } from "@/features/generate/types"
 
 import {
@@ -78,7 +78,7 @@ export function buildGenerateWorksheetInput(params: {
     : {}
 
   return generateWorksheetInputSchema.safeParse({
-    subject: "physics",
+    subject: DEFAULT_SUBJECT,
     lesson: resolvedLesson,
     scenario,
     question_count: params.effectiveQuestionCount,

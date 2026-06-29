@@ -19,7 +19,15 @@ import {
   MAX_WORKSHEET_QUESTION_COUNT,
 } from "./limits"
 
-export const subjectSchema = z.literal("physics")
+// Allowlist of subjects the app can persist and generate for. Adding a subject
+// here (plus the matching `is_valid_subject` DB allowlist and a content pack —
+// see features/generate/data/subjects.ts) is all that is required to widen the
+// `subject` surface end-to-end.
+export const SUBJECTS = ["physics"] as const
+
+export const subjectSchema = z.enum(SUBJECTS)
+
+export const DEFAULT_SUBJECT = SUBJECTS[0]
 
 export const mathComplexitySchema = z.enum(["integers", "decimals", "scientific"])
 
