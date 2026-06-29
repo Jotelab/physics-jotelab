@@ -131,7 +131,7 @@ extension point.
 
 - [x] **Med · L** — The generated-question schema is calculation-shaped and can't represent non-quantitative subjects. `generatedQuestionSchema` mandates numeric/string `given_values`, a single `target_variable`, and `solution.steps`/`final_answer` — fine for physics/math, but multiple-choice, labeling, or essay subjects don't fit. [features/generate/schemas.ts:88](../features/generate/schemas.ts#L88). _Fix:_ model question formats as a discriminated union keyed by subject/format.
 
-- [ ] **Med · M** — Prompt construction hardcodes physics-style "calculation question" framing with no subject hook. `buildGenerationPrompt` ("high-school calculation question"), the variant prompt, and `prompt-rules` math-complexity rules all assume numeric givens. [lib/ai/generate-question.ts:36](../lib/ai/generate-question.ts#L36) (variant [variant-question.ts:46](../lib/ai/variant-question.ts#L46), rules [prompt-rules.ts:6](../lib/ai/prompt-rules.ts#L6)). _Fix:_ inject a subject-provided prompt fragment / rule set from the content pack.
+- [x] **Med · M** — Prompt construction hardcodes physics-style "calculation question" framing with no subject hook. `buildGenerationPrompt` ("high-school calculation question"), the variant prompt, and `prompt-rules` math-complexity rules all assume numeric givens. [lib/ai/generate-question.ts:36](../lib/ai/generate-question.ts#L36) (variant [variant-question.ts:46](../lib/ai/variant-question.ts#L46), rules [prompt-rules.ts:6](../lib/ai/prompt-rules.ts#L6)). _Fix:_ inject a subject-provided prompt fragment / rule set from the content pack.
 
 ### Low
 

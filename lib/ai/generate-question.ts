@@ -9,10 +9,11 @@ import { e2eStubGeneratedQuestion } from "./e2e-stub-question"
 import { getGenerationErrorMessage, logGenerationError } from "./generation-errors"
 import { normalizeGeneratedQuestion } from "./normalize-question"
 import {
-  QUESTION_GENERATION_RULES,
   UNTRUSTED_INPUT_NOTICE,
   buildMathComplexityRules,
+  buildSubjectGenerationRules,
   fenceUntrusted,
+  subjectQuestionKind,
 } from "./prompt-rules"
 
 type GenerateQuestionInput = {
@@ -38,7 +39,7 @@ function buildGenerationPrompt({
   previousQuestionsContext,
   mathComplexity = DEFAULT_MATH_COMPLEXITY,
 }: GenerateQuestionInput) {
-  return `You are generating a high-school calculation question for Thai students.
+  return `You are generating a high-school ${subjectQuestionKind(subject)} for Thai students.
 
 Return only one structured JSON object that matches the provided schema.
 
@@ -51,7 +52,8 @@ ${fenceUntrusted("scenario", scenario)}
 Previously generated questions (DO NOT REPEAT THESE):
 ${fenceUntrusted("previous_questions", formatPreviousQuestions(previousQuestionsContext))}
 
-${QUESTION_GENERATION_RULES}
+Rules:
+${buildSubjectGenerationRules(subject)}
 ${buildMathComplexityRules(mathComplexity)}`
 }
 

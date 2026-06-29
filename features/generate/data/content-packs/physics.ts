@@ -214,4 +214,15 @@ export const physicsContentPack: SubjectContentPack = {
   ],
   variableIdsByLesson,
   givenCandidatesByLessonAndFind,
+  prompt: {
+    questionKind: "calculation question",
+    generationRules: `- The question must be solvable from the given values.
+- Double-check all arithmetic. Ensure the final_answer strictly mathematically follows the given numbers.
+- Include solution steps and final answer.
+- Use high-school appropriate numbers.
+- Include units when relevant (Thai or standard SI abbreviations are fine).
+- Strictly enforce LaTeX formatting. Use $ for inline math equations and $$ for block math equations.
+- Do not require diagrams or images.
+- Do not include markdown.`,
+  },
 }

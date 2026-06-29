@@ -1,17 +1,18 @@
 import { generateObject } from "ai"
 
-import { generatedQuestionSchema } from "@/features/generate/schemas"
-import type { GeneratedQuestion, VariantLabel, WorksheetQuestion } from "@/features/generate/types"
+import { calculationQuestionSchema, generatedQuestionSchema } from "@/features/generate/schemas"
+import type { GeneratedQuestion, Subject, VariantLabel, WorksheetQuestion } from "@/features/generate/types"
 
 import { getGenerationModel } from "./client"
 import { e2eStubVariantQuestion } from "./e2e-stub-question"
 import { getGenerationErrorMessage, logGenerationError } from "./generation-errors"
 import { normalizeGeneratedQuestion } from "./normalize-question"
-import { CORE_QUESTION_RULES, THAI_LANGUAGE_RULES, buildMathComplexityRules } from "./prompt-rules"
+import { buildSubjectGenerationRules, buildMathComplexityRules, subjectQuestionKind } from "./prompt-rules"
 import type { MathComplexity } from "@/features/generate/types"
 import { DEFAULT_MATH_COMPLEXITY } from "@/features/generate/constants/difficulty-settings"
 
 type VariantQuestionInput = {
+  subject: Subject
   masterQuestion: WorksheetQuestion
   variantLabel: VariantLabel
   mathComplexity?: MathComplexity
@@ -31,6 +32,7 @@ function formatMasterQuestion(masterQuestion: WorksheetQuestion) {
 }
 
 export async function variantWorksheetQuestion({
+  subject,
   masterQuestion,
   variantLabel,
   mathComplexity = DEFAULT_MATH_COMPLEXITY,
@@ -42,8 +44,8 @@ export async function variantWorksheetQuestion({
   try {
     const { object } = await generateObject({
       model: getGenerationModel(),
-      schema: generatedQuestionSchema,
-      prompt: `You are creating an alternate version (Version ${variantLabel}) of a high-school calculation question for Thai students.
+      schema: calculationQuestionSchema,
+      prompt: `You are creating an alternate version (Version ${variantLabel}) of a high-school ${subjectQuestionKind(subject)} for Thai students.
 
 Return only one structured JSON object that matches the provided schema.
 
@@ -58,8 +60,7 @@ Rules:
 - Recalculate solution steps and final_answer to match the new given_values.
 - Do NOT change which variable is being solved for.
 ${buildMathComplexityRules(mathComplexity)}
-${CORE_QUESTION_RULES}
-${THAI_LANGUAGE_RULES}`,
+${buildSubjectGenerationRules(subject)}`,
     })
 
     const normalized = generatedQuestionSchema.parse(

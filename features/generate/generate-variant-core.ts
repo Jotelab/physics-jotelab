@@ -131,6 +131,7 @@ export async function generateVariantRollForQuestion(params: {
       cancelVariantRollReservation(supabase, reservationId, idempotencyKey),
     run: async (context) => {
       const generatedQuestion = await variantWorksheetQuestion({
+        subject: worksheet.subject,
         masterQuestion,
         variantLabel: label,
         mathComplexity,

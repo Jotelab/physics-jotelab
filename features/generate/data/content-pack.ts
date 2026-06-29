@@ -38,4 +38,20 @@ export type SubjectContentPack = {
   variableIdsByLesson: Record<string, string[]>
   /** find-id → compatible given-ids, per lesson id (drives constraint pruning). */
   givenCandidatesByLessonAndFind: Record<string, Record<string, string[]>>
+  /** Subject-specific fragments injected into the generation prompts. */
+  prompt: SubjectPromptPack
+}
+
+export type SubjectPromptPack = {
+  /**
+   * Noun phrase describing the kind of question, e.g. "calculation question".
+   * Used in the prompt framing ("...a high-school {questionKind} for...").
+   */
+  questionKind: string
+  /**
+   * Subject-specific generation rule lines (newline-separated, each `- …`),
+   * appended after the shared cross-subject rules. Keep these focused on what
+   * makes the subject's questions valid (givens, units, formatting).
+   */
+  generationRules: string
 }

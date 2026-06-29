@@ -7,11 +7,11 @@ import { getGenerationModel } from "./client"
 import { getRegenerateErrorMessage, logGenerationError } from "./generation-errors"
 import { normalizeGeneratedQuestion } from "./normalize-question"
 import {
-  CORE_QUESTION_RULES,
-  THAI_LANGUAGE_RULES,
   UNTRUSTED_INPUT_NOTICE,
   buildMathComplexityRules,
+  buildSubjectGenerationRules,
   fenceUntrusted,
+  subjectQuestionKind,
 } from "./prompt-rules"
 import type { MathComplexity } from "@/features/generate/types"
 import { DEFAULT_MATH_COMPLEXITY } from "@/features/generate/constants/difficulty-settings"
@@ -35,7 +35,7 @@ export async function regenerateWorksheetQuestion({
     const { object } = await generateObject({
       model: getGenerationModel(),
       schema: calculationQuestionSchema,
-      prompt: `You are regenerating one high-school calculation question for Thai students.
+      prompt: `You are regenerating one high-school ${subjectQuestionKind(subject)} for Thai students.
 
 Return only one structured JSON object that matches the provided schema.
 
@@ -54,8 +54,7 @@ Rules:
 - Keep the same learning intent as the existing question.
 - Use different numbers or a distinctly different setup.
 ${buildMathComplexityRules(mathComplexity)}
-${CORE_QUESTION_RULES}
-${THAI_LANGUAGE_RULES}`,
+${buildSubjectGenerationRules(subject)}`,
     })
 
     return generatedQuestionSchema.parse(
