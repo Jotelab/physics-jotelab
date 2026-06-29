@@ -9,6 +9,7 @@ import type { WorksheetPreviewPanelProps } from "@/features/generate/components/
 import { useWorksheetConfigForm } from "@/features/generate/hooks/use-worksheet-config-form"
 import { getWorksheetSavedVariantsAction } from "@/features/generate/actions"
 import { resolveLessonKey } from "@/features/generate/data/generation-presets"
+import { DEFAULT_SUBJECT } from "@/features/generate/schemas"
 import { useWorksheetCreditLimits } from "@/features/generate/hooks/use-worksheet-credit-limits"
 import { useWorksheetGenerator } from "@/features/generate/hooks/use-worksheet-generator"
 import { useWorksheetQuestionActions } from "@/features/generate/hooks/use-worksheet-question-actions"
@@ -135,7 +136,7 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
       return `${creditLimits.activeWorksheetMeta.subjectLabel}: ${creditLimits.activeWorksheetMeta.lesson}`
     }
     if (!lessonDisplay) return t("worksheetPreview")
-    return `${tCommon("subjects.physics")}: ${lessonDisplay}`
+    return `${tCommon(`subjects.${DEFAULT_SUBJECT}`)}: ${lessonDisplay}`
   }, [
     creditLimits.activeWorksheetMeta,
     creditLimits.hasActiveWorksheet,
@@ -190,7 +191,7 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
     }
 
     creditLimits.setActiveWorksheetMeta({
-      subjectLabel: tCommon("subjects.physics"),
+      subjectLabel: tCommon(`subjects.${parsed.data.subject}`),
       lesson: parsed.data.lesson,
       scenario: parsed.data.scenario,
       questionCount: parsed.data.question_count,

@@ -135,7 +135,7 @@ extension point.
 
 ### Low
 
-- [ ] **Low · S** — Hardcoded physics naming in shared/global spots: Inngest app id `"physics-jotelab"` and the unconditional `subjects.physics` i18n label in the workspace summary. [lib/inngest/client.ts:3](../lib/inngest/client.ts#L3), [features/generate/hooks/use-generate-workspace.ts:138](../features/generate/hooks/use-generate-workspace.ts#L138). _Fix:_ derive the display label from `worksheet.subject` once subjects are pluralized.
+- [x] **Low · S** — Hardcoded physics naming in shared/global spots: Inngest app id `"physics-jotelab"` and the unconditional `subjects.physics` i18n label in the workspace summary. [lib/inngest/client.ts:3](../lib/inngest/client.ts#L3), [features/generate/hooks/use-generate-workspace.ts:138](../features/generate/hooks/use-generate-workspace.ts#L138). _Fix:_ derive the display label from `worksheet.subject` once subjects are pluralized.
 
 ## Neuro-Symbolic Integration
 

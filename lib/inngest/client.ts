@@ -16,8 +16,11 @@ if (isProduction && !signingKey) {
   )
 }
 
+// App-level id, not a per-subject value. Overridable via env so a deployment can
+// use a subject-neutral id; the default preserves the existing registered app id
+// (changing it registers a new Inngest app and orphans in-flight functions).
 export const inngest = new Inngest({
-  id: "physics-jotelab",
+  id: process.env.INNGEST_APP_ID ?? "physics-jotelab",
   signingKey,
   isDev: !isProduction,
 })
