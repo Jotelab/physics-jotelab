@@ -1,6 +1,6 @@
 import { generateObject } from "ai"
 
-import { generatedQuestionSchema } from "@/features/generate/schemas"
+import { calculationQuestionSchema, generatedQuestionSchema } from "@/features/generate/schemas"
 import type { GeneratedQuestion, Subject } from "@/features/generate/types"
 
 import { getGenerationModel } from "./client"
@@ -34,7 +34,7 @@ export async function regenerateWorksheetQuestion({
   try {
     const { object } = await generateObject({
       model: getGenerationModel(),
-      schema: generatedQuestionSchema,
+      schema: calculationQuestionSchema,
       prompt: `You are regenerating one high-school calculation question for Thai students.
 
 Return only one structured JSON object that matches the provided schema.

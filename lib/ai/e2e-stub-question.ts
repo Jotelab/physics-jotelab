@@ -2,6 +2,7 @@ import type { GeneratedQuestion, VariantLabel, WorksheetQuestion } from "@/featu
 
 /** Fixed question returned when E2E_STUB_GENERATION is enabled (no AI call). */
 export const e2eStubGeneratedQuestion: GeneratedQuestion = {
+  format: "calculation",
   question_text: "จงหาค่า $x$",
   given_values: [
     {
@@ -34,6 +35,7 @@ export function e2eStubVariantQuestion(
   const offset = variantLabelOffset[variantLabel] + masterQuestion.order
 
   return {
+    format: "calculation",
     question_text: masterQuestion.question_text,
     given_values: masterQuestion.given_values.map((given) => ({
       ...given,

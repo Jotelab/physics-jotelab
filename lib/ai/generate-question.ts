@@ -1,6 +1,6 @@
 import { generateObject } from "ai"
 
-import { generatedQuestionSchema } from "@/features/generate/schemas"
+import { calculationQuestionSchema, generatedQuestionSchema } from "@/features/generate/schemas"
 import { DEFAULT_MATH_COMPLEXITY } from "@/features/generate/constants/difficulty-settings"
 import type { GeneratedQuestion, MathComplexity, Subject } from "@/features/generate/types"
 
@@ -65,7 +65,10 @@ export async function generateWorksheetQuestion(
   try {
     const { object } = await generateObject({
       model: getGenerationModel(),
-      schema: generatedQuestionSchema,
+      // Generation produces the calculation format today; pass that format's
+      // concrete schema rather than the whole union so structured output stays
+      // a single object shape.
+      schema: calculationQuestionSchema,
       prompt: buildGenerationPrompt(input),
     })
 

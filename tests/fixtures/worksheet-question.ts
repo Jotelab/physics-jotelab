@@ -1,6 +1,7 @@
 import type { GeneratedQuestion, VariantQuestionRoll, WorksheetQuestion } from "@/features/generate/types"
 
 export const validGeneratedQuestion: GeneratedQuestion = {
+  format: "calculation",
   question_text: "จงหาค่า $x$",
   given_values: [
     {
