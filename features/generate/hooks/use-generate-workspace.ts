@@ -9,6 +9,7 @@ import type { WorksheetPreviewPanelProps } from "@/features/generate/components/
 import { useWorksheetConfigForm } from "@/features/generate/hooks/use-worksheet-config-form"
 import { getWorksheetSavedVariantsAction } from "@/features/generate/actions"
 import { resolveLessonKey } from "@/features/generate/data/generation-presets"
+import { DEFAULT_SUBJECT } from "@/features/generate/schemas"
 import { useWorksheetCreditLimits } from "@/features/generate/hooks/use-worksheet-credit-limits"
 import { useWorksheetGenerator } from "@/features/generate/hooks/use-worksheet-generator"
 import { useWorksheetQuestionActions } from "@/features/generate/hooks/use-worksheet-question-actions"
@@ -135,7 +136,7 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
       return `${creditLimits.activeWorksheetMeta.subjectLabel}: ${creditLimits.activeWorksheetMeta.lesson}`
     }
     if (!lessonDisplay) return t("worksheetPreview")
-    return `${tCommon("subjects.physics")}: ${lessonDisplay}`
+    return `${tCommon(`subjects.${DEFAULT_SUBJECT}`)}: ${lessonDisplay}`
   }, [
     creditLimits.activeWorksheetMeta,
     creditLimits.hasActiveWorksheet,
@@ -190,7 +191,7 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
     }
 
     creditLimits.setActiveWorksheetMeta({
-      subjectLabel: tCommon("subjects.physics"),
+      subjectLabel: tCommon(`subjects.${parsed.data.subject}`),
       lesson: parsed.data.lesson,
       scenario: parsed.data.scenario,
       questionCount: parsed.data.question_count,
@@ -234,50 +235,56 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
   }
 
   const configPanelProps: WorksheetConfigPanelProps = {
-    activeTab: configForm.activeTab,
-    onActiveTabChange: configForm.setActiveTab,
-    lesson: configForm.lesson,
-    resolvedScenarioId: configForm.resolvedScenarioId,
-    givenVariableIds: configForm.givenVariableIds,
-    findVariableIds: configForm.findVariableIds,
-    targetRandomize: configForm.targetRandomize,
-    onGivenVariableIdsChange: configForm.setGivenVariableIds,
-    onFindVariableIdsChange: configForm.handleFindChange,
-    onTargetRandomizeChange: configForm.handleTargetRandomizeChange,
-    mathComplexity: configForm.mathComplexity,
-    conceptualDifficulty: configForm.conceptualDifficulty,
-    onMathComplexityChange: configForm.setMathComplexity,
-    onConceptualDifficultyChange: configForm.setConceptualDifficulty,
-    controlsDisabled,
-    effectiveQuestionCount: creditLimits.effectiveQuestionCount,
-    maxQuestionCount: creditLimits.maxQuestionCount,
-    availableCredits: creditLimits.availableCredits,
-    hasNoCredits: creditLimits.hasNoCredits,
-    onLessonChange: configForm.handleLessonChange,
-    onLessonSuggestionSelect: configForm.handleLessonSuggestionSelect,
-    onScenarioChange: configForm.handleScenarioChange,
-    onQuestionCountChange: configForm.setQuestionCount,
-    cost: creditLimits.cost,
-    hasPartialCredits: creditLimits.hasPartialCredits,
-    error,
-    actionError: questionActions.actionError,
-    statusMessage,
-    actionMessage: questionActions.actionMessage,
-    hasGenerated: creditLimits.hasGenerated,
-    canGenerate: creditLimits.canGenerate,
-    canAppend: creditLimits.canAppend,
-    isGenerating,
-    progress,
-    showAppendInput: creditLimits.showAppendInput,
-    onToggleAppendInput: () => creditLimits.setShowAppendInput((current) => !current),
-    appendCount: creditLimits.appendCount,
-    maxAppendable: creditLimits.maxAppendable,
-    onAppendCountChange: creditLimits.setAppendCount,
+    form: {
+      activeTab: configForm.activeTab,
+      onActiveTabChange: configForm.setActiveTab,
+      controlsDisabled,
+      lesson: configForm.lesson,
+      resolvedScenarioId: configForm.resolvedScenarioId,
+      onLessonChange: configForm.handleLessonChange,
+      onLessonSuggestionSelect: configForm.handleLessonSuggestionSelect,
+      onScenarioChange: configForm.handleScenarioChange,
+      mathComplexity: configForm.mathComplexity,
+      conceptualDifficulty: configForm.conceptualDifficulty,
+      onMathComplexityChange: configForm.setMathComplexity,
+      onConceptualDifficultyChange: configForm.setConceptualDifficulty,
+      onQuestionCountChange: configForm.setQuestionCount,
+      givenVariableIds: configForm.givenVariableIds,
+      findVariableIds: configForm.findVariableIds,
+      targetRandomize: configForm.targetRandomize,
+      onGivenVariableIdsChange: configForm.setGivenVariableIds,
+      onFindVariableIdsChange: configForm.handleFindChange,
+      onTargetRandomizeChange: configForm.handleTargetRandomizeChange,
+    },
+    credits: {
+      effectiveQuestionCount: creditLimits.effectiveQuestionCount,
+      maxQuestionCount: creditLimits.maxQuestionCount,
+      availableCredits: creditLimits.availableCredits,
+      hasNoCredits: creditLimits.hasNoCredits,
+      cost: creditLimits.cost,
+      hasPartialCredits: creditLimits.hasPartialCredits,
+      hasGenerated: creditLimits.hasGenerated,
+      canGenerate: creditLimits.canGenerate,
+      canAppend: creditLimits.canAppend,
+      showAppendInput: creditLimits.showAppendInput,
+      onToggleAppendInput: () => creditLimits.setShowAppendInput((current) => !current),
+      appendCount: creditLimits.appendCount,
+      maxAppendable: creditLimits.maxAppendable,
+      onAppendCountChange: creditLimits.setAppendCount,
+      showDevMockToggle: creditLimits.showDevMockToggle,
+      hasGeneratedMock: creditLimits.hasGeneratedMock,
+      onToggleGeneratedMock: creditLimits.toggleGeneratedMock,
+    },
+    status: {
+      error,
+      actionError: questionActions.actionError,
+      statusMessage,
+      actionMessage: questionActions.actionMessage,
+      isGenerating,
+      progress,
+    },
     onGenerate: handleGenerate,
     onAppendQuestions: handleAppendQuestions,
-    showDevMockToggle: creditLimits.showDevMockToggle,
-    hasGeneratedMock: creditLimits.hasGeneratedMock,
-    onToggleGeneratedMock: creditLimits.toggleGeneratedMock,
   }
 
   const previewPanelProps: WorksheetPreviewPanelProps = {

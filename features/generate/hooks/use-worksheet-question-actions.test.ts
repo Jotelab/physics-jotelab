@@ -116,6 +116,7 @@ describe("useWorksheetQuestionActions", () => {
     expect(regenerateQuestionAction).toHaveBeenCalledWith({
       worksheetId,
       questionId: validWorksheetQuestion.id,
+      attemptId: expect.any(String),
     })
     expect(replaceQuestion).toHaveBeenCalledWith(regeneratedQuestion)
     expect(onCreditBalanceUpdated).toHaveBeenCalledWith(7)

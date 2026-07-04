@@ -1,76 +1,22 @@
-import type { LessonPresetId } from "@/features/generate/data/generation-presets"
+import { getSubjectContentPack } from "@/features/generate/data/subject-content-packs"
 import {
   getVariablesForLesson,
   resolveLessonKey,
 } from "@/features/generate/data/generation-presets"
+import { DEFAULT_SUBJECT } from "@/features/generate/schemas"
+import type { Subject } from "@/features/generate/types"
 
-const GIVEN_CANDIDATES_BY_LESSON_AND_FIND: Record<
-  LessonPresetId,
-  Record<string, string[]>
-> = {
-  "motion-1d": {
-    "phys-v": ["phys-v0", "phys-a", "phys-t", "phys-s"],
-    "phys-v0": ["phys-v", "phys-a", "phys-t", "phys-s"],
-    "phys-a": ["phys-v", "phys-v0", "phys-t", "phys-s"],
-    "phys-t": ["phys-v", "phys-v0", "phys-a", "phys-s"],
-    "phys-s": ["phys-v", "phys-v0", "phys-a", "phys-t"],
-  },
-  "newtons-laws": {
-    "phys-f": ["phys-m", "phys-a"],
-    "phys-m": ["phys-f", "phys-a"],
-    "phys-a": ["phys-f", "phys-m"],
-  },
-  "energy-work": {
-    "phys-ek": ["phys-m", "phys-v", "phys-ep", "phys-s", "phys-f"],
-    "phys-ep": ["phys-m", "phys-s", "phys-ek", "phys-v", "phys-f"],
-    "phys-f": ["phys-m", "phys-s", "phys-ek", "phys-ep", "phys-v"],
-    "phys-m": ["phys-v", "phys-ek", "phys-ep", "phys-f", "phys-s"],
-    "phys-v": ["phys-m", "phys-ek", "phys-ep", "phys-f", "phys-s"],
-    "phys-s": ["phys-f", "phys-m", "phys-ep", "phys-ek", "phys-v"],
-  },
-  "circular-motion": {
-    "phys-v": ["phys-a", "phys-r", "phys-f", "phys-m", "phys-t"],
-    "phys-a": ["phys-v", "phys-r", "phys-f", "phys-m", "phys-t"],
-    "phys-r": ["phys-v", "phys-a", "phys-f", "phys-m", "phys-t"],
-    "phys-f": ["phys-m", "phys-a", "phys-r", "phys-v", "phys-t"],
-    "phys-m": ["phys-f", "phys-a", "phys-r", "phys-v", "phys-t"],
-    "phys-t": ["phys-v", "phys-a", "phys-r", "phys-f", "phys-m"],
-  },
-  "momentum-collisions": {
-    "phys-p": ["phys-m", "phys-v", "phys-f", "phys-t"],
-    "phys-m": ["phys-p", "phys-v", "phys-f", "phys-t"],
-    "phys-v": ["phys-p", "phys-m", "phys-f", "phys-t"],
-    "phys-f": ["phys-p", "phys-m", "phys-v", "phys-t"],
-    "phys-t": ["phys-p", "phys-m", "phys-v", "phys-f"],
-  },
-  "waves-oscillations": {
-    "phys-v": ["phys-t", "phys-s"],
-    "phys-t": ["phys-v", "phys-s"],
-    "phys-s": ["phys-v", "phys-t"],
-  },
-  electrostatics: {
-    "phys-q": ["phys-f", "phys-r"],
-    "phys-f": ["phys-q", "phys-r"],
-    "phys-r": ["phys-q", "phys-f"],
-  },
-  "magnetic-fields": {
-    "phys-q": ["phys-f", "phys-v", "phys-r"],
-    "phys-f": ["phys-q", "phys-v", "phys-r"],
-    "phys-v": ["phys-q", "phys-f", "phys-r"],
-    "phys-r": ["phys-q", "phys-f", "phys-v"],
-  },
-}
-
-function lessonVariableIds(lesson: string): string[] {
-  return getVariablesForLesson(lesson).map((preset) => preset.id)
+function lessonVariableIds(lesson: string, subject: Subject): string[] {
+  return getVariablesForLesson(lesson, subject).map((preset) => preset.id)
 }
 
 export function getFindPool(
   lesson: string,
   findVariableIds: string[],
-  targetRandomize: boolean
+  targetRandomize: boolean,
+  subject: Subject = DEFAULT_SUBJECT
 ): string[] {
-  const lessonVars = lessonVariableIds(lesson)
+  const lessonVars = lessonVariableIds(lesson, subject)
   const scoped = findVariableIds.filter((id) => lessonVars.includes(id))
   if (scoped.length > 0) return scoped
   if (targetRandomize) return lessonVars
@@ -80,9 +26,10 @@ export function getFindPool(
 export function getCompatibleGivenIds(
   lesson: string,
   findVariableIds: string[],
-  targetRandomize: boolean
+  targetRandomize: boolean,
+  subject: Subject = DEFAULT_SUBJECT
 ): string[] {
-  const lessonVars = lessonVariableIds(lesson)
+  const lessonVars = lessonVariableIds(lesson, subject)
   const lessonVarSet = new Set(lessonVars)
   const findSet = new Set(findVariableIds.filter((id) => lessonVarSet.has(id)))
 
@@ -90,7 +37,7 @@ export function getCompatibleGivenIds(
     return targetRandomize ? lessonVars : []
   }
 
-  const { lessonId, isPreset } = resolveLessonKey(lesson)
+  const { lessonId, isPreset } = resolveLessonKey(lesson, subject)
   const compatible = new Set<string>()
 
   if (!isPreset || !lessonId) {
@@ -100,7 +47,7 @@ export function getCompatibleGivenIds(
     return [...compatible]
   }
 
-  const lessonMap = GIVEN_CANDIDATES_BY_LESSON_AND_FIND[lessonId]
+  const lessonMap = getSubjectContentPack(subject).givenCandidatesByLessonAndFind[lessonId] ?? {}
 
   for (const findId of findSet) {
     const candidates = lessonMap[findId] ?? []
@@ -117,11 +64,14 @@ export function getCompatibleGivenIds(
 export function getIncompatibleGivenIds(
   lesson: string,
   findVariableIds: string[],
-  targetRandomize: boolean
+  targetRandomize: boolean,
+  subject: Subject = DEFAULT_SUBJECT
 ): string[] {
-  const lessonVars = lessonVariableIds(lesson)
+  const lessonVars = lessonVariableIds(lesson, subject)
   const findSet = new Set(findVariableIds)
-  const compatible = new Set(getCompatibleGivenIds(lesson, findVariableIds, targetRandomize))
+  const compatible = new Set(
+    getCompatibleGivenIds(lesson, findVariableIds, targetRandomize, subject)
+  )
 
   return lessonVars.filter((id) => !findSet.has(id) && !compatible.has(id))
 }

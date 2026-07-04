@@ -5,12 +5,15 @@ import { validWorksheetQuestion } from "@/tests/fixtures/worksheet-question"
 const mockGetUser = vi.fn()
 const mockRpc = vi.fn()
 const mockWorksheetsSingle = vi.fn()
+const mockWorksheetsDelete = vi.fn()
 const mockWorksheetQuestionsOrder = vi.fn()
 const mockProfilesSingle = vi.fn()
 const mockGenerationJobSingle = vi.fn()
 const mockGenerationJobsLimit = vi.fn()
 const mockInngestSend = vi.fn()
 const mockAdminRpc = vi.fn()
+const mockAdminJobUpdate = vi.fn()
+const mockAdminJobUpdateEq = vi.fn()
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => ({
@@ -24,6 +27,9 @@ vi.mock("@/lib/supabase/server", () => ({
             eq: vi.fn(() => ({
               single: mockWorksheetsSingle,
             })),
+          })),
+          delete: vi.fn(() => ({
+            eq: mockWorksheetsDelete,
           })),
         }
       }
@@ -79,6 +85,20 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/supabase/admin", () => ({
   createServiceRoleClient: vi.fn(() => ({
     rpc: mockAdminRpc,
+    from: vi.fn(() => ({
+      update: (payload: unknown) => {
+        mockAdminJobUpdate(payload)
+        const chain = {
+          eq: (column: string, value: unknown) => {
+            mockAdminJobUpdateEq(column, value)
+            return chain
+          },
+          then: (resolve: (result: { data: null; error: null }) => unknown) =>
+            resolve({ data: null, error: null }),
+        }
+        return chain
+      },
+    })),
   })),
 }))
 
@@ -121,8 +141,8 @@ function enqueueRpcSuccess(id: string = jobId) {
   return { data: { success: true, jobId: id }, error: null }
 }
 
-function extendRpcSuccess(questionCount: number) {
-  return { data: { success: true, questionCount }, error: null }
+function appendRpcSuccess(questionCount: number, id: string = jobId) {
+  return { data: { success: true, jobId: id, questionCount }, error: null }
 }
 
 function makeWorksheetQuestionRows(
@@ -162,8 +182,8 @@ function mockStartJobRpcs() {
     if (name === "enqueue_generation_job") {
       return enqueueRpcSuccess()
     }
-    if (name === "extend_worksheet_count") {
-      return extendRpcSuccess(5)
+    if (name === "extend_worksheet_and_enqueue_job") {
+      return appendRpcSuccess(5)
     }
     throw new Error(`Unexpected rpc: ${name}`)
   })
@@ -175,6 +195,7 @@ describe("startWorksheetGenerationJobAction", () => {
     vi.stubEnv("INNGEST_EVENT_KEY", "test-key")
     mockInngestSend.mockResolvedValue(undefined)
     mockAdminRpc.mockResolvedValue({ data: null, error: null })
+    mockWorksheetsDelete.mockResolvedValue({ data: null, error: null })
     mockAuthenticatedWithProfile()
     mockStartJobRpcs()
   })
@@ -302,7 +323,7 @@ describe("startWorksheetGenerationJobAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/generate")
   })
 
-  it("returns unknown when inngest is not configured", async () => {
+  it("returns unknown and deletes the orphan worksheet when inngest is not configured", async () => {
     vi.stubEnv("INNGEST_EVENT_KEY", "")
 
     const result = await startWorksheetGenerationJobAction(generateInput)
@@ -311,29 +332,30 @@ describe("startWorksheetGenerationJobAction", () => {
     if (!result.ok) {
       expect(result.message).toContain("INNGEST_EVENT_KEY")
     }
-    expect(mockAdminRpc).toHaveBeenCalledWith(
-      "update_generation_job_progress",
-      expect.objectContaining({
-        p_job_id: jobId,
-        p_status: "failed",
-      })
-    )
+    expect(mockWorksheetsDelete).toHaveBeenCalledWith("id", worksheetId)
   })
 
-  it("marks job failed when inngest send throws", async () => {
+  it("deletes the orphan worksheet when inngest send throws", async () => {
     mockInngestSend.mockRejectedValue(new Error("network down"))
 
     const result = await startWorksheetGenerationJobAction(generateInput)
 
     expect(result).toEqual(failure("UNKNOWN", "network down"))
-    expect(mockAdminRpc).toHaveBeenCalledWith(
-      "update_generation_job_progress",
-      expect.objectContaining({
-        p_job_id: jobId,
-        p_status: "failed",
-        p_error_message: "network down",
-      })
-    )
+    expect(mockWorksheetsDelete).toHaveBeenCalledWith("id", worksheetId)
+  })
+
+  it("deletes the orphan worksheet when the enqueue rpc fails", async () => {
+    mockRpc.mockImplementation(async (name: string) => {
+      if (name === "generate_worksheet_init") {
+        return initRpcSuccess()
+      }
+      return { data: null, error: { message: "enqueue failed" } }
+    })
+
+    const result = await startWorksheetGenerationJobAction(generateInput)
+
+    expect(result.ok).toBe(false)
+    expect(mockWorksheetsDelete).toHaveBeenCalledWith("id", worksheetId)
   })
 })
 
@@ -387,12 +409,12 @@ describe("startAppendGenerationJobAction", () => {
     )
   })
 
-  it("returns unknown when extend response lacks questionCount", async () => {
+  it("returns unknown when append response lacks questionCount", async () => {
     mockRpc.mockImplementation(async (name: string) => {
-      if (name === "extend_worksheet_count") {
-        return { data: { success: true }, error: null }
+      if (name === "extend_worksheet_and_enqueue_job") {
+        return { data: { success: true, jobId }, error: null }
       }
-      return enqueueRpcSuccess()
+      throw new Error(`Unexpected rpc: ${name}`)
     })
 
     const result = await startAppendGenerationJobAction({
@@ -405,7 +427,7 @@ describe("startAppendGenerationJobAction", () => {
     )
   })
 
-  it("extends, enqueues append job, and sends inngest event", async () => {
+  it("extends and enqueues append job atomically, then sends inngest event", async () => {
     const result = await startAppendGenerationJobAction({
       worksheetId,
       additionalCount: 2,
@@ -415,18 +437,13 @@ describe("startAppendGenerationJobAction", () => {
       ok: true,
       data: { jobId, worksheetId, newQuestionCount: 5 },
     })
-    expect(mockRpc).toHaveBeenCalledWith("extend_worksheet_count", {
+    expect(mockRpc).toHaveBeenCalledWith("extend_worksheet_and_enqueue_job", {
       p_worksheet_id: worksheetId,
       p_additional_count: 2,
     })
-    expect(mockRpc).toHaveBeenCalledWith(
+    expect(mockRpc).not.toHaveBeenCalledWith(
       "enqueue_generation_job",
-      expect.objectContaining({
-        p_worksheet_id: worksheetId,
-        p_from_order: 4,
-        p_to_order: 5,
-        p_kind: "append",
-      })
+      expect.anything()
     )
     expect(mockInngestSend).toHaveBeenCalledWith({
       name: "worksheet/generation.requested",
@@ -444,13 +461,11 @@ describe("startAppendGenerationJobAction", () => {
     })
 
     expect(result).toEqual(failure("UNKNOWN", "send failed"))
-    expect(mockAdminRpc).toHaveBeenCalledWith(
-      "update_generation_job_progress",
-      expect.objectContaining({
-        p_job_id: jobId,
-        p_status: "failed",
-      })
+    expect(mockAdminJobUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "failed" })
     )
+    expect(mockAdminJobUpdateEq).toHaveBeenCalledWith("id", jobId)
+    expect(mockAdminJobUpdateEq).toHaveBeenCalledWith("user_id", profileId)
   })
 })
 

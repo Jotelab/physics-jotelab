@@ -41,6 +41,7 @@ export function normalizeGeneratedQuestion(
   const mathComplexity = options?.mathComplexity ?? DEFAULT_MATH_COMPLEXITY
 
   return {
+    format: raw.format,
     question_text: raw.question_text.trim(),
     given_values: raw.given_values.map((given) => ({
       symbol: given.symbol.trim(),

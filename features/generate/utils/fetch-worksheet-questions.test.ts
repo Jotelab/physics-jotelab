@@ -7,6 +7,7 @@ import { fetchWorksheetQuestions } from "./fetch-worksheet-questions"
 
 const worksheetId = "a1b2c3d4-e5f6-4789-a012-3456789abcde"
 const mockOrder = vi.fn()
+const mockGt = vi.fn(() => ({ order: mockOrder }))
 
 function createSupabaseClient() {
   return {
@@ -15,6 +16,7 @@ function createSupabaseClient() {
         return {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
+              gt: mockGt,
               order: mockOrder,
             })),
           })),
@@ -52,6 +54,19 @@ describe("fetchWorksheetQuestions", () => {
     const result = await fetchWorksheetQuestions(createSupabaseClient(), worksheetId)
 
     expect(result).toEqual([validWorksheetQuestion])
+    expect(mockGt).not.toHaveBeenCalled()
+  })
+
+  it("filters to questions past sinceOrder when given", async () => {
+    mockOrder.mockResolvedValue({
+      data: [makeRow({ ...validWorksheetQuestion, order: 3 })],
+      error: null,
+    })
+
+    const result = await fetchWorksheetQuestions(createSupabaseClient(), worksheetId, 2)
+
+    expect(result).toEqual([{ ...validWorksheetQuestion, order: 3 }])
+    expect(mockGt).toHaveBeenCalledWith("question_order", 2)
   })
 
   it("returns an empty array when the worksheet has no questions", async () => {

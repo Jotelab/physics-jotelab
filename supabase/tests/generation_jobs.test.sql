@@ -5,7 +5,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(4);
+select plan(5);
 
 do $$
 declare
@@ -165,6 +165,23 @@ select ok(
       and gj.user_id = current_setting('test.other_profile_id')::uuid
   ),
   'job belongs to owner profile not other profile'
+);
+
+-- With a job already active, the atomic append RPC must reject AND leave the
+-- worksheet question_count unchanged (no inflated count on the rejected path).
+select ok(
+  (
+    select (public.extend_worksheet_and_enqueue_job(
+      current_setting('test.worksheet_id')::uuid,
+      2
+    )->>'success')::boolean
+  ) = false
+  and (
+    select question_count
+    from public.worksheets
+    where id = current_setting('test.worksheet_id')::uuid
+  ) = 3,
+  'atomic append leaves question_count unchanged when a job is already active'
 );
 
 select * from finish();

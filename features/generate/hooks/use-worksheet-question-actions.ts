@@ -88,12 +88,14 @@ export function useWorksheetQuestionActions({
     clearActionFeedback()
     setBusyQuestionId(question.id)
 
-    const result = await regenerateQuestionAction({ worksheetId, questionId: question.id }).catch(
-      () => ({
-        ok: false as const,
-        message: tErrors("REGENERATE_FAILED"),
-      })
-    )
+    const result = await regenerateQuestionAction({
+      worksheetId,
+      questionId: question.id,
+      attemptId: crypto.randomUUID(),
+    }).catch(() => ({
+      ok: false as const,
+      message: tErrors("REGENERATE_FAILED"),
+    }))
 
     if (!result.ok) {
       setActionError(result.message)

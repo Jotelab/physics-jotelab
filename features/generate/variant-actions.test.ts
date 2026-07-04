@@ -10,6 +10,8 @@ const mockProfilesSingle = vi.fn()
 const mockGenerationJobSingle = vi.fn()
 const mockInngestSend = vi.fn()
 const mockAdminRpc = vi.fn()
+const mockAdminJobUpdate = vi.fn()
+const mockAdminJobUpdateEq = vi.fn()
 const mockRunGenerationJobWorker = vi.fn()
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -67,6 +69,20 @@ vi.mock("@/lib/supabase/server", () => ({
 vi.mock("@/lib/supabase/admin", () => ({
   createServiceRoleClient: vi.fn(() => ({
     rpc: mockAdminRpc,
+    from: vi.fn(() => ({
+      update: (payload: unknown) => {
+        mockAdminJobUpdate(payload)
+        const chain = {
+          eq: (column: string, value: unknown) => {
+            mockAdminJobUpdateEq(column, value)
+            return chain
+          },
+          then: (resolve: (result: { data: null; error: null }) => unknown) =>
+            resolve({ data: null, error: null }),
+        }
+        return chain
+      },
+    })),
   })),
 }))
 
@@ -356,13 +372,11 @@ describe("startVariantGenerationJobAction", () => {
     if (!result.ok) {
       expect(result.message).toContain("INNGEST_EVENT_KEY")
     }
-    expect(mockAdminRpc).toHaveBeenCalledWith(
-      "update_generation_job_progress",
-      expect.objectContaining({
-        p_job_id: jobId,
-        p_status: "failed",
-      })
+    expect(mockAdminJobUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "failed" })
     )
+    expect(mockAdminJobUpdateEq).toHaveBeenCalledWith("id", jobId)
+    expect(mockAdminJobUpdateEq).toHaveBeenCalledWith("user_id", profileId)
   })
 
   it("marks job failed when inngest send throws", async () => {
@@ -374,14 +388,11 @@ describe("startVariantGenerationJobAction", () => {
     })
 
     expect(result).toEqual(failure("UNKNOWN", "network down"))
-    expect(mockAdminRpc).toHaveBeenCalledWith(
-      "update_generation_job_progress",
-      expect.objectContaining({
-        p_job_id: jobId,
-        p_status: "failed",
-        p_error_message: "network down",
-      })
+    expect(mockAdminJobUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "failed", error_message: "network down" })
     )
+    expect(mockAdminJobUpdateEq).toHaveBeenCalledWith("id", jobId)
+    expect(mockAdminJobUpdateEq).toHaveBeenCalledWith("user_id", profileId)
   })
 
   it("starts job, sends inngest event, and revalidates on success", async () => {

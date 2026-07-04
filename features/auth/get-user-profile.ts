@@ -2,7 +2,7 @@ import "server-only"
 
 import { cache } from "react"
 
-import type { UserProfile } from "@/features/auth/types"
+import { userProfileSchema } from "@/features/auth/schemas"
 import { createClient } from "@/lib/supabase/server"
 
 export type { UserProfile } from "@/features/auth/types"
@@ -15,5 +15,11 @@ export const getUserProfile = cache(async function getUserProfile() {
     throw new Error("Could not load user profile")
   }
 
-  return data as UserProfile
+  const profile = userProfileSchema.safeParse(data)
+
+  if (!profile.success) {
+    throw new Error("Could not load user profile")
+  }
+
+  return profile.data
 })

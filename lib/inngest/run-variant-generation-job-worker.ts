@@ -1,65 +1,43 @@
 import { generateVariantRollForQuestion } from "@/features/generate/generate-variant-core"
-import {
-  loadWorksheetQuestionsForProfile,
-} from "@/features/generate/generate-question-core"
 import type { GenerationJobRow } from "@/features/generate/generation-job-types"
 import {
   parseVariantResults,
   parseVariantSkippedOrders,
 } from "@/features/generate/generation-job-types"
-import type { VariantLabel, VariantQuestionRoll, WorksheetVariant } from "@/features/generate/types"
-import { createServiceRoleClient } from "@/lib/supabase/admin"
-import { createClientForProfile } from "@/lib/supabase/user-client"
+import type {
+  VariantLabel,
+  VariantQuestionRoll,
+  VariantSkippedSlot,
+  WorksheetVariant,
+} from "@/features/generate/types"
+import { deriveVariantId } from "@/features/generate/utils/variant-identity"
 
+import { runGenerationJob } from "@/lib/inngest/generation-job-runner"
 import type { GenerationJobStep } from "@/lib/inngest/generation-job-step"
-import { syncGenerationJobStep } from "@/lib/inngest/generation-job-step"
 
-type VariantSkippedSlot = {
-  order: number
-  label: VariantLabel
-  message: string
-}
-
-async function updateVariantJob(
-  admin: ReturnType<typeof createServiceRoleClient>,
-  params: {
-    jobId: string
-    status: GenerationJobRow["status"]
-    lastCompletedOrder?: number
-    skippedOrders?: VariantSkippedSlot[]
-    errorMessage?: string | null
-    inngestRunId?: string
-    variantResults?: { variants: WorksheetVariant[] }
-  }
-) {
-  const { error } = await admin.rpc("update_generation_job_progress", {
-    p_job_id: params.jobId,
-    p_status: params.status,
-    p_last_completed_order: params.lastCompletedOrder ?? null,
-    p_skipped_orders: params.skippedOrders ?? null,
-    p_error_message: params.errorMessage ?? null,
-    p_inngest_run_id: params.inngestRunId ?? null,
-    p_variant_results: params.variantResults ?? null,
-  })
-
-  if (error) {
-    throw new Error(error.message)
-  }
-}
+// Variant rolls are independent of one another, so fan them out across this many
+// concurrent model calls per Inngest batch instead of one-at-a-time. Bounded so a
+// single job can't blow the provider rate-limit / DB pool (the function-wide cap
+// in generate-worksheet-questions is the outer backstop).
+const VARIANT_ROLL_CONCURRENCY = 5
 
 function getOrCreateVariant(
   variants: WorksheetVariant[],
-  label: VariantLabel
+  label: VariantLabel,
+  identity: { jobId: string; createdAt: string }
 ): WorksheetVariant {
   const existing = variants.find((variant) => variant.label === label)
   if (existing) {
     return existing
   }
 
+  // id/createdAt are derived deterministically (not random / wall-clock) so the
+  // variant's identity is stable across Inngest replays and retries; otherwise
+  // the per-roll persist step and the finalize step could write different ids.
   const created: WorksheetVariant = {
-    id: crypto.randomUUID(),
+    id: deriveVariantId(identity.jobId, label),
     label,
-    createdAt: new Date().toISOString(),
+    createdAt: identity.createdAt,
     rolls: [],
   }
   variants.push(created)
@@ -76,6 +54,26 @@ function upsertRoll(variant: WorksheetVariant, roll: VariantQuestionRoll) {
   variant.rolls.sort((a, b) => a.order - b.order)
 }
 
+type VariantItem = { label: VariantLabel; order: number }
+
+type VariantState = {
+  skippedOrders: VariantSkippedSlot[]
+  lastCompletedOrder: number
+  variants: WorksheetVariant[]
+}
+
+type VariantSaved = {
+  roll: VariantQuestionRoll
+  creditBalance: number
+}
+
+type VariantResult = {
+  status: GenerationJobRow["status"]
+  totalRolls: number
+  completedRolls: number
+  variants: WorksheetVariant[]
+}
+
 export async function runVariantGenerationJobWorker(params: {
   jobId: string
   worksheetId: string
@@ -83,173 +81,124 @@ export async function runVariantGenerationJobWorker(params: {
   runId?: string
   step?: GenerationJobStep
 }) {
-  const { jobId, worksheetId, profileId, runId, step = syncGenerationJobStep } = params
-  const admin = createServiceRoleClient()
+  const { jobId, worksheetId, profileId, runId, step } = params
 
-  await step.run("mark-running", async () => {
-    await updateVariantJob(admin, {
-      jobId,
-      status: "running",
-      inngestRunId: runId,
-    })
-  })
+  return runGenerationJob<VariantItem, VariantSaved, VariantState, VariantResult>({
+    jobId,
+    worksheetId,
+    profileId,
+    runId,
+    step,
+    config: {
+      batchSize: VARIANT_ROLL_CONCURRENCY,
+      loadJob: async (admin) => {
+        const { data, error } = await admin
+          .from("generation_jobs")
+          .select("*")
+          .eq("id", jobId)
+          .single<GenerationJobRow>()
 
-  const job = await step.run("load-job", async () => {
-    const { data, error } = await admin
-      .from("generation_jobs")
-      .select("*")
-      .eq("id", jobId)
-      .single<GenerationJobRow>()
+        if (error || !data || data.kind !== "variant" || !data.variant_labels?.length) {
+          throw new Error("Variant generation job not found")
+        }
 
-    if (error || !data || data.kind !== "variant" || !data.variant_labels?.length) {
-      throw new Error("Variant generation job not found")
-    }
+        return data
+      },
+      initState: (job) => ({
+        skippedOrders: parseVariantSkippedOrders(job.skipped_orders),
+        lastCompletedOrder: job.last_completed_order ?? 0,
+        variants: parseVariantResults(job.variant_results),
+      }),
+      buildWorkItems: (job, _questions, state) => {
+        const labels = job.variant_labels ?? []
+        const items: VariantItem[] = []
 
-    return data
-  })
+        for (const label of labels) {
+          for (let order = job.from_order; order <= job.to_order; order += 1) {
+            const variant = state.variants.find((entry) => entry.label === label)
+            const alreadyRolled = variant?.rolls.some((roll) => roll.order === order)
+            if (!alreadyRolled) {
+              items.push({ label, order })
+            }
+          }
+        }
 
-  let skippedOrders = parseVariantSkippedOrders(job.skipped_orders)
-  let lastCompletedOrder = job.last_completed_order ?? 0
-  const variants = parseVariantResults(job.variant_results)
-  let terminalStatus: GenerationJobRow["status"] | null = null
-
-  const labels = job.variant_labels ?? []
-  const totalRolls = labels.length * job.to_order
-  const workItems: { label: VariantLabel; order: number }[] = []
-
-  for (const label of labels) {
-    for (let order = job.from_order; order <= job.to_order; order += 1) {
-      const variant = variants.find((entry) => entry.label === label)
-      const alreadyRolled = variant?.rolls.some((roll) => roll.order === order)
-      if (!alreadyRolled) {
-        workItems.push({ label, order })
-      }
-    }
-  }
-
-  const loaded = await step.run("load-worksheet", async () => {
-    const userClient = await createClientForProfile(profileId)
-    return loadWorksheetQuestionsForProfile(userClient, worksheetId, profileId)
-  })
-
-  if (!loaded) {
-    await step.run("fail-missing-worksheet", async () => {
-      await updateVariantJob(admin, {
-        jobId,
-        status: "failed",
-        errorMessage: "Worksheet not found",
-        skippedOrders,
-        lastCompletedOrder,
-        variantResults: { variants },
-      })
-    })
-    return { status: "failed" as const }
-  }
-
-  for (const { label, order } of workItems) {
-    if (terminalStatus) {
-      break
-    }
-
-    const stepResult = await step.run(`variant-${label}-${order}`, async () => {
-      const userClient = await createClientForProfile(profileId)
-      const result = await generateVariantRollForQuestion({
-        supabase: userClient,
-        profileId,
-        worksheetId,
-        label,
-        order,
-      })
-
-      if (result.ok) {
-        return {
-          type: "saved" as const,
+        return items
+      },
+      workStepId: ({ label, order }) => `variant-${label}-${order}`,
+      persistStepId: ({ label, order }) => `persist-variant-${label}-${order}`,
+      runItem: async ({ item: { label, order }, userClient }) => {
+        const result = await generateVariantRollForQuestion({
+          supabase: userClient,
+          profileId,
+          worksheetId,
           label,
           order,
-          roll: result.data.roll,
-          creditBalance: result.data.creditBalance,
-        }
-      }
-
-      if (result.code === "INSUFFICIENT_CREDITS") {
-        return { type: "credits" as const }
-      }
-
-      return {
-        type: "skipped" as const,
-        label,
-        order,
-        message: result.message,
-      }
-    })
-
-    if (stepResult.type === "saved") {
-      const variant = getOrCreateVariant(variants, stepResult.label)
-      upsertRoll(variant, stepResult.roll)
-      lastCompletedOrder += 1
-      skippedOrders = skippedOrders.filter(
-        (slot) => !(slot.label === stepResult.label && slot.order === stepResult.order)
-      )
-
-      await step.run(`persist-variant-${stepResult.label}-${stepResult.order}`, async () => {
-        await updateVariantJob(admin, {
-          jobId,
-          status: "running",
-          lastCompletedOrder,
-          skippedOrders,
-          variantResults: { variants },
         })
-      })
-      continue
-    }
 
-    if (stepResult.type === "credits") {
-      const currentIndex = workItems.findIndex(
-        (item) => item.label === label && item.order === order
-      )
-      const remaining = workItems.slice(currentIndex)
-
-      for (const item of remaining) {
-        const alreadySkipped = skippedOrders.some(
-          (slot) => slot.label === item.label && slot.order === item.order
-        )
-        if (!alreadySkipped) {
-          skippedOrders.push({
-            label: item.label,
-            order: item.order,
-            message: "Not enough credits.",
-          })
+        if (result.ok) {
+          return {
+            type: "saved",
+            saved: { roll: result.data.roll, creditBalance: result.data.creditBalance },
+          }
         }
-      }
 
-      terminalStatus = "partial"
-      break
-    }
+        if (result.code === "INSUFFICIENT_CREDITS") {
+          return { type: "credits" }
+        }
 
-    if (stepResult.type === "skipped") {
-      skippedOrders.push({
-        label: stepResult.label,
-        order: stepResult.order,
-        message: stepResult.message,
-      })
-      continue
-    }
-  }
+        return { type: "skipped", message: result.message }
+      },
+      onSaved: (item, saved, state, job) => {
+        const variant = getOrCreateVariant(state.variants, item.label, {
+          jobId: job.id,
+          createdAt: job.created_at,
+        })
+        upsertRoll(variant, saved.roll)
+        state.lastCompletedOrder += 1
+        state.skippedOrders = state.skippedOrders.filter(
+          (slot) => !(slot.label === item.label && slot.order === item.order)
+        )
+      },
+      onCredits: (item, items, state) => {
+        const currentIndex = items.findIndex(
+          (entry) => entry.label === item.label && entry.order === item.order
+        )
+        const remaining = items.slice(currentIndex)
 
-  await step.run("finalize-variant", async () => {
-    await updateVariantJob(admin, {
-      jobId,
-      status: terminalStatus ?? "completed",
-      lastCompletedOrder,
-      skippedOrders,
-      variantResults: { variants },
-    })
+        for (const entry of remaining) {
+          // A roll that already landed earlier in the same parallel batch must
+          // not be marked skipped just because a sibling ran out of credits.
+          const alreadyRolled = state.variants
+            .find((variant) => variant.label === entry.label)
+            ?.rolls.some((roll) => roll.order === entry.order)
+          const alreadySkipped = state.skippedOrders.some(
+            (slot) => slot.label === entry.label && slot.order === entry.order
+          )
+          if (!alreadyRolled && !alreadySkipped) {
+            state.skippedOrders.push({
+              label: entry.label,
+              order: entry.order,
+              message: "Not enough credits.",
+            })
+          }
+        }
+      },
+      onSkipped: (item, message, state) => {
+        state.skippedOrders.push({ label: item.label, order: item.order, message })
+      },
+      serializeProgress: (state) => ({
+        lastCompletedOrder: state.lastCompletedOrder,
+        skippedOrders: state.skippedOrders,
+        variantResults: { variants: state.variants },
+      }),
+      finalizeStepId: "finalize-variant",
+      buildResult: (status, state, job) => ({
+        status,
+        totalRolls: (job.variant_labels?.length ?? 0) * job.to_order,
+        completedRolls: state.lastCompletedOrder,
+        variants: state.variants,
+      }),
+    },
   })
-
-  return {
-    status: terminalStatus ?? "completed",
-    totalRolls,
-    completedRolls: lastCompletedOrder,
-    variants,
-  }
 }

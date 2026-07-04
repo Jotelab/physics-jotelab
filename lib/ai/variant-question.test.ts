@@ -35,6 +35,7 @@ describe("variantWorksheetQuestion", () => {
     vi.stubEnv("E2E_STUB_GENERATION", "true")
 
     const result = await variantWorksheetQuestion({
+      subject: "physics",
       masterQuestion: validWorksheetQuestion,
       variantLabel: "B",
     })
@@ -49,6 +50,7 @@ describe("variantWorksheetQuestion", () => {
     mockGenerateObject.mockResolvedValue({ object: validGeneratedQuestion })
 
     const result = await variantWorksheetQuestion({
+      subject: "physics",
       masterQuestion: validWorksheetQuestion,
       variantLabel: "B",
     })
@@ -76,6 +78,7 @@ describe("variantWorksheetQuestion", () => {
     mockGenerateObject.mockResolvedValue({ object: validGeneratedQuestion })
 
     await variantWorksheetQuestion({
+      subject: "physics",
       masterQuestion: validWorksheetQuestion,
       variantLabel: "C",
       mathComplexity: "scientific",
@@ -97,6 +100,7 @@ describe("variantWorksheetQuestion", () => {
     })
 
     const result = await variantWorksheetQuestion({
+      subject: "physics",
       masterQuestion: validWorksheetQuestion,
       variantLabel: "B",
     })
@@ -117,7 +121,8 @@ describe("variantWorksheetQuestion", () => {
 
     await expect(
       variantWorksheetQuestion({
-        masterQuestion: validWorksheetQuestion,
+        subject: "physics",
+      masterQuestion: validWorksheetQuestion,
         variantLabel: "B",
       })
     ).rejects.toThrow("Variant target variable does not match master question.")
@@ -128,7 +133,8 @@ describe("variantWorksheetQuestion", () => {
 
     await expect(
       variantWorksheetQuestion({
-        masterQuestion: validWorksheetQuestion,
+        subject: "physics",
+      masterQuestion: validWorksheetQuestion,
         variantLabel: "B",
       })
     ).rejects.toThrow("API unavailable")

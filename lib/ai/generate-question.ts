@@ -1,6 +1,6 @@
 import { generateObject } from "ai"
 
-import { generatedQuestionSchema } from "@/features/generate/schemas"
+import { calculationQuestionSchema, generatedQuestionSchema } from "@/features/generate/schemas"
 import { DEFAULT_MATH_COMPLEXITY } from "@/features/generate/constants/difficulty-settings"
 import type { GeneratedQuestion, MathComplexity, Subject } from "@/features/generate/types"
 
@@ -8,7 +8,13 @@ import { getGenerationModel } from "./client"
 import { e2eStubGeneratedQuestion } from "./e2e-stub-question"
 import { getGenerationErrorMessage, logGenerationError } from "./generation-errors"
 import { normalizeGeneratedQuestion } from "./normalize-question"
-import { QUESTION_GENERATION_RULES, buildMathComplexityRules } from "./prompt-rules"
+import {
+  UNTRUSTED_INPUT_NOTICE,
+  buildMathComplexityRules,
+  buildSubjectGenerationRules,
+  fenceUntrusted,
+  subjectQuestionKind,
+} from "./prompt-rules"
 
 type GenerateQuestionInput = {
   subject: Subject
@@ -33,18 +39,21 @@ function buildGenerationPrompt({
   previousQuestionsContext,
   mathComplexity = DEFAULT_MATH_COMPLEXITY,
 }: GenerateQuestionInput) {
-  return `You are generating a high-school calculation question for Thai students.
+  return `You are generating a high-school ${subjectQuestionKind(subject)} for Thai students.
 
 Return only one structured JSON object that matches the provided schema.
 
 Subject: ${subject}
-Lesson: ${lesson}
-Scenario: ${scenario}
+
+${UNTRUSTED_INPUT_NOTICE}
+${fenceUntrusted("lesson", lesson)}
+${fenceUntrusted("scenario", scenario)}
 
 Previously generated questions (DO NOT REPEAT THESE):
-${formatPreviousQuestions(previousQuestionsContext)}
+${fenceUntrusted("previous_questions", formatPreviousQuestions(previousQuestionsContext))}
 
-${QUESTION_GENERATION_RULES}
+Rules:
+${buildSubjectGenerationRules(subject)}
 ${buildMathComplexityRules(mathComplexity)}`
 }
 
@@ -58,7 +67,10 @@ export async function generateWorksheetQuestion(
   try {
     const { object } = await generateObject({
       model: getGenerationModel(),
-      schema: generatedQuestionSchema,
+      // Generation produces the calculation format today; pass that format's
+      // concrete schema rather than the whole union so structured output stays
+      // a single object shape.
+      schema: calculationQuestionSchema,
       prompt: buildGenerationPrompt(input),
     })
 

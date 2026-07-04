@@ -19,115 +19,103 @@ import { VariableConstraintPicker } from "@/features/generate/components/variabl
 import { MAX_INITIAL_WORKSHEET_QUESTION_COUNT } from "@/features/generate/limits"
 import type { ConceptualDifficulty, GenerationProgress, MathComplexity } from "@/features/generate/types"
 
-export type WorksheetConfigPanelProps = {
+/** Worksheet config form state + handlers, plus whether controls are disabled. */
+export type WorksheetFormControls = {
   activeTab: "basic" | "advanced"
   onActiveTabChange: (tab: "basic" | "advanced") => void
+  controlsDisabled: boolean
   lesson: string
   resolvedScenarioId: string
+  onLessonChange: (lesson: string) => void
+  onLessonSuggestionSelect: () => void
+  onScenarioChange: (id: string, description: string) => void
+  mathComplexity: MathComplexity
+  conceptualDifficulty: ConceptualDifficulty
+  onMathComplexityChange: (value: MathComplexity) => void
+  onConceptualDifficultyChange: (value: ConceptualDifficulty) => void
+  onQuestionCountChange: (count: number) => void
   givenVariableIds: string[]
   findVariableIds: string[]
   targetRandomize: boolean
   onGivenVariableIdsChange: (ids: string[]) => void
   onFindVariableIdsChange: (ids: string[]) => void
   onTargetRandomizeChange: (enabled: boolean) => void
-  mathComplexity: MathComplexity
-  conceptualDifficulty: ConceptualDifficulty
-  onMathComplexityChange: (value: MathComplexity) => void
-  onConceptualDifficultyChange: (value: ConceptualDifficulty) => void
-  controlsDisabled: boolean
+}
+
+/** Credit/quota figures and the gating flags + append/dev-mock controls. */
+export type WorksheetCreditState = {
   effectiveQuestionCount: number
   maxQuestionCount: number
   availableCredits: number
   hasNoCredits: boolean
-  onLessonChange: (lesson: string) => void
-  onLessonSuggestionSelect: () => void
-  onScenarioChange: (id: string, description: string) => void
-  onQuestionCountChange: (count: number) => void
   cost: number
   hasPartialCredits: boolean
-  error: string | null
-  actionError: string | null
-  statusMessage: string | null
-  actionMessage: string | null
   hasGenerated: boolean
   canGenerate: boolean
   canAppend: boolean
-  isGenerating: boolean
-  progress: GenerationProgress | null
   showAppendInput: boolean
   onToggleAppendInput: () => void
   appendCount: number
   maxAppendable: number
   onAppendCountChange: (count: number) => void
-  onGenerate: () => void
-  onAppendQuestions: () => void
   showDevMockToggle: boolean
   hasGeneratedMock: boolean
   onToggleGeneratedMock: () => void
 }
 
+/** Generation progress and the error/status feedback strings. */
+export type WorksheetGenerationStatus = {
+  error: string | null
+  actionError: string | null
+  statusMessage: string | null
+  actionMessage: string | null
+  isGenerating: boolean
+  progress: GenerationProgress | null
+}
+
+export type WorksheetConfigPanelProps = {
+  form: WorksheetFormControls
+  credits: WorksheetCreditState
+  status: WorksheetGenerationStatus
+  onGenerate: () => void
+  onAppendQuestions: () => void
+}
+
 function WorksheetBasicFields({
-  lesson,
-  resolvedScenarioId,
-  controlsDisabled,
-  effectiveQuestionCount,
-  maxQuestionCount,
-  availableCredits,
-  hasNoCredits,
-  onLessonChange,
-  onLessonSuggestionSelect,
-  onScenarioChange,
-  onQuestionCountChange,
-  mathComplexity,
-  conceptualDifficulty,
-  onMathComplexityChange,
-  onConceptualDifficultyChange,
-}: Pick<
-  WorksheetConfigPanelProps,
-  | "lesson"
-  | "resolvedScenarioId"
-  | "controlsDisabled"
-  | "effectiveQuestionCount"
-  | "maxQuestionCount"
-  | "availableCredits"
-  | "hasNoCredits"
-  | "onLessonChange"
-  | "onLessonSuggestionSelect"
-  | "onScenarioChange"
-  | "onQuestionCountChange"
-  | "mathComplexity"
-  | "conceptualDifficulty"
-  | "onMathComplexityChange"
-  | "onConceptualDifficultyChange"
->) {
+  form,
+  credits,
+}: {
+  form: WorksheetFormControls
+  credits: WorksheetCreditState
+}) {
   const t = useTranslations("generate")
 
   return (
     <div className="space-y-6">
       <LessonCombobox
-        value={lesson}
-        onChange={onLessonChange}
-        onSuggestionSelect={onLessonSuggestionSelect}
-        disabled={controlsDisabled}
+        value={form.lesson}
+        onChange={form.onLessonChange}
+        onSuggestionSelect={form.onLessonSuggestionSelect}
+        disabled={form.controlsDisabled}
       />
 
       <ScenarioSelect
-        lesson={lesson}
-        value={resolvedScenarioId}
-        onChange={onScenarioChange}
-        disabled={controlsDisabled}
+        lesson={form.lesson}
+        value={form.resolvedScenarioId}
+        onChange={form.onScenarioChange}
+        disabled={form.controlsDisabled}
       />
 
       <MathComplexitySelect
-        value={mathComplexity}
-        onChange={onMathComplexityChange}
-        disabled={controlsDisabled}
+        value={form.mathComplexity}
+        onChange={form.onMathComplexityChange}
+        disabled={form.controlsDisabled}
       />
 
       <ConceptualDifficultySelect
-        value={conceptualDifficulty}
-        onChange={onConceptualDifficultyChange}
-        disabled={controlsDisabled}
+        value={form.conceptualDifficulty}
+        onChange={form.onConceptualDifficultyChange}
+        disabled={form.controlsDisabled}
       />
 
       <div className="space-y-3">
@@ -139,28 +127,28 @@ function WorksheetBasicFields({
             htmlFor="question-count"
             className="rounded-lg border px-3 py-1.5 text-lg font-medium tabular-nums lg:rounded-md lg:px-2.5 lg:py-1.5 lg:text-base"
           >
-            {effectiveQuestionCount}
+            {credits.effectiveQuestionCount}
           </output>
         </div>
         <Slider
           id="question-count"
           min={1}
-          max={maxQuestionCount}
+          max={credits.maxQuestionCount}
           step={1}
-          value={[effectiveQuestionCount]}
-          disabled={controlsDisabled || hasNoCredits}
+          value={[credits.effectiveQuestionCount]}
+          disabled={form.controlsDisabled || credits.hasNoCredits}
           onValueChange={([val]) => {
-            if (val != null) onQuestionCountChange(val)
+            if (val != null) form.onQuestionCountChange(val)
           }}
           aria-label={t("numberOfQuestions")}
         />
         <div className="flex justify-between text-sm text-muted-foreground">
           <span>1</span>
-          <span>{maxQuestionCount}</span>
+          <span>{credits.maxQuestionCount}</span>
         </div>
-        {availableCredits < MAX_INITIAL_WORKSHEET_QUESTION_COUNT ? (
+        {credits.availableCredits < MAX_INITIAL_WORKSHEET_QUESTION_COUNT ? (
           <p className="text-xs text-muted-foreground">
-            {t("limitedQuestions", { count: maxQuestionCount })}
+            {t("limitedQuestions", { count: credits.maxQuestionCount })}
           </p>
         ) : null}
       </div>
@@ -169,68 +157,31 @@ function WorksheetBasicFields({
 }
 
 function WorksheetGenerationActions({
-  availableCredits,
-  cost,
-  hasNoCredits,
-  hasPartialCredits,
-  error,
-  actionError,
-  statusMessage,
-  actionMessage,
-  hasGenerated,
-  canGenerate,
-  canAppend,
-  isGenerating,
-  progress,
-  showAppendInput,
-  onToggleAppendInput,
-  appendCount,
-  maxAppendable,
-  onAppendCountChange,
+  credits,
+  status,
   onGenerate,
   onAppendQuestions,
-  showDevMockToggle,
-  onToggleGeneratedMock,
-}: Pick<
-  WorksheetConfigPanelProps,
-  | "availableCredits"
-  | "cost"
-  | "hasNoCredits"
-  | "hasPartialCredits"
-  | "error"
-  | "actionError"
-  | "statusMessage"
-  | "actionMessage"
-  | "hasGenerated"
-  | "canGenerate"
-  | "canAppend"
-  | "isGenerating"
-  | "progress"
-  | "showAppendInput"
-  | "onToggleAppendInput"
-  | "appendCount"
-  | "maxAppendable"
-  | "onAppendCountChange"
-  | "onGenerate"
-  | "onAppendQuestions"
-  | "showDevMockToggle"
-  | "onToggleGeneratedMock"
->) {
+}: {
+  credits: WorksheetCreditState
+  status: WorksheetGenerationStatus
+  onGenerate: () => void
+  onAppendQuestions: () => void
+}) {
   const t = useTranslations("generate")
 
   return (
     <div className="space-y-3 border-t pt-5">
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">{t("availableCredits")}</span>
-        <span className="font-medium tabular-nums">{availableCredits}</span>
+        <span className="font-medium tabular-nums">{credits.availableCredits}</span>
       </div>
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">{t("costPreview")}</span>
-        <span className="font-medium tabular-nums">{t("creditsUnit", { count: cost })}</span>
+        <span className="font-medium tabular-nums">{t("creditsUnit", { count: credits.cost })}</span>
       </div>
 
       <div className="space-y-2">
-        {hasNoCredits ? (
+        {credits.hasNoCredits ? (
           <p
             role="alert"
             className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
@@ -238,68 +189,68 @@ function WorksheetGenerationActions({
             {t("needOneCredit")}
           </p>
         ) : null}
-        {error ? (
+        {status.error ? (
           <p
             role="alert"
             className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
           >
-            {error}
+            {status.error}
           </p>
         ) : null}
-        {actionError ? (
+        {status.actionError ? (
           <p
             role="alert"
             className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
           >
-            {actionError}
+            {status.actionError}
           </p>
         ) : null}
 
         <div aria-live="polite" aria-atomic="true" className="space-y-2">
-          {hasPartialCredits ? (
+          {credits.hasPartialCredits ? (
             <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-              {t("partialCredits", { count: availableCredits })}
+              {t("partialCredits", { count: credits.availableCredits })}
             </p>
           ) : null}
-          {statusMessage ? (
+          {status.statusMessage ? (
             <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-              {statusMessage}
+              {status.statusMessage}
             </p>
           ) : null}
-          {actionMessage ? (
+          {status.actionMessage ? (
             <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-              {actionMessage}
+              {status.actionMessage}
             </p>
           ) : null}
-          {isGenerating && progress && !hasGenerated ? (
+          {status.isGenerating && status.progress && !credits.hasGenerated ? (
             <p className="sr-only">
-              {t("generatingProgress", { current: progress.current, total: progress.total })}
+              {t("generatingProgress", { current: status.progress.current, total: status.progress.total })}
             </p>
           ) : null}
         </div>
       </div>
 
-      {!hasGenerated ? (
+      {!credits.hasGenerated ? (
         <Button
           id="generate-worksheet-btn"
           type="button"
           size="touch-wide"
-          disabled={!canGenerate}
+          disabled={!credits.canGenerate}
           onClick={onGenerate}
         >
-          {isGenerating && progress
-            ? t("generatingProgressShort", { current: progress.current, total: progress.total })
-            : t("generateWorksheet", { cost })}
+          {status.isGenerating && status.progress
+            ? t("generatingProgressShort", { current: status.progress.current, total: status.progress.total })
+            : t("generateWorksheet", { cost: credits.cost })}
         </Button>
       ) : (
         <div className="flex flex-col gap-2">
-          {isGenerating && progress ? (
+          {status.isGenerating && status.progress ? (
             <p
               aria-live="polite"
               aria-atomic="true"
               className="rounded-md border bg-muted/40 px-3 py-2 text-center text-sm text-muted-foreground"
             >
-              {t("generatingProgressShort", { current: progress.current, total: progress.total })}
+              {t("generatingProgressShort", { current: status.progress.current, total: status.progress.total })}
             </p>
           ) : null}
           <div className="flex gap-2">
@@ -309,7 +260,7 @@ function WorksheetGenerationActions({
               variant="outline"
               size="touch-wide"
               className="flex-1"
-              disabled={!canGenerate}
+              disabled={!credits.canGenerate}
               onClick={onGenerate}
               aria-label={t("regenerateAllAria")}
             >
@@ -321,33 +272,33 @@ function WorksheetGenerationActions({
               type="button"
               size="touch-wide"
               className="flex-1"
-              disabled={!canAppend}
-              onClick={onToggleAppendInput}
+              disabled={!credits.canAppend}
+              onClick={credits.onToggleAppendInput}
               aria-label={t("appendQuestionsAria")}
-              aria-expanded={showAppendInput}
+              aria-expanded={credits.showAppendInput}
             >
               <PlusCircle className="size-4" />
               {t("appendQuestions")}
             </Button>
           </div>
 
-          {showAppendInput ? (
+          {credits.showAppendInput ? (
             <div className="space-y-2 rounded-md border bg-muted/40 p-3">
               <label htmlFor="append-count" className="text-sm font-medium">
-                {t("appendCountLabel", { max: maxAppendable })}
+                {t("appendCountLabel", { max: credits.maxAppendable })}
               </label>
               <div className="flex gap-2">
                 <input
                   id="append-count"
                   type="number"
                   min={1}
-                  max={maxAppendable}
-                  value={Math.min(appendCount, maxAppendable)}
-                  disabled={isGenerating}
+                  max={credits.maxAppendable}
+                  value={Math.min(credits.appendCount, credits.maxAppendable)}
+                  disabled={status.isGenerating}
                   onChange={(event) => {
                     const next = Number(event.target.value)
                     if (Number.isFinite(next)) {
-                      onAppendCountChange(next)
+                      credits.onAppendCountChange(next)
                     }
                   }}
                   className="h-10 w-24 rounded-md border bg-background px-3 text-sm"
@@ -356,7 +307,7 @@ function WorksheetGenerationActions({
                 <Button
                   type="button"
                   className="flex-1"
-                  disabled={!canAppend || isGenerating}
+                  disabled={!credits.canAppend || status.isGenerating}
                   onClick={onAppendQuestions}
                 >
                   {t("confirmAppend")}
@@ -365,10 +316,10 @@ function WorksheetGenerationActions({
             </div>
           ) : null}
 
-          {showDevMockToggle ? (
+          {credits.showDevMockToggle ? (
             <button
               type="button"
-              onClick={onToggleGeneratedMock}
+              onClick={credits.onToggleGeneratedMock}
               className="text-xs text-muted-foreground underline-offset-2 hover:underline"
             >
               {t("devToggle")}
@@ -381,9 +332,13 @@ function WorksheetGenerationActions({
 }
 
 export function WorksheetConfigPanel({
+  form,
+  credits,
+  status,
+  onGenerate,
+  onAppendQuestions,
   hideHeader = false,
   header,
-  ...props
 }: WorksheetConfigPanelProps & {
   hideHeader?: boolean
   header?: ReactNode
@@ -391,27 +346,16 @@ export function WorksheetConfigPanel({
   const t = useTranslations("generate")
   const tCommon = useTranslations("common")
 
-  const basicFields = (
-    <WorksheetBasicFields
-      lesson={props.lesson}
-      resolvedScenarioId={props.resolvedScenarioId}
-      controlsDisabled={props.controlsDisabled}
-      effectiveQuestionCount={props.effectiveQuestionCount}
-      maxQuestionCount={props.maxQuestionCount}
-      availableCredits={props.availableCredits}
-      hasNoCredits={props.hasNoCredits}
-      onLessonChange={props.onLessonChange}
-      onLessonSuggestionSelect={props.onLessonSuggestionSelect}
-      onScenarioChange={props.onScenarioChange}
-      onQuestionCountChange={props.onQuestionCountChange}
-      mathComplexity={props.mathComplexity}
-      conceptualDifficulty={props.conceptualDifficulty}
-      onMathComplexityChange={props.onMathComplexityChange}
-      onConceptualDifficultyChange={props.onConceptualDifficultyChange}
+  const basicFields = <WorksheetBasicFields form={form} credits={credits} />
+
+  const actionArea = (
+    <WorksheetGenerationActions
+      credits={credits}
+      status={status}
+      onGenerate={onGenerate}
+      onAppendQuestions={onAppendQuestions}
     />
   )
-
-  const actionArea = <WorksheetGenerationActions {...props} />
 
   return (
     <section className="w-full shrink-0 border-b bg-background p-4 print:hidden md:p-6 lg:w-[340px] lg:overflow-y-auto lg:border-r lg:border-b-0 xl:w-[400px] 2xl:w-[360px]">
@@ -427,8 +371,8 @@ export function WorksheetConfigPanel({
       ) : null}
 
       <Tabs
-        value={props.activeTab}
-        onValueChange={(value) => props.onActiveTabChange(value as "basic" | "advanced")}
+        value={form.activeTab}
+        onValueChange={(value) => form.onActiveTabChange(value as "basic" | "advanced")}
       >
         <TabsList className="mb-5 h-16 w-full gap-1 p-2 lg:h-12 lg:gap-1 lg:p-1">
           <TabsTrigger
@@ -459,14 +403,14 @@ export function WorksheetConfigPanel({
             {basicFields}
 
             <VariableConstraintPicker
-              lesson={props.lesson}
-              findVariableIds={props.findVariableIds}
-              targetRandomize={props.targetRandomize}
-              givenVariableIds={props.givenVariableIds}
-              onFindChange={props.onFindVariableIdsChange}
-              onTargetRandomizeChange={props.onTargetRandomizeChange}
-              onGivenChange={props.onGivenVariableIdsChange}
-              disabled={props.controlsDisabled}
+              lesson={form.lesson}
+              findVariableIds={form.findVariableIds}
+              targetRandomize={form.targetRandomize}
+              givenVariableIds={form.givenVariableIds}
+              onFindChange={form.onFindVariableIdsChange}
+              onTargetRandomizeChange={form.onTargetRandomizeChange}
+              onGivenChange={form.onGivenVariableIdsChange}
+              disabled={form.controlsDisabled}
             />
 
             <p className="text-xs text-muted-foreground">{t("variablesHint")}</p>

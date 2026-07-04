@@ -19,7 +19,15 @@ import {
   MAX_WORKSHEET_QUESTION_COUNT,
 } from "./limits"
 
-export const subjectSchema = z.literal("physics")
+// Allowlist of subjects the app can persist and generate for. Adding a subject
+// here (plus the matching `is_valid_subject` DB allowlist and a content pack —
+// see features/generate/data/subjects.ts) is all that is required to widen the
+// `subject` surface end-to-end.
+export const SUBJECTS = ["physics"] as const
+
+export const subjectSchema = z.enum(SUBJECTS)
+
+export const DEFAULT_SUBJECT = SUBJECTS[0]
 
 export const mathComplexitySchema = z.enum(["integers", "decimals", "scientific"])
 
@@ -85,17 +93,53 @@ const solutionSchema = z.object({
   final_answer: z.string().min(1).max(MAX_FINAL_ANSWER_LEN),
 })
 
-export const generatedQuestionSchema = z.object({
+// Question formats are modeled as a discriminated union keyed by `format` so a
+// new subject can introduce a non-calculation shape (multiple-choice, labeling,
+// essay, …) without reshaping the calculation question. Adding a format means
+// adding a member to `generatedQuestionSchema` / `worksheetQuestionSchema` and a
+// matching renderer — the calculation members below stay untouched.
+//
+// `format` is a derived/transport discriminant: it is not persisted as a column
+// (the DB stores calculation questions by their fields), so stored/legacy rows
+// omit it and `withDefaultQuestionFormat` re-injects the default on read.
+export const QUESTION_FORMATS = ["calculation"] as const
+
+export const questionFormatSchema = z.enum(QUESTION_FORMATS)
+
+export const calculationQuestionSchema = z.object({
+  format: z.literal("calculation").default("calculation"),
   question_text: z.string().min(1).max(MAX_QUESTION_TEXT_LEN),
   given_values: z.array(givenValueSchema).min(1).max(MAX_GIVEN_VARIABLES),
   target_variable: targetVariableSchema,
   solution: solutionSchema,
 })
 
-export const worksheetQuestionSchema = generatedQuestionSchema.extend({
+const calculationWorksheetQuestionSchema = calculationQuestionSchema.extend({
   id: z.string().uuid(),
   order: z.number().int().min(1).max(MAX_WORKSHEET_QUESTION_COUNT),
 })
+
+function withDefaultQuestionFormat(value: unknown): unknown {
+  if (
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    !("format" in value)
+  ) {
+    return { ...(value as Record<string, unknown>), format: "calculation" }
+  }
+  return value
+}
+
+export const generatedQuestionSchema = z.preprocess(
+  withDefaultQuestionFormat,
+  z.discriminatedUnion("format", [calculationQuestionSchema])
+)
+
+export const worksheetQuestionSchema = z.preprocess(
+  withDefaultQuestionFormat,
+  z.discriminatedUnion("format", [calculationWorksheetQuestionSchema])
+)
 
 export const variantLabelSchema = z.enum(["B", "C", "D"])
 

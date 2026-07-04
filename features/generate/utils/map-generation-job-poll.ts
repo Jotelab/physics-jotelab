@@ -1,7 +1,6 @@
 import type { GenerationJobPollResult, GenerationJobRow } from "../generation-job-types"
 import { parseSkippedOrders, parseVariantResults, parseVariantSkippedOrders } from "../generation-job-types"
 import type { WorksheetQuestion } from "../types"
-import { getUnfilledOrders } from "./get-unfilled-orders"
 
 function buildVariantJobStatusMessage(
   job: Pick<GenerationJobRow, "status" | "last_completed_order" | "variant_labels" | "to_order" | "skipped_orders">
@@ -100,18 +99,10 @@ export function mapGenerationJobPoll(params: {
   const lastCompletedOrder = job.last_completed_order ?? 0
   const isTerminal = ["completed", "partial", "failed", "cancelled"].includes(job.status)
   const stoppedForCredits = job.status === "partial"
-  const unfilled = getUnfilledOrders(questions, job.to_order).filter(
-    (order) => order >= job.from_order
-  )
-  const progressCurrent =
-    job.status === "completed"
-      ? job.to_order
-      : Math.max(lastCompletedOrder, questions.length > 0 ? Math.max(...questions.map((q) => q.order)) : 0)
-
-  const statusMessage =
-    job.status === "running"
-      ? `Generating ${unfilled[0] ?? progressCurrent + 1}/${job.to_order}...`
-      : buildGenerationJobStatusMessage(job)
+  // Progress comes from the job's last_completed_order (kept in lockstep with the
+  // saved questions by the worker's persist step), not from the questions array —
+  // so `questions` may be an incremental delta rather than the full worksheet.
+  const progressCurrent = job.status === "completed" ? job.to_order : lastCompletedOrder
 
   return {
     jobId: job.id,
@@ -125,7 +116,7 @@ export function mapGenerationJobPoll(params: {
     progress: { current: progressCurrent, total: job.to_order },
     questions,
     skippedSlots,
-    statusMessage,
+    statusMessage: buildGenerationJobStatusMessage(job),
     creditBalance,
     isTerminal,
     stoppedForCredits,

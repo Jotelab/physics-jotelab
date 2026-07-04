@@ -41,16 +41,36 @@ async function getProfileForAuthUser(
   return data ?? null
 }
 
-async function markGenerationJobFailed(jobId: string, errorMessage: string) {
+async function markGenerationJobFailed(
+  jobId: string,
+  profileId: string,
+  errorMessage: string
+) {
   try {
     const admin = createServiceRoleClient()
-    await admin.rpc("update_generation_job_progress", {
-      p_job_id: jobId,
-      p_status: "failed",
-      p_error_message: errorMessage,
-    })
+    // Scope the cleanup to the authenticated owner: the service-role client
+    // bypasses RLS, so matching on user_id (not just the server-minted jobId)
+    // ensures a stray/client-influenced id could never fail another user's job.
+    await admin
+      .from("generation_jobs")
+      .update({ status: "failed", error_message: errorMessage })
+      .eq("id", jobId)
+      .eq("user_id", profileId)
   } catch {
     // Best-effort cleanup so a failed Inngest send does not leave a blocking queued job.
+  }
+}
+
+async function deleteOrphanWorksheet(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  worksheetId: string
+) {
+  try {
+    // Cascades to the generation_jobs row, so an enqueue/send failure after init
+    // does not leave behind an empty worksheet (init charges no credits).
+    await supabase.from("worksheets").delete().eq("id", worksheetId)
+  } catch {
+    // Best-effort cleanup.
   }
 }
 
@@ -159,11 +179,13 @@ export async function startWorksheetGenerationJobAction(
     t("couldNotStartJob")
   )
   if (enqueueFailure) {
+    await deleteOrphanWorksheet(supabase, worksheetId)
     return enqueueFailure
   }
 
   const jobId = parseRpcSuccessStringField(jobData, "jobId")
   if (!jobId) {
+    await deleteOrphanWorksheet(supabase, worksheetId)
     return localizedFailure("UNKNOWN", "couldNotStartJob")
   }
 
@@ -176,7 +198,7 @@ export async function startWorksheetGenerationJobAction(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : t("couldNotStartBackground")
-    await markGenerationJobFailed(jobId, message)
+    await deleteOrphanWorksheet(supabase, worksheetId)
     return failure("UNKNOWN", message)
   }
 
@@ -211,47 +233,29 @@ export async function startAppendGenerationJobAction(
     return localizedFailure("PROFILE_NOT_FOUND")
   }
 
-  const { data: extendData, error: extendError } = await supabase.rpc(
-    "extend_worksheet_count",
+  const { data: appendData, error: appendError } = await supabase.rpc(
+    "extend_worksheet_and_enqueue_job",
     {
       p_worksheet_id: parsed.data.worksheetId,
       p_additional_count: parsed.data.additionalCount,
     }
   )
 
-  const extendFailure = parseRpcActionFailure<{
+  const appendFailure = parseRpcActionFailure<{
     jobId: string
     worksheetId: string
     newQuestionCount: number
-  }>(extendData, extendError, t("couldNotExtendWorksheet"))
-  if (extendFailure) {
-    return extendFailure
+  }>(appendData, appendError, t("couldNotStartAppendJob"))
+  if (appendFailure) {
+    return appendFailure
   }
 
-  const newQuestionCount = parseRpcSuccessNumberField(extendData, "questionCount")
+  const newQuestionCount = parseRpcSuccessNumberField(appendData, "questionCount")
   if (newQuestionCount === null) {
     return localizedFailure("UNKNOWN", "couldNotExtendWorksheet")
   }
 
-  const fromOrder = newQuestionCount - parsed.data.additionalCount + 1
-
-  const { data: jobData, error: enqueueError } = await supabase.rpc("enqueue_generation_job", {
-    p_worksheet_id: parsed.data.worksheetId,
-    p_from_order: fromOrder,
-    p_to_order: newQuestionCount,
-    p_kind: "append",
-  })
-
-  const enqueueFailure = parseRpcActionFailure<{
-    jobId: string
-    worksheetId: string
-    newQuestionCount: number
-  }>(jobData, enqueueError, t("couldNotStartAppendJob"))
-  if (enqueueFailure) {
-    return enqueueFailure
-  }
-
-  const jobId = parseRpcSuccessStringField(jobData, "jobId")
+  const jobId = parseRpcSuccessStringField(appendData, "jobId")
   if (!jobId) {
     return localizedFailure("UNKNOWN", "couldNotStartAppendJob")
   }
@@ -265,7 +269,7 @@ export async function startAppendGenerationJobAction(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : t("couldNotStartBackground")
-    await markGenerationJobFailed(jobId, message)
+    await markGenerationJobFailed(jobId, profile.id, message)
     return failure("UNKNOWN", message)
   }
 
@@ -277,7 +281,8 @@ export async function startAppendGenerationJobAction(
 }
 
 export async function getGenerationJobAction(
-  jobId: string
+  jobId: string,
+  sinceOrder = 0
 ): Promise<ActionResult<ReturnType<typeof mapGenerationJobPoll>>> {
   const parsed = jobIdSchema.safeParse(jobId)
 
@@ -322,7 +327,8 @@ export async function getGenerationJobAction(
 
   const profile = await getProfileForAuthUser(supabase, user.id)
 
-  const questions = await fetchWorksheetQuestions(supabase, worksheet.id)
+  const since = Number.isInteger(sinceOrder) && sinceOrder > 0 ? sinceOrder : 0
+  const questions = await fetchWorksheetQuestions(supabase, worksheet.id, since)
 
   if (questions === null) {
     return localizedFailure("QUESTIONS_LOAD_FAILED")
