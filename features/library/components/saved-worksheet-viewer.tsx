@@ -133,6 +133,8 @@ function SavedWorksheetEditor({
     const result = await regenerateQuestionAction({
       worksheetId: worksheet.id,
       questionId: question.id,
+      // Fresh per-click nonce so each regenerate gets a distinct idempotency key.
+      attemptId: crypto.randomUUID(),
     }).catch(() => ({
       ok: false as const,
       message: tErrors("REGENERATE_FAILED"),
