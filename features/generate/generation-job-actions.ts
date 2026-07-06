@@ -6,6 +6,7 @@ import { z } from "zod"
 
 import { inngest } from "@/lib/inngest/client"
 import { runGenerationJobWorker } from "@/lib/inngest/run-generation-job-worker"
+import { attachQuestionDiagrams } from "@/lib/tikz/attach-diagram"
 import { localizedFailure } from "@/lib/i18n/server-errors"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
@@ -328,11 +329,14 @@ export async function getGenerationJobAction(
   const profile = await getProfileForAuthUser(supabase, user.id)
 
   const since = Number.isInteger(sinceOrder) && sinceOrder > 0 ? sinceOrder : 0
-  const questions = await fetchWorksheetQuestions(supabase, worksheet.id, since)
+  const rawQuestions = await fetchWorksheetQuestions(supabase, worksheet.id, since)
 
-  if (questions === null) {
+  if (rawQuestions === null) {
     return localizedFailure("QUESTIONS_LOAD_FAILED")
   }
+
+  // Attach templated diagrams as questions stream in (DEVELOPMENT_PLAN §2.2).
+  const questions = await attachQuestionDiagrams(rawQuestions)
 
   const poll = mapGenerationJobPoll({
     job,

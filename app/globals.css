@@ -163,6 +163,20 @@
     page-break-after: auto;
   }
 
+  /* TikZ diagrams are inline vector SVGs (DEVELOPMENT_PLAN §2.1): they must
+     print as crisp vector, keep their black strokes, and never split a page. */
+  .tikz-diagram {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    background: white !important;
+    color: black !important;
+  }
+
+  .tikz-diagram svg {
+    max-width: 100%;
+    height: auto;
+  }
+
   .katex-display {
     white-space: normal;
     overflow-wrap: anywhere;

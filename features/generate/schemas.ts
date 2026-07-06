@@ -15,8 +15,10 @@ import {
   MAX_SCENARIO_LEN,
   MAX_SOLUTION_STEP_LEN,
   MAX_SOLUTION_STEPS,
+  MAX_DIAGRAM_SVG_LEN,
   MAX_SYMBOL_LEN,
   MAX_TARGET_VARIABLES,
+  MAX_TIKZ_CODE_LEN,
   MAX_UNIT_LEN,
   MAX_WORKSHEET_QUESTION_COUNT,
 } from "./limits"
@@ -119,6 +121,28 @@ export const calculationQuestionSchema = z.object({
   // attaches it. It is never model-authored — the LLM output schemas leave it
   // unset and it is assembled from the engine response.
   sympy_data: sympyDataSchema.optional(),
+  // TikZ diagram source (DEVELOPMENT_PLAN §2.1). Optional: questions without a
+  // diagram omit it. This is the durable, persisted field; the compiled SVG
+  // below is derived from it server-side, not authored by hand.
+  tikz_code: z.string().min(1).max(MAX_TIKZ_CODE_LEN).optional(),
+  // Compiled, self-contained vector SVG for `tikz_code`, assembled server-side
+  // (see `lib/tikz`). Render-time only — carried on the question object so the
+  // A4 canvas can paginate/print it synchronously, but not persisted inline.
+  diagram_svg: z.string().min(1).max(MAX_DIAGRAM_SVG_LEN).optional(),
+})
+
+// The "Structured AI Output" split (DEVELOPMENT_PLAN §2.2, proposal): the model
+// authors only prose + math — `question_text` (text) and `solution` (katex) — and
+// never the diagram or the engine payload. `tikz_code` is separated out (it comes
+// from the deterministic engine template, or a *validated* LLM diagram later),
+// `diagram_svg` is compiled server-side, and `sympy_data` originates in the
+// engine. Passing this narrower schema to `generateObject` keeps those three
+// fields out of the model's structured output — so a model can't emit a
+// compiled/engine field the DB allowlist would reject.
+export const modelCalculationOutputSchema = calculationQuestionSchema.omit({
+  tikz_code: true,
+  diagram_svg: true,
+  sympy_data: true,
 })
 
 const calculationWorksheetQuestionSchema = calculationQuestionSchema.extend({

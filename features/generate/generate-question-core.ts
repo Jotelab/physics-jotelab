@@ -8,6 +8,7 @@ import {
 } from "@/lib/ai/generate-engine-question"
 import { regenerateWorksheetQuestion } from "@/lib/ai/regenerate-question"
 import { shouldUseEngine } from "@/lib/engine/topics"
+import { attachQuestionDiagrams } from "@/lib/tikz/attach-diagram"
 
 import { failure, parseRpcFailure } from "./errors"
 import type { AppFailure, GenerationErrorCode } from "./errors"
@@ -396,11 +397,15 @@ export async function loadWorksheetQuestionsForProfile(
     return null
   }
 
-  const questions = await fetchWorksheetQuestions(supabase, worksheetId)
+  const rawQuestions = await fetchWorksheetQuestions(supabase, worksheetId)
 
-  if (questions === null) {
+  if (rawQuestions === null) {
     throw new Error("Worksheet questions could not be loaded")
   }
+
+  // Diagrams are attached at the display boundary (DEVELOPMENT_PLAN §2.2), not by
+  // the internal reads above that only need question text/context.
+  const questions = await attachQuestionDiagrams(rawQuestions)
 
   return {
     worksheet,

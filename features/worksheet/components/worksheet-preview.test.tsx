@@ -108,6 +108,41 @@ describe("WorksheetPreview", () => {
     expect(pages.getByText(validWorksheetQuestion.solution.steps[0])).toBeInTheDocument()
   })
 
+  it("renders a diagram block when the question carries a compiled SVG", () => {
+    render(
+      <WorksheetPreview
+        header={previewHeader("Physics: Motion", "1 question")}
+        questions={[
+          {
+            ...validWorksheetQuestion,
+            diagram_svg: '<svg data-testid="tikz-svg"><path d="M0 0L1 1"/></svg>',
+          },
+        ]}
+        viewMode="worksheet"
+      />
+    )
+
+    const figure = getWorksheetPages().getByRole("img", {
+      name: "Diagram for question 1",
+    })
+    expect(figure).toBeInTheDocument()
+    expect(figure.querySelector("svg")).not.toBeNull()
+  })
+
+  it("renders no diagram block when the question has no compiled SVG", () => {
+    render(
+      <WorksheetPreview
+        header={previewHeader("Physics: Motion", "1 question")}
+        questions={[validWorksheetQuestion]}
+        viewMode="worksheet"
+      />
+    )
+
+    expect(
+      getWorksheetPages().queryByRole("img", { name: "Diagram for question 1" })
+    ).not.toBeInTheDocument()
+  })
+
   it("renders skipped slots", () => {
     render(
       <WorksheetPreview
