@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+import { sympyDataSchema } from "@/lib/engine/sympy-data"
+
 import {
   MAX_FINAL_ANSWER_LEN,
   MAX_GIVEN_STRING_VALUE_LEN,
@@ -112,6 +114,11 @@ export const calculationQuestionSchema = z.object({
   given_values: z.array(givenValueSchema).min(1).max(MAX_GIVEN_VARIABLES),
   target_variable: targetVariableSchema,
   solution: solutionSchema,
+  // Verbatim engine payload every number traces back to (DEVELOPMENT_PLAN §1.2).
+  // Optional: LLM-only lessons and legacy rows omit it; the neuro-symbolic path
+  // attaches it. It is never model-authored — the LLM output schemas leave it
+  // unset and it is assembled from the engine response.
+  sympy_data: sympyDataSchema.optional(),
 })
 
 const calculationWorksheetQuestionSchema = calculationQuestionSchema.extend({

@@ -15,6 +15,8 @@ const worksheetQuestionRowSchema = z.object({
   given_values: z.unknown(),
   target_variable: z.unknown(),
   solution: z.unknown(),
+  // Verbatim engine payload for neuro-symbolic questions; null for LLM-only rows.
+  sympy_data: z.unknown().nullish(),
 })
 
 type WorksheetQuestionRow = z.infer<typeof worksheetQuestionRowSchema>
@@ -27,6 +29,9 @@ function rowToQuestion(row: WorksheetQuestionRow): unknown {
     given_values: row.given_values,
     target_variable: row.target_variable,
     solution: row.solution,
+    // Omit the key entirely when absent so the optional Zod field stays unset
+    // rather than parsing `null`.
+    ...(row.sympy_data == null ? {} : { sympy_data: row.sympy_data }),
   }
 }
 
@@ -38,7 +43,7 @@ export async function fetchWorksheetQuestions(
   let query = supabase
     .from("worksheet_questions")
     .select(
-      "id, worksheet_id, question_order, question_text, given_values, target_variable, solution"
+      "id, worksheet_id, question_order, question_text, given_values, target_variable, solution, sympy_data"
     )
     .eq("worksheet_id", worksheetId)
 

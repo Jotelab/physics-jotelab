@@ -17,6 +17,7 @@ const mockWorksheetQuestionsOrder = vi.fn()
 const mockProfilesSingle = vi.fn()
 const mockGenerateWorksheetQuestion = vi.fn()
 const mockRegenerateWorksheetQuestion = vi.fn()
+const mockGenerateEngineQuestion = vi.fn()
 
 vi.mock("@/lib/ai/generate-question", () => ({
   generateWorksheetQuestion: (...args: unknown[]) => mockGenerateWorksheetQuestion(...args),
@@ -24,6 +25,12 @@ vi.mock("@/lib/ai/generate-question", () => ({
 
 vi.mock("@/lib/ai/regenerate-question", () => ({
   regenerateWorksheetQuestion: (...args: unknown[]) => mockRegenerateWorksheetQuestion(...args),
+}))
+
+vi.mock("@/lib/ai/generate-engine-question", () => ({
+  generateEngineQuestion: (...args: unknown[]) => mockGenerateEngineQuestion(...args),
+  sympyDataGivenNames: (sympyData: { given: { symbol: string }[] }) =>
+    sympyData.given.map((given) => given.symbol),
 }))
 
 function createSupabaseClient() {
@@ -248,6 +255,33 @@ describe("generateQuestionForWorksheet", () => {
         p_question: expect.objectContaining({ id: pendingQuestionId }),
       })
     )
+  })
+
+  it("routes engine-backed lessons (motion-1d) through the neuro-symbolic path", async () => {
+    mockWorksheetsSingle.mockResolvedValue({
+      data: makeWorksheetRow({
+        generation_settings: { lesson: "motion-1d", scenario: "Find velocity." },
+      }),
+      error: null,
+    })
+    mockGenerateEngineQuestion.mockResolvedValue(validGeneratedQuestion)
+    mockGenerateReservationFlow()
+
+    const supabase = createSupabaseClient()
+
+    const result = await generateQuestionForWorksheet({
+      supabase,
+      profileId,
+      worksheetId,
+      order: 1,
+      previousQuestionsContext: [],
+    })
+
+    expect(result.ok).toBe(true)
+    expect(mockGenerateEngineQuestion).toHaveBeenCalledWith(
+      expect.objectContaining({ subject: "physics", lesson: "motion-1d" })
+    )
+    expect(mockGenerateWorksheetQuestion).not.toHaveBeenCalled()
   })
 
   it("skips AI when reserve reports the slot already completed", async () => {

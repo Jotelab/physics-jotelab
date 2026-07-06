@@ -2,7 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { z } from "zod"
 
 import { generateWorksheetQuestion } from "@/lib/ai/generate-question"
+import {
+  generateEngineQuestion,
+  sympyDataGivenNames,
+} from "@/lib/ai/generate-engine-question"
 import { regenerateWorksheetQuestion } from "@/lib/ai/regenerate-question"
+import { shouldUseEngine } from "@/lib/engine/topics"
 
 import { failure, parseRpcFailure } from "./errors"
 import type { AppFailure, GenerationErrorCode } from "./errors"
@@ -201,13 +206,26 @@ export async function generateQuestionForWorksheet(params: {
     cancel: (reservationId) =>
       cancelGenerateReservation(supabase, reservationId, idempotencyKey),
     run: async (context) => {
-      const generatedQuestion = await generateWorksheetQuestion({
-        subject: worksheet.subject,
-        lesson: generationSettings.lesson,
-        scenario: getPromptScenario(generationSettings, order, worksheet.id),
-        previousQuestionsContext,
-        mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
-      })
+      // Neuro-symbolic lessons generate through the engine (numbers first, LLM
+      // phrases); other lessons stay on the pure-LLM path (DEVELOPMENT_PLAN §1.2).
+      const generatedQuestion = shouldUseEngine(
+        generationSettings.lesson,
+        worksheet.subject
+      )
+        ? await generateEngineQuestion({
+            subject: worksheet.subject,
+            lesson: generationSettings.lesson,
+            scenario: generationSettings.scenario,
+            previousQuestionsContext,
+            mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
+          })
+        : await generateWorksheetQuestion({
+            subject: worksheet.subject,
+            lesson: generationSettings.lesson,
+            scenario: getPromptScenario(generationSettings, order, worksheet.id),
+            previousQuestionsContext,
+            mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
+          })
 
       const question = worksheetQuestionSchema.parse({
         id: context.pendingQuestionId ?? crypto.randomUUID(),
@@ -300,17 +318,35 @@ export async function regenerateQuestionForWorksheet(params: {
     cancel: (reservationId) =>
       cancelRegenerateReservation(supabase, reservationId, idempotencyKey),
     run: async (context) => {
-      const generatedQuestion = await regenerateWorksheetQuestion({
-        subject: worksheet.subject,
-        lesson: generationSettings.lesson,
-        scenario: getPromptScenario(
-          generationSettings,
-          originalQuestion.order,
-          worksheet.id
-        ),
-        existingQuestionText: originalQuestion.question_text,
-        mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
-      })
+      // Re-roll numbers: for an engine-backed question, resample the SAME
+      // Given/Find split with a fresh engine seed — same topic + structure, new
+      // numbers and new phrasing (DEVELOPMENT_PLAN §1.2). Questions without an
+      // engine payload (LLM-only lessons / legacy rows) regenerate via the LLM.
+      const originalSympyData = originalQuestion.sympy_data
+      const generatedQuestion =
+        originalSympyData &&
+        shouldUseEngine(generationSettings.lesson, worksheet.subject)
+          ? await generateEngineQuestion({
+              subject: worksheet.subject,
+              lesson: generationSettings.lesson,
+              scenario: generationSettings.scenario,
+              previousQuestionsContext: [originalQuestion.question_text],
+              mathComplexity:
+                generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
+              given: sympyDataGivenNames(originalSympyData),
+              find: originalSympyData.find.symbol,
+            })
+          : await regenerateWorksheetQuestion({
+              subject: worksheet.subject,
+              lesson: generationSettings.lesson,
+              scenario: getPromptScenario(
+                generationSettings,
+                originalQuestion.order,
+                worksheet.id
+              ),
+              existingQuestionText: originalQuestion.question_text,
+              mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
+            })
 
       const replacementQuestion = worksheetQuestionSchema.parse({
         id: originalQuestion.id,
