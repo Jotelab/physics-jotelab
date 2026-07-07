@@ -179,6 +179,10 @@ export const variantQuestionRollSchema = z.object({
   given_values: z.array(givenValueSchema).min(1).max(MAX_GIVEN_VARIABLES),
   solution: solutionSchema,
   question_text: z.string().min(1).max(MAX_QUESTION_TEXT_LEN).optional(),
+  // Engine-backed rolls re-roll through the symbolic engine (same Given/Find
+  // split, fresh seed) and carry its verified payload, exactly like a question
+  // (DEVELOPMENT_PLAN §1.2). LLM-only lessons omit it.
+  sympy_data: sympyDataSchema.optional(),
 })
 
 export const worksheetVariantSchema = z.object({

@@ -30,6 +30,11 @@ export type EngineGenerateParams = {
   find?: string
   /** RNG seed for reproducibility; the engine picks a fresh one when omitted. */
   seed?: number
+  /**
+   * Treat `given` as a subset constraint (Advanced-mode pins): the engine fills
+   * in the rest of a valid split instead of requiring an exact one.
+   */
+  completeSplit?: boolean
   signal?: AbortSignal
 }
 
@@ -80,6 +85,7 @@ export async function engineGenerate(
   if (params.given) body.given = params.given
   if (params.find) body.find = params.find
   if (params.seed != null) body.seed = params.seed
+  if (params.completeSplit) body.complete_split = true
 
   const controller = params.signal ? undefined : new AbortController()
   const timeout = controller

@@ -127,13 +127,17 @@ export async function runVariantGenerationJobWorker(params: {
       },
       workStepId: ({ label, order }) => `variant-${label}-${order}`,
       persistStepId: ({ label, order }) => `persist-variant-${label}-${order}`,
-      runItem: async ({ item: { label, order }, userClient }) => {
+      runItem: async ({ item: { label, order }, userClient, worksheet, questions }) => {
+        // Masters never change during a variant job — reuse the runner's one
+        // load-worksheet read instead of re-fetching per roll.
         const result = await generateVariantRollForQuestion({
           supabase: userClient,
           profileId,
           worksheetId,
           label,
           order,
+          knownWorksheet: worksheet,
+          knownQuestions: questions,
         })
 
         if (result.ok) {

@@ -276,6 +276,31 @@ describe("editQuestionAction", () => {
     )
   })
 
+  it("strips read-time diagram fields before calling the RPC", async () => {
+    mockRpc.mockResolvedValue({
+      data: editedQuestion,
+      error: null,
+    })
+
+    const result = await editQuestionAction({
+      worksheetId,
+      questionId,
+      editedQuestion: {
+        ...editedQuestion,
+        tikz_code: "\\begin{tikzpicture}\\end{tikzpicture}",
+        diagram_svg: "<svg xmlns='http://www.w3.org/2000/svg'></svg>",
+      },
+    })
+
+    expect(result.ok).toBe(true)
+    const rpcPayload = mockRpc.mock.calls[0]?.[1] as {
+      p_edited_question: Record<string, unknown>
+    }
+    expect(rpcPayload.p_edited_question).not.toHaveProperty("tikz_code")
+    expect(rpcPayload.p_edited_question).not.toHaveProperty("diagram_svg")
+    expect(rpcPayload.p_edited_question.question_text).toBe("Edited question text")
+  })
+
   it("rejects invalid edited question fields", async () => {
     const result = await editQuestionAction({
       worksheetId,

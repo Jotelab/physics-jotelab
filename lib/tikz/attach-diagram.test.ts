@@ -4,7 +4,11 @@ import type { WorksheetQuestion } from "@/features/generate/types"
 import type { SympyData } from "@/lib/engine/sympy-data"
 import { validWorksheetQuestion } from "@/tests/fixtures/worksheet-question"
 
-import { attachQuestionDiagram, attachQuestionDiagrams } from "./attach-diagram"
+import {
+  attachQuestionDiagram,
+  attachQuestionDiagrams,
+  clearDiagramCacheForTests,
+} from "./attach-diagram"
 
 function sympyData(givenSymbols: string[], findSymbol: string): SympyData {
   return {
@@ -25,6 +29,7 @@ function question(data: SympyData | undefined): WorksheetQuestion {
 
 beforeEach(() => {
   vi.spyOn(console, "info").mockImplementation(() => {})
+  clearDiagramCacheForTests()
 })
 
 describe("attachQuestionDiagram", () => {
@@ -70,6 +75,41 @@ describe("attachQuestionDiagram", () => {
     expect(compile).toHaveBeenCalledOnce()
     expect(first.diagram_svg).toBe("<svg>cached</svg>")
     expect(second.diagram_svg).toBe("<svg>cached</svg>")
+  })
+
+  it("dedupes concurrent compiles of the same TikZ source", async () => {
+    let resolveCompile: ((svg: string) => void) | undefined
+    const compile = vi.fn(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveCompile = resolve
+        })
+    )
+    const data = sympyData(["a", "t", "s"], "u")
+
+    const first = attachQuestionDiagram(question(data), { compile })
+    const second = attachQuestionDiagram(question(data), { compile })
+    resolveCompile?.("<svg>shared</svg>")
+    const [a, b] = await Promise.all([first, second])
+
+    expect(compile).toHaveBeenCalledOnce()
+    expect(a.diagram_svg).toBe("<svg>shared</svg>")
+    expect(b.diagram_svg).toBe("<svg>shared</svg>")
+  })
+
+  it("does not cache a failed compile: the next read retries", async () => {
+    const compile = vi
+      .fn<(code: string) => Promise<string>>()
+      .mockRejectedValueOnce(new Error("tex boom"))
+      .mockResolvedValueOnce("<svg>recovered</svg>")
+    const data = sympyData(["u", "a", "v"], "s")
+
+    const failed = await attachQuestionDiagram(question(data), { compile })
+    const retried = await attachQuestionDiagram(question(data), { compile })
+
+    expect(compile).toHaveBeenCalledTimes(2)
+    expect(failed.diagram_svg).toBeUndefined()
+    expect(retried.diagram_svg).toBe("<svg>recovered</svg>")
   })
 
   it("fails soft on a compile error: keeps tikz_code, no diagram_svg", async () => {

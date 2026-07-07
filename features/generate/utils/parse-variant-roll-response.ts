@@ -1,23 +1,20 @@
-import { z } from "zod"
-
 import { resolveStructuredFailure } from "@/features/generate/errors"
 import type { AppFailure, GenerationErrorCode } from "@/features/generate/errors"
 import { variantQuestionRollSchema } from "@/features/generate/schemas"
 import type { VariantQuestionRoll } from "@/features/generate/types"
+import { z } from "zod"
 
 import { parseCreditBalance } from "./parse-complete-response"
+import { parseCancelResponse, parseReserveEnvelope } from "./parse-reservation-response"
 
-const variantRollReserveResponseSchema = z
-  .object({
-    reservationId: z.string().uuid().optional(),
-    creditBalance: z.union([z.number(), z.string()]).optional(),
-    alreadyCompleted: z.boolean().optional(),
-    roll: z.unknown().optional(),
-    success: z.boolean().optional(),
-    code: z.string().optional(),
-    message: z.string().optional(),
-  })
-  .passthrough()
+/**
+ * Variant-roll flavors of the shared reservation RPC envelope. The reserve and
+ * cancel parsers delegate to the generic envelope in
+ * `parse-reservation-response.ts` (same protocol, `roll` payload); the complete
+ * parser stays local because the variant complete RPC's failure envelope
+ * differs from the question one (SAVE_FAILED fallback, no credit balance on
+ * failure, optional `success`).
+ */
 
 export type ParsedVariantRollReserveResponse =
   | {
@@ -36,6 +33,30 @@ export type ParsedVariantRollReserveResponse =
       message: string
     }
 
+export function parseVariantRollReserveResponse(
+  reserveResult: unknown
+): ParsedVariantRollReserveResponse | null {
+  const envelope = parseReserveEnvelope(reserveResult, {
+    itemKey: "roll",
+    itemSchema: variantQuestionRollSchema,
+    failureMessage: "Could not reserve a credit for this variant roll.",
+  })
+
+  if (envelope === null) {
+    return null
+  }
+
+  if (envelope.kind === "completed") {
+    return {
+      kind: "completed",
+      roll: envelope.item,
+      creditBalance: envelope.creditBalance,
+    }
+  }
+
+  return envelope
+}
+
 const variantRollCompleteResponseSchema = z
   .object({
     success: z.boolean().optional(),
@@ -45,59 +66,6 @@ const variantRollCompleteResponseSchema = z
     message: z.string().optional(),
   })
   .passthrough()
-
-export function parseVariantRollReserveResponse(
-  reserveResult: unknown
-): ParsedVariantRollReserveResponse | null {
-  const shape = variantRollReserveResponseSchema.safeParse(reserveResult)
-
-  if (!shape.success) {
-    return null
-  }
-
-  if (shape.data.success === false) {
-    const failed = resolveStructuredFailure(
-      shape.data,
-      "RESERVE_FAILED",
-      "Could not reserve a credit for this variant roll."
-    )
-    return {
-      kind: "failed",
-      code: failed.code,
-      message: failed.message,
-    }
-  }
-
-  const creditBalance = parseCreditBalance(shape.data.creditBalance)
-
-  if (creditBalance === null) {
-    return null
-  }
-
-  if (shape.data.alreadyCompleted === true) {
-    const roll = variantQuestionRollSchema.safeParse(shape.data.roll)
-
-    if (!roll.success) {
-      return null
-    }
-
-    return {
-      kind: "completed",
-      roll: roll.data,
-      creditBalance,
-    }
-  }
-
-  if (!shape.data.reservationId) {
-    return null
-  }
-
-  return {
-    kind: "reserved",
-    reservationId: shape.data.reservationId,
-    creditBalance,
-  }
-}
 
 export function parseVariantRollCompleteResponse(
   completeResult: unknown
@@ -140,10 +108,5 @@ export function parseVariantRollCompleteResponse(
   }
 }
 
-export function parseVariantRollCancelResponse(cancelResult: unknown): number | null {
-  if (typeof cancelResult !== "object" || cancelResult === null) {
-    return null
-  }
-
-  return parseCreditBalance("creditBalance" in cancelResult ? cancelResult.creditBalance : null)
-}
+/** Same envelope as the question cancel RPC — one parser serves both. */
+export const parseVariantRollCancelResponse = parseCancelResponse

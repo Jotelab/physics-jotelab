@@ -18,6 +18,13 @@ const NUMBER_PATTERN =
   // scientific `3.2 × 10^5` / `3.2 x 10^5` | e-notation `3.2e5` | plain `12.5`
   /(-?\d+(?:\.\d+)?)\s*(?:×|x|\*)\s*10\s*\^?\s*(-?\d+)|(-?\d+(?:\.\d+)?[eE][-+]?\d+)|(-?\d+(?:\.\d+)?)/g
 
+/** True when the match starting at `index` is a caret exponent (the 2 in `m/s^2`). */
+function isCaretExponent(text: string, index: number): boolean {
+  let i = index - 1
+  while (i >= 0 && text[i] === " ") i -= 1
+  return text[i] === "^"
+}
+
 /** Every numeric literal in a string, normalized to JS numbers. */
 export function extractNumbers(text: string): number[] {
   const found: number[] = []
@@ -28,6 +35,9 @@ export function extractNumbers(text: string): number[] {
     } else if (eNotation !== undefined) {
       found.push(Number(eNotation))
     } else if (plain !== undefined) {
+      // An ASCII unit exponent (`m/s^2`) is notation, not a value claim — the
+      // scientific-notation branch above already consumed real `× 10^n` forms.
+      if (isCaretExponent(text, match.index)) continue
       found.push(Number(plain))
     }
   }
@@ -58,7 +68,12 @@ export function checkDataFidelity(
   const findValue = sympyData.find.value
   const prose = extractNumbers(questionText)
 
-  if (prose.some((n) => numbersEqual(n, findValue))) {
+  // When the answer coincidentally equals a given value, the number's presence
+  // is *required* (the given must be stated) and proves nothing about a leak —
+  // otherwise this rule and the all-givens-stated rule contradict each other
+  // and no phrasing can ever pass.
+  const findCollidesWithGiven = givenValues.some((g) => numbersEqual(g, findValue))
+  if (!findCollidesWithGiven && prose.some((n) => numbersEqual(n, findValue))) {
     issues.push(
       `question_text contains the answer (${findValue}); it must state only the givens.`
     )

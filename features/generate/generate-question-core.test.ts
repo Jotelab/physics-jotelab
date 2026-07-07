@@ -284,6 +284,73 @@ describe("generateQuestionForWorksheet", () => {
     expect(mockGenerateWorksheetQuestion).not.toHaveBeenCalled()
   })
 
+  it("passes advanced-mode pins to the engine as mapped given/find constraints", async () => {
+    mockWorksheetsSingle.mockResolvedValue({
+      data: makeWorksheetRow({
+        generation_settings: {
+          lesson: "motion-1d",
+          scenario: "Find displacement.",
+          given_variables: [{ symbol: "v₀", label: "ความเร็วต้น", value: 0 }],
+          target_variables: [{ symbol: "s", label: "การกระจัด", unit: "m" }],
+        },
+      }),
+      error: null,
+    })
+    mockGenerateEngineQuestion.mockResolvedValue(validGeneratedQuestion)
+    mockGenerateReservationFlow()
+
+    const supabase = createSupabaseClient()
+
+    const result = await generateQuestionForWorksheet({
+      supabase,
+      profileId,
+      worksheetId,
+      order: 1,
+      previousQuestionsContext: [],
+    })
+
+    expect(result.ok).toBe(true)
+    expect(mockGenerateEngineQuestion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // Display symbols mapped to engine names: v₀ → u, s → s.
+        given: ["u"],
+        find: "s",
+        completeSplit: true,
+      })
+    )
+  })
+
+  it("drops engine pins whose display symbol the topic does not know", async () => {
+    mockWorksheetsSingle.mockResolvedValue({
+      data: makeWorksheetRow({
+        generation_settings: {
+          lesson: "motion-1d",
+          scenario: "Find force.",
+          // Force is not a SUVAT variable — the pin must be dropped, not sent.
+          target_variables: [{ symbol: "F", label: "แรง", unit: "N" }],
+        },
+      }),
+      error: null,
+    })
+    mockGenerateEngineQuestion.mockResolvedValue(validGeneratedQuestion)
+    mockGenerateReservationFlow()
+
+    const supabase = createSupabaseClient()
+
+    const result = await generateQuestionForWorksheet({
+      supabase,
+      profileId,
+      worksheetId,
+      order: 1,
+      previousQuestionsContext: [],
+    })
+
+    expect(result.ok).toBe(true)
+    const call = mockGenerateEngineQuestion.mock.calls[0]?.[0] as Record<string, unknown>
+    expect(call.find).toBeUndefined()
+    expect(call.given).toBeUndefined()
+  })
+
   it("skips AI when reserve reports the slot already completed", async () => {
     mockRpc.mockImplementation((name: string) => {
       if (name === "reserve_generate_question_credit") {

@@ -5,6 +5,7 @@ import { z } from "zod"
 
 import { createClient } from "@/lib/supabase/server"
 import { localizedFailure } from "@/lib/i18n/server-errors"
+import { stripQuestionDiagram } from "@/lib/tikz/attach-diagram"
 
 import {
   parseRpcFailure,
@@ -111,11 +112,16 @@ export async function editQuestionAction(
     return localizedFailure("QUESTION_NOT_FOUND")
   }
 
-  const editedQuestion = worksheetQuestionSchema.parse({
-    ...parsed.data.editedQuestion,
-    id: originalQuestion.id,
-    order: originalQuestion.order,
-  })
+  // The client's question object may carry read-time diagram fields
+  // (attach-diagram); the DB question allowlist rejects those keys, so strip
+  // them before the write — they re-derive from sympy_data on the next read.
+  const editedQuestion = stripQuestionDiagram(
+    worksheetQuestionSchema.parse({
+      ...parsed.data.editedQuestion,
+      id: originalQuestion.id,
+      order: originalQuestion.order,
+    })
+  )
 
   const { data, error } = await supabase.rpc("replace_worksheet_question", {
     p_worksheet_id: worksheet.id,

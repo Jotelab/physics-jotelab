@@ -46,6 +46,11 @@ type GenerateEngineQuestionInput = {
   /** Re-roll / advanced pin: reuse this Given/Find split (engine variable names). */
   given?: string[]
   find?: string
+  /**
+   * Advanced-mode semantics: `given` is a subset constraint the engine
+   * completes into a valid split (vs. the exact split a re-roll pins).
+   */
+  completeSplit?: boolean
   /** Reproducibility pin; the engine picks a fresh seed when omitted. */
   seed?: number
 }
@@ -149,6 +154,7 @@ export async function generateEngineQuestion(
       ),
       given: input.given,
       find: input.find,
+      completeSplit: input.completeSplit,
       seed: input.seed,
     })
 

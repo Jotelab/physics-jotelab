@@ -4,15 +4,18 @@ import { revalidatePath } from "next/cache"
 import { getTranslations } from "next-intl/server"
 import { z } from "zod"
 
-import { inngest } from "@/lib/inngest/client"
-import { runGenerationJobWorker } from "@/lib/inngest/run-generation-job-worker"
 import { attachQuestionDiagrams } from "@/lib/tikz/attach-diagram"
 import { localizedFailure } from "@/lib/i18n/server-errors"
-import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 
 import { buildGenerationSettingsPayload, getWorksheetTitle } from "./actions-shared"
-import { failure, parseRpcFailure, parseStructuredRpcFailure, parseRpcSuccessNumberField, parseRpcSuccessStringField } from "./errors"
+import {
+  getProfileForAuthUser,
+  markGenerationJobFailed,
+  parseRpcActionFailure,
+  sendGenerationJobEvent,
+} from "./generation-job-shared"
+import { failure, parseRpcSuccessNumberField, parseRpcSuccessStringField } from "./errors"
 import {
   type GenerationJobRow,
   generationJobStatusSchema,
@@ -23,44 +26,6 @@ import { generateWorksheetInputSchema } from "./schemas"
 import type { GenerateWorksheetInput } from "./types"
 import { fetchWorksheetQuestions } from "./utils/fetch-worksheet-questions"
 import { mapGenerationJobPoll } from "./utils/map-generation-job-poll"
-
-type ProfileIdRow = {
-  id: string
-  credit_balance: number
-}
-
-async function getProfileForAuthUser(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  authUserId: string
-): Promise<ProfileIdRow | null> {
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, credit_balance")
-    .eq("auth_user_id", authUserId)
-    .single<ProfileIdRow>()
-
-  return data ?? null
-}
-
-async function markGenerationJobFailed(
-  jobId: string,
-  profileId: string,
-  errorMessage: string
-) {
-  try {
-    const admin = createServiceRoleClient()
-    // Scope the cleanup to the authenticated owner: the service-role client
-    // bypasses RLS, so matching on user_id (not just the server-minted jobId)
-    // ensures a stray/client-influenced id could never fail another user's job.
-    await admin
-      .from("generation_jobs")
-      .update({ status: "failed", error_message: errorMessage })
-      .eq("id", jobId)
-      .eq("user_id", profileId)
-  } catch {
-    // Best-effort cleanup so a failed Inngest send does not leave a blocking queued job.
-  }
-}
 
 async function deleteOrphanWorksheet(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -75,26 +40,6 @@ async function deleteOrphanWorksheet(
   }
 }
 
-async function sendGenerationJobEvent(params: {
-  jobId: string
-  worksheetId: string
-  profileId: string
-}) {
-  if (process.env.E2E_STUB_GENERATION === "true") {
-    await runGenerationJobWorker(params)
-    return
-  }
-
-  if (!process.env.INNGEST_EVENT_KEY) {
-    throw new Error("Background generation is not configured (INNGEST_EVENT_KEY).")
-  }
-
-  await inngest.send({
-    name: "worksheet/generation.requested",
-    data: params,
-  })
-}
-
 const appendJobInputSchema = z.object({
   worksheetId: z.string().uuid(),
   additionalCount: z.number().int().min(1).max(MAX_EXTEND_QUESTIONS_PER_REQUEST),
@@ -103,23 +48,6 @@ const appendJobInputSchema = z.object({
 const jobIdSchema = z.string().uuid()
 
 const worksheetIdSchema = z.string().uuid()
-
-function parseRpcActionFailure<T>(
-  data: unknown,
-  error: unknown,
-  fallbackMessage: string
-): ActionResult<T> | null {
-  const structured = parseStructuredRpcFailure(data, "UNKNOWN", fallbackMessage)
-  if (structured) {
-    return structured
-  }
-
-  if (error) {
-    return parseRpcFailure(error, "UNKNOWN", fallbackMessage)
-  }
-
-  return null
-}
 
 export async function startWorksheetGenerationJobAction(
   input: GenerateWorksheetInput

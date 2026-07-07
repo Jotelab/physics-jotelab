@@ -34,6 +34,11 @@ describe("extractNumbers", () => {
     expect(extractNumbers("ประจุ 3.2 × 10^5 คูลอมบ์")).toEqual([320000])
     expect(extractNumbers("ค่า 3.2e5")).toEqual([320000])
   })
+
+  it("ignores ASCII unit exponents like m/s^2", () => {
+    expect(extractNumbers("ความเร่ง 4 m/s^2 เป็นเวลา 3 วินาที")).toEqual([4, 3])
+    expect(extractNumbers("ค่าคงที่ 9 N·m^2/kg^2")).toEqual([9])
+  })
 })
 
 describe("checkDataFidelity", () => {
@@ -54,6 +59,27 @@ describe("checkDataFidelity", () => {
     const result = checkDataFidelity(text, SYMPY)
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.issues.join(" ")).toContain("5")
+  })
+
+  it("does not flag a leak when the answer equals a given value", () => {
+    // find (s = 2) collides with the given a = 2: the prose MUST state the 2,
+    // so its presence cannot be treated as a leaked answer.
+    const collision: SympyData = {
+      ...SYMPY,
+      given: [
+        { symbol: "u", value: 1, exact: "1", unit: "m/s" },
+        { symbol: "a", value: 2, exact: "2", unit: "m/s^2" },
+        { symbol: "t", value: 1, exact: "1", unit: "s" },
+      ],
+      find: { symbol: "s", value: 2, exact: "2", unit: "m" },
+    }
+    const text = "ความเร็วต้น 1 m/s ความเร่ง 2 m/s² เป็นเวลา 1 วินาที จงหาการกระจัด"
+    expect(checkDataFidelity(text, collision)).toEqual({ ok: true })
+  })
+
+  it("accepts prose with an ASCII unit exponent", () => {
+    const text = "รถเริ่มจากหยุดนิ่ง มีความเร่ง 2 m/s^2 เป็นเวลา 5 วินาที จงหาความเร็วปลาย"
+    expect(checkDataFidelity(text, SYMPY)).toEqual({ ok: true })
   })
 
   it("flags an invented number", () => {

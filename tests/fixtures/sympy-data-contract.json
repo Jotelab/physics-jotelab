@@ -1,0 +1,45 @@
+{
+  "topic": "suvat",
+  "seed": 42,
+  "given": [
+    {
+      "symbol": "a",
+      "value": 2,
+      "exact": "2",
+      "unit": "m/s^2"
+    },
+    {
+      "symbol": "t",
+      "value": 5,
+      "exact": "5",
+      "unit": "s"
+    },
+    {
+      "symbol": "u",
+      "value": 0,
+      "exact": "0",
+      "unit": "m/s"
+    }
+  ],
+  "find": {
+    "symbol": "v",
+    "value": 10,
+    "exact": "10",
+    "unit": "m/s"
+  },
+  "steps": [
+    {
+      "expr_latex": "v = a t + u",
+      "substituted_latex": "v = 0 + 2 \\cdot 5",
+      "result_latex": "v = 10\\ \\text{m/s}"
+    }
+  ],
+  "final_answer": {
+    "value": 10,
+    "exact": "10",
+    "unit": "m/s",
+    "latex": "10\\ \\text{m/s}"
+  },
+  "policy_applied": "easy",
+  "plausible": true
+}

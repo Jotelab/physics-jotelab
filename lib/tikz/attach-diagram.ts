@@ -23,13 +23,11 @@ import { buildTemplateTikz } from "./templates"
  */
 
 const MAX_CACHE_ENTRIES = 256
-const svgCache = new Map<string, string>()
+// Caches the *promise* (not the resolved string) so concurrent requests for the
+// same TikZ source share one compile instead of racing past a still-empty cache.
+const svgCache = new Map<string, Promise<string>>()
 
-function cacheGet(tikz: string): string | undefined {
-  return svgCache.get(tikz)
-}
-
-function cacheSet(tikz: string, svg: string): void {
+function cacheSet(tikz: string, svg: Promise<string>): void {
   if (svgCache.size >= MAX_CACHE_ENTRIES) {
     const oldest = svgCache.keys().next().value
     if (oldest !== undefined) {
@@ -37,6 +35,66 @@ function cacheSet(tikz: string, svg: string): void {
     }
   }
   svgCache.set(tikz, svg)
+}
+
+/** Test-only: clear the module-level compile cache so specs stay independent. */
+export function clearDiagramCacheForTests(): void {
+  svgCache.clear()
+}
+
+// Each compile spins up a WASM TeX engine (seconds of CPU, tens of MB), so an
+// uncapped fan-out over a whole worksheet can exhaust a serverless instance.
+const MAX_CONCURRENT_COMPILES = 3
+let activeCompiles = 0
+const compileQueue: Array<() => void> = []
+
+async function withCompileSlot<T>(work: () => Promise<T>): Promise<T> {
+  if (activeCompiles >= MAX_CONCURRENT_COMPILES) {
+    await new Promise<void>((resolve) => compileQueue.push(resolve))
+  }
+  activeCompiles += 1
+  try {
+    return await work()
+  } finally {
+    activeCompiles -= 1
+    compileQueue.shift()?.()
+  }
+}
+
+/**
+ * One shared compile per TikZ source: cache hit returns the in-flight/settled
+ * promise; a miss compiles under the concurrency cap and logs the benchmark
+ * attempt (§2.3) exactly once. Failed compiles are evicted so a later read can
+ * retry.
+ */
+function compileCached(
+  topic: string,
+  tikz: string,
+  compile: (code: string) => Promise<string>
+): Promise<string> {
+  const cached = svgCache.get(tikz)
+  if (cached) {
+    return cached
+  }
+
+  const pending = withCompileSlot(() => compile(tikz)).then(
+    (svg) => {
+      logTikzAttempt({ topic, source: "template", ok: true })
+      return svg
+    },
+    (error: unknown) => {
+      svgCache.delete(tikz)
+      logTikzAttempt({
+        topic,
+        source: "template",
+        ok: false,
+        reason: error instanceof Error ? error.message : String(error),
+      })
+      throw error
+    }
+  )
+  cacheSet(tikz, pending)
+  return pending
 }
 
 export type AttachDiagramDeps = {
@@ -64,29 +122,31 @@ export async function attachQuestionDiagram(
   }
 
   const topic = question.sympy_data.topic
-
-  const cached = cacheGet(tikz)
-  if (cached) {
-    return { ...question, tikz_code: tikz, diagram_svg: cached }
-  }
-
   const compile = deps.compile ?? ((code: string) => compileTikz(code))
 
   try {
-    const svg = await compile(tikz)
-    cacheSet(tikz, svg)
-    logTikzAttempt({ topic, source: "template", ok: true })
+    const svg = await compileCached(topic, tikz, compile)
     return { ...question, tikz_code: tikz, diagram_svg: svg }
-  } catch (error) {
-    logTikzAttempt({
-      topic,
-      source: "template",
-      ok: false,
-      reason: error instanceof Error ? error.message : String(error),
-    })
-    // Keep the source for traceability; render without a picture.
+  } catch {
+    // Already logged by compileCached; keep the source for traceability and
+    // render without a picture.
     return { ...question, tikz_code: tikz }
   }
+}
+
+/**
+ * Inverse of attach, for writes: `tikz_code`/`diagram_svg` are read-time
+ * derivations of `sympy_data`, and the DB question allowlist
+ * (`is_valid_worksheet_question`) rejects both keys — so any question object
+ * heading back into an RPC must shed them. They re-attach on the next read.
+ */
+export function stripQuestionDiagram<
+  T extends { tikz_code?: string; diagram_svg?: string },
+>(question: T): Omit<T, "tikz_code" | "diagram_svg"> {
+  const rest = { ...question }
+  delete rest.tikz_code
+  delete rest.diagram_svg
+  return rest
 }
 
 /** Attach diagrams to a list of questions in parallel (compiles are cached). */

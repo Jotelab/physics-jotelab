@@ -542,15 +542,13 @@ describe("getVariantGenerationJobAction", () => {
     expect(result).toEqual(failure("WORKSHEET_ACCESS_DENIED", "Worksheet not found."))
   })
 
-  it("returns questions load failed when questions cannot be fetched", async () => {
-    mockWorksheetQuestionsOrder.mockResolvedValue({
-      data: null,
-      error: { message: "db error" },
-    })
-
+  it("does not fetch worksheet questions on a poll tick", async () => {
+    // Variant polls derive everything from the job row; the master questions
+    // are already on the client, so the per-tick fetch was pure waste.
     const result = await getVariantGenerationJobAction(jobId)
 
-    expect(result).toEqual(failure("QUESTIONS_LOAD_FAILED"))
+    expect(result.ok).toBe(true)
+    expect(mockWorksheetQuestionsOrder).not.toHaveBeenCalled()
   })
 
   it("returns null credit balance when profile is missing", async () => {

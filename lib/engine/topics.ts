@@ -75,6 +75,23 @@ export function shouldUseEngine(lesson: string, subject: Subject): boolean {
 }
 
 /**
+ * Map a product display symbol (`v₀`) back to the engine's variable name (`u`).
+ * Returns `null` for symbols the topic does not know (e.g. a preset from a
+ * non-engine lesson) — callers simply drop unmappable pins.
+ */
+export function engineNameForDisplaySymbol(
+  topic: EngineTopic,
+  displaySymbol: string
+): string | null {
+  for (const [engineName, meta] of Object.entries(topic.variables)) {
+    if (meta.symbol === displaySymbol) {
+      return engineName
+    }
+  }
+  return null
+}
+
+/**
  * Map the product's math-complexity setting to the engine difficulty band.
  * Conceptual difficulty (unit conversion / distractors) is deliberately *not*
  * folded in here: it would introduce numbers the engine never produced and break

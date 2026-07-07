@@ -4,16 +4,16 @@ import { revalidatePath } from "next/cache"
 import { getTranslations } from "next-intl/server"
 import { z } from "zod"
 
-import { inngest } from "@/lib/inngest/client"
-import { runGenerationJobWorker } from "@/lib/inngest/run-generation-job-worker"
 import { localizedFailure } from "@/lib/i18n/server-errors"
 import { createClient } from "@/lib/supabase/server"
 
 import {
-  failure,
-  parseRpcFailure,
-  parseStructuredRpcFailure,
-} from "./errors"
+  getProfileForAuthUser,
+  markGenerationJobFailed,
+  parseRpcActionFailure,
+  sendGenerationJobEvent,
+} from "./generation-job-shared"
+import { failure } from "./errors"
 import {
   type GenerationJobRow,
   generationJobStatusSchema,
@@ -21,68 +21,8 @@ import {
 import type { ActionResult } from "./result-types"
 import { variantLabelSchema, variantQuestionRollSchema, worksheetVariantsPayloadSchema } from "./schemas"
 import type { VariantLabel, WorksheetVariant } from "./types"
-import { fetchWorksheetQuestions } from "./utils/fetch-worksheet-questions"
 import { mapGenerationJobPoll } from "./utils/map-generation-job-poll"
 import { allocateVariantLabels } from "@/features/worksheet/utils/merge-variant-questions"
-
-type ProfileIdRow = {
-  id: string
-  credit_balance: number
-}
-
-async function getProfileForAuthUser(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  authUserId: string
-): Promise<ProfileIdRow | null> {
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, credit_balance")
-    .eq("auth_user_id", authUserId)
-    .single<ProfileIdRow>()
-
-  return data ?? null
-}
-
-async function markGenerationJobFailed(
-  jobId: string,
-  profileId: string,
-  errorMessage: string
-) {
-  const { createServiceRoleClient } = await import("@/lib/supabase/admin")
-  try {
-    const admin = createServiceRoleClient()
-    // Scope the cleanup to the authenticated owner: the service-role client
-    // bypasses RLS, so matching on user_id (not just the server-minted jobId)
-    // ensures a stray/client-influenced id could never fail another user's job.
-    await admin
-      .from("generation_jobs")
-      .update({ status: "failed", error_message: errorMessage })
-      .eq("id", jobId)
-      .eq("user_id", profileId)
-  } catch {
-    // Best-effort cleanup.
-  }
-}
-
-async function sendGenerationJobEvent(params: {
-  jobId: string
-  worksheetId: string
-  profileId: string
-}) {
-  if (process.env.E2E_STUB_GENERATION === "true") {
-    await runGenerationJobWorker(params)
-    return
-  }
-
-  if (!process.env.INNGEST_EVENT_KEY) {
-    throw new Error("Background generation is not configured (INNGEST_EVENT_KEY).")
-  }
-
-  await inngest.send({
-    name: "worksheet/generation.requested",
-    data: params,
-  })
-}
 
 const startVariantJobInputSchema = z.object({
   worksheetId: z.string().uuid(),
@@ -105,23 +45,6 @@ const saveVariantsInputSchema = z.object({
 })
 
 const jobIdSchema = z.string().uuid()
-
-function parseRpcActionFailure<T>(
-  data: unknown,
-  error: unknown,
-  fallbackMessage: string
-): ActionResult<T> | null {
-  const structured = parseStructuredRpcFailure(data, "UNKNOWN", fallbackMessage)
-  if (structured) {
-    return structured
-  }
-
-  if (error) {
-    return parseRpcFailure(error, "UNKNOWN", fallbackMessage)
-  }
-
-  return null
-}
 
 export async function startVariantGenerationJobAction(input: {
   worksheetId: string
@@ -271,15 +194,12 @@ export async function getVariantGenerationJobAction(
 
   const profile = await getProfileForAuthUser(supabase, user.id)
 
-  const questions = await fetchWorksheetQuestions(supabase, worksheet.id)
-
-  if (questions === null) {
-    return localizedFailure("QUESTIONS_LOAD_FAILED")
-  }
-
+  // A variant poll derives progress and rolls entirely from the job row
+  // (variant_results); the client already holds the master questions, so the
+  // per-tick full question fetch would be transferred and ignored.
   const poll = mapGenerationJobPoll({
     job,
-    questions,
+    questions: [],
     questionCount: worksheet.question_count,
     creditBalance: profile?.credit_balance ?? null,
   })

@@ -75,7 +75,7 @@ export function e2eStubVariantQuestion(
 ): GeneratedQuestion {
   const offset = variantLabelOffset[variantLabel] + masterQuestion.order
 
-  return {
+  const stub: GeneratedQuestion = {
     format: "calculation",
     question_text: masterQuestion.question_text,
     given_values: masterQuestion.given_values.map((given) => ({
@@ -88,4 +88,21 @@ export function e2eStubVariantQuestion(
       final_answer: masterQuestion.solution.final_answer,
     },
   }
+
+  // Mirror the production shape for engine-backed masters: rolls carry a
+  // sympy_data payload, so E2E exercises the variant-roll allowlist and storage
+  // round-trip. Values are offset like given_values; E2E does not re-derive.
+  if (masterQuestion.sympy_data) {
+    stub.sympy_data = {
+      ...masterQuestion.sympy_data,
+      seed: masterQuestion.sympy_data.seed + offset,
+      given: masterQuestion.sympy_data.given.map((given) => ({
+        ...given,
+        value: given.value + offset,
+        exact: String(given.value + offset),
+      })),
+    }
+  }
+
+  return stub
 }

@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { loadWorksheetQuestionsForProfile } from "@/features/generate/generate-question-core"
 import type { GenerationJobRow } from "@/features/generate/generation-job-types"
 import type { WorksheetQuestion, WorksheetVariant } from "@/features/generate/types"
+import type { OwnedWorksheetRow } from "@/features/generate/utils/load-owned-worksheet"
 import { createServiceRoleClient } from "@/lib/supabase/admin"
 import { createClientForProfile } from "@/lib/supabase/user-client"
 import {
@@ -93,14 +94,17 @@ export type GenerationJobConfig<TItem, TSaved, TState, TResult> = {
   persistStepId: (item: TItem) => string
   /**
    * Per-item work, run inside the work step against a user-scoped client.
-   * Receives the accumulated `state` (questions generated so far, etc.) so the
-   * work can reuse it instead of re-reading from the DB.
+   * Receives the accumulated `state` (questions generated so far, etc.) plus
+   * the worksheet row and questions from the one load-worksheet step, so the
+   * work can reuse them instead of re-reading from the DB.
    */
   runItem: (args: {
     item: TItem
     userClient: SupabaseClient
     job: GenerationJobRow
     state: TState
+    worksheet: OwnedWorksheetRow
+    questions: WorksheetQuestion[]
   }) => Promise<ItemOutcome<TSaved>>
   /** Mutate state for each terminal outcome of an item. */
   onSaved: (item: TItem, saved: TSaved, state: TState, job: GenerationJobRow) => void
@@ -153,7 +157,10 @@ export async function runGenerationJob<TItem, TSaved, TState, TResult>(params: {
 
   const loaded = await step.run("load-worksheet", async () => {
     const userClient = await createClientForProfile(profileId)
-    return loadWorksheetQuestionsForProfile(userClient, worksheetId, profileId)
+    // Prompt-context read only — never pay the WASM TeX diagram compiles here.
+    return loadWorksheetQuestionsForProfile(userClient, worksheetId, profileId, {
+      attachDiagrams: false,
+    })
   })
 
   if (!loaded) {
@@ -183,7 +190,14 @@ export async function runGenerationJob<TItem, TSaved, TState, TResult>(params: {
       batch.map((item) =>
         step.run(config.workStepId(item), async () => {
           const userClient = await createClientForProfile(profileId)
-          return config.runItem({ item, userClient, job, state })
+          return config.runItem({
+            item,
+            userClient,
+            job,
+            state,
+            worksheet: loaded.worksheet,
+            questions: loaded.questions,
+          })
         })
       )
     )
