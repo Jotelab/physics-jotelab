@@ -11,9 +11,39 @@ import {
   generateWorksheetInputSchema,
   generatedQuestionSchema,
   generationSettingsSchema,
+  modelCalculationOutputSchema,
   worksheetQuestionSchema,
 } from "./schemas"
 import { validGeneratedQuestion, validWorksheetQuestion } from "@/tests/fixtures/worksheet-question"
+
+describe("modelCalculationOutputSchema", () => {
+  it("accepts the model-authored text + math fields", () => {
+    expect(modelCalculationOutputSchema.safeParse(validGeneratedQuestion).success).toBe(true)
+  })
+
+  it("strips tikz_code / diagram_svg / sympy_data (model may not author them)", () => {
+    const parsed = modelCalculationOutputSchema.parse({
+      ...validGeneratedQuestion,
+      tikz_code: "\\begin{tikzpicture}\\end{tikzpicture}",
+      diagram_svg: "<svg></svg>",
+      sympy_data: {
+        topic: "suvat",
+        seed: 1,
+        given: [{ symbol: "u", value: 1, exact: "1", unit: "m/s" }],
+        find: { symbol: "v", value: 2, exact: "2", unit: "m/s" },
+        steps: [{ expr_latex: "a", substituted_latex: "b", result_latex: "c" }],
+        final_answer: { value: 2, exact: "2", unit: "m/s", latex: "2" },
+        policy_applied: "easy",
+        plausible: true,
+      },
+    })
+
+    expect(parsed).not.toHaveProperty("tikz_code")
+    expect(parsed).not.toHaveProperty("diagram_svg")
+    expect(parsed).not.toHaveProperty("sympy_data")
+    expect(parsed.question_text).toBe(validGeneratedQuestion.question_text)
+  })
+})
 
 describe("generateWorksheetInputSchema", () => {
   it("accepts valid input", () => {

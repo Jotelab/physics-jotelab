@@ -53,6 +53,29 @@ describe("worksheet-item-measure-cache", () => {
     expect(getItemMeasureFingerprint(edited, "worksheet")).not.toBe(original)
   })
 
+  it("changes fingerprint when a diagram is added, changed, or removed", () => {
+    const withoutDiagram = getItemMeasureFingerprint(questionItem, "worksheet")
+    const withDiagram = getItemMeasureFingerprint(
+      {
+        type: "question",
+        order: 1,
+        question: { ...validWorksheetQuestion, diagram_svg: "<svg>a</svg>" },
+      },
+      "worksheet"
+    )
+    const withLongerDiagram = getItemMeasureFingerprint(
+      {
+        type: "question",
+        order: 1,
+        question: { ...validWorksheetQuestion, diagram_svg: "<svg>abcd</svg>" },
+      },
+      "worksheet"
+    )
+
+    expect(withDiagram).not.toBe(withoutDiagram)
+    expect(withLongerDiagram).not.toBe(withDiagram)
+  })
+
   it("keeps fingerprint stable when only display order metadata differs in item wrapper", () => {
     const first = getItemMeasureFingerprint(questionItem, "worksheet")
     const second = getItemMeasureFingerprint(

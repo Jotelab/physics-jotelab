@@ -2,7 +2,17 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { z } from "zod"
 
 import { generateWorksheetQuestion } from "@/lib/ai/generate-question"
+import {
+  generateEngineQuestion,
+  sympyDataGivenNames,
+} from "@/lib/ai/generate-engine-question"
 import { regenerateWorksheetQuestion } from "@/lib/ai/regenerate-question"
+import {
+  engineNameForDisplaySymbol,
+  resolveEngineTopic,
+  shouldUseEngine,
+} from "@/lib/engine/topics"
+import { attachQuestionDiagrams } from "@/lib/tikz/attach-diagram"
 
 import { failure, parseRpcFailure } from "./errors"
 import type { AppFailure, GenerationErrorCode } from "./errors"
@@ -27,7 +37,7 @@ import { parseReserveResponse } from "./utils/parse-reservation-response"
 import { generationSettingsSchema, worksheetQuestionSchema } from "./schemas"
 import { fetchWorksheetQuestions } from "./utils/fetch-worksheet-questions"
 import { loadOwnedWorksheet } from "./utils/load-owned-worksheet"
-import type { WorksheetQuestion } from "./types"
+import type { Subject, WorksheetQuestion } from "./types"
 
 type ProfileRow = {
   credit_balance: number
@@ -36,6 +46,41 @@ type ProfileRow = {
 function parseGenerationSettings(settings: unknown) {
   const parsed = generationSettingsSchema.safeParse(settings)
   return parsed.success ? parsed.data : null
+}
+
+/**
+ * Advanced-mode pins translated to engine variable names (DEVELOPMENT_PLAN
+ * §1.2/§6): the per-order target (rotation/randomization included, via
+ * {@link resolveQuestionTarget}) becomes the engine `find` pin, and the user's
+ * pinned given variables become a subset constraint the engine completes into a
+ * valid split. Pins whose display symbol the topic does not know are dropped —
+ * the engine then chooses freely, same as before the pin existed.
+ */
+function getEnginePins(
+  generationSettings: z.infer<typeof generationSettingsSchema>,
+  order: number,
+  worksheetId: string,
+  lesson: string,
+  subject: Subject
+): { given?: string[]; find?: string } {
+  const topic = resolveEngineTopic(lesson, subject)
+  if (!topic) {
+    return {}
+  }
+
+  const target = resolveQuestionTarget(generationSettings, order, worksheetId)
+  const find = target ? engineNameForDisplaySymbol(topic, target.symbol) : null
+
+  const given = (generationSettings.given_variables ?? [])
+    .map((variable) => engineNameForDisplaySymbol(topic, variable.symbol))
+    .filter((name): name is string => name !== null)
+    // A pinned target can never be one of its own givens.
+    .filter((name) => name !== find)
+
+  return {
+    ...(given.length > 0 ? { given } : {}),
+    ...(find ? { find } : {}),
+  }
 }
 
 function getPromptScenario(
@@ -201,13 +246,36 @@ export async function generateQuestionForWorksheet(params: {
     cancel: (reservationId) =>
       cancelGenerateReservation(supabase, reservationId, idempotencyKey),
     run: async (context) => {
-      const generatedQuestion = await generateWorksheetQuestion({
-        subject: worksheet.subject,
-        lesson: generationSettings.lesson,
-        scenario: getPromptScenario(generationSettings, order, worksheet.id),
-        previousQuestionsContext,
-        mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
-      })
+      // Neuro-symbolic lessons generate through the engine (numbers first, LLM
+      // phrases); other lessons stay on the pure-LLM path (DEVELOPMENT_PLAN §1.2).
+      const generatedQuestion = shouldUseEngine(
+        generationSettings.lesson,
+        worksheet.subject
+      )
+        ? await generateEngineQuestion({
+            subject: worksheet.subject,
+            lesson: generationSettings.lesson,
+            scenario: generationSettings.scenario,
+            previousQuestionsContext,
+            mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
+            // Advanced-mode pins (target rotation + given constraints), mapped
+            // to engine names; the engine completes them into a valid split.
+            ...getEnginePins(
+              generationSettings,
+              order,
+              worksheet.id,
+              generationSettings.lesson,
+              worksheet.subject
+            ),
+            completeSplit: true,
+          })
+        : await generateWorksheetQuestion({
+            subject: worksheet.subject,
+            lesson: generationSettings.lesson,
+            scenario: getPromptScenario(generationSettings, order, worksheet.id),
+            previousQuestionsContext,
+            mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
+          })
 
       const question = worksheetQuestionSchema.parse({
         id: context.pendingQuestionId ?? crypto.randomUUID(),
@@ -300,17 +368,35 @@ export async function regenerateQuestionForWorksheet(params: {
     cancel: (reservationId) =>
       cancelRegenerateReservation(supabase, reservationId, idempotencyKey),
     run: async (context) => {
-      const generatedQuestion = await regenerateWorksheetQuestion({
-        subject: worksheet.subject,
-        lesson: generationSettings.lesson,
-        scenario: getPromptScenario(
-          generationSettings,
-          originalQuestion.order,
-          worksheet.id
-        ),
-        existingQuestionText: originalQuestion.question_text,
-        mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
-      })
+      // Re-roll numbers: for an engine-backed question, resample the SAME
+      // Given/Find split with a fresh engine seed — same topic + structure, new
+      // numbers and new phrasing (DEVELOPMENT_PLAN §1.2). Questions without an
+      // engine payload (LLM-only lessons / legacy rows) regenerate via the LLM.
+      const originalSympyData = originalQuestion.sympy_data
+      const generatedQuestion =
+        originalSympyData &&
+        shouldUseEngine(generationSettings.lesson, worksheet.subject)
+          ? await generateEngineQuestion({
+              subject: worksheet.subject,
+              lesson: generationSettings.lesson,
+              scenario: generationSettings.scenario,
+              previousQuestionsContext: [originalQuestion.question_text],
+              mathComplexity:
+                generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
+              given: sympyDataGivenNames(originalSympyData),
+              find: originalSympyData.find.symbol,
+            })
+          : await regenerateWorksheetQuestion({
+              subject: worksheet.subject,
+              lesson: generationSettings.lesson,
+              scenario: getPromptScenario(
+                generationSettings,
+                originalQuestion.order,
+                worksheet.id
+              ),
+              existingQuestionText: originalQuestion.question_text,
+              mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
+            })
 
       const replacementQuestion = worksheetQuestionSchema.parse({
         id: originalQuestion.id,
@@ -353,18 +439,31 @@ export async function regenerateQuestionForWorksheet(params: {
 export async function loadWorksheetQuestionsForProfile(
   supabase: SupabaseClient,
   worksheetId: string,
-  profileId: string
+  profileId: string,
+  options?: {
+    /**
+     * Diagrams belong to the display boundary (DEVELOPMENT_PLAN §2.2). Internal
+     * reads that only need question text/context (e.g. the generation worker's
+     * prompt-context load) pass `false` to skip the WASM TeX compiles entirely.
+     */
+    attachDiagrams?: boolean
+  }
 ) {
   const worksheet = await loadOwnedWorksheet(supabase, worksheetId, profileId)
   if (!worksheet) {
     return null
   }
 
-  const questions = await fetchWorksheetQuestions(supabase, worksheetId)
+  const rawQuestions = await fetchWorksheetQuestions(supabase, worksheetId)
 
-  if (questions === null) {
+  if (rawQuestions === null) {
     throw new Error("Worksheet questions could not be loaded")
   }
+
+  const questions =
+    options?.attachDiagrams === false
+      ? rawQuestions
+      : await attachQuestionDiagrams(rawQuestions)
 
   return {
     worksheet,

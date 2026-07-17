@@ -42,6 +42,11 @@ export function mergeVariantQuestions(
       given_values: roll.given_values,
       solution: roll.solution,
       question_text: roll.question_text ?? masterQuestion.question_text,
+      // The roll's numbers came from its own engine payload (or from the LLM,
+      // in which case there is none) — never inherit the master's, which
+      // describes different numbers. The template diagram stays inherited: it
+      // is symbol-only and the roll keeps the master's Given/Find split.
+      sympy_data: roll.sympy_data,
     }
   })
 }

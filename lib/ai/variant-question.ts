@@ -1,6 +1,6 @@
 import { generateObject } from "ai"
 
-import { calculationQuestionSchema, generatedQuestionSchema } from "@/features/generate/schemas"
+import { generatedQuestionSchema, modelCalculationOutputSchema } from "@/features/generate/schemas"
 import type { GeneratedQuestion, Subject, VariantLabel, WorksheetQuestion } from "@/features/generate/types"
 
 import { getGenerationModel } from "./client"
@@ -44,7 +44,7 @@ export async function variantWorksheetQuestion({
   try {
     const { object } = await generateObject({
       model: getGenerationModel(),
-      schema: calculationQuestionSchema,
+      schema: modelCalculationOutputSchema,
       prompt: `You are creating an alternate version (Version ${variantLabel}) of a high-school ${subjectQuestionKind(subject)} for Thai students.
 
 Return only one structured JSON object that matches the provided schema.

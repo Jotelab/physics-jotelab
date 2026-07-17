@@ -1,5 +1,10 @@
 import type { GenerationJobPollResult, GenerationJobRow } from "../generation-job-types"
-import { parseSkippedOrders, parseVariantResults, parseVariantSkippedOrders } from "../generation-job-types"
+import {
+  isTerminalJobStatus,
+  parseSkippedOrders,
+  parseVariantResults,
+  parseVariantSkippedOrders,
+} from "../generation-job-types"
 import type { WorksheetQuestion } from "../types"
 
 function buildVariantJobStatusMessage(
@@ -70,7 +75,7 @@ export function mapGenerationJobPoll(params: {
     const completedRolls = job.last_completed_order ?? 0
     const variantSkippedSlots = parseVariantSkippedOrders(job.skipped_orders)
     const variants = parseVariantResults(job.variant_results)
-    const isTerminal = ["completed", "partial", "failed", "cancelled"].includes(job.status)
+    const isTerminal = isTerminalJobStatus(job.status)
     const stoppedForCredits = job.status === "partial"
 
     return {
@@ -97,7 +102,7 @@ export function mapGenerationJobPoll(params: {
 
   const skippedSlots = parseSkippedOrders(job.skipped_orders)
   const lastCompletedOrder = job.last_completed_order ?? 0
-  const isTerminal = ["completed", "partial", "failed", "cancelled"].includes(job.status)
+  const isTerminal = isTerminalJobStatus(job.status)
   const stoppedForCredits = job.status === "partial"
   // Progress comes from the job's last_completed_order (kept in lockstep with the
   // saved questions by the worker's persist step), not from the questions array —

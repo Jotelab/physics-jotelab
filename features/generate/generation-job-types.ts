@@ -14,6 +14,18 @@ export const generationJobStatusSchema = z.enum([
 
 export type GenerationJobStatus = z.infer<typeof generationJobStatusSchema>
 
+const TERMINAL_JOB_STATUSES: readonly GenerationJobStatus[] = [
+  "completed",
+  "partial",
+  "failed",
+  "cancelled",
+]
+
+/** Whether a job has reached a state it can never leave (stop polling). */
+export function isTerminalJobStatus(status: GenerationJobStatus): boolean {
+  return TERMINAL_JOB_STATUSES.includes(status)
+}
+
 export const generationJobKindSchema = z.enum(["initial", "append", "variant"])
 
 export type GenerationJobKind = z.infer<typeof generationJobKindSchema>

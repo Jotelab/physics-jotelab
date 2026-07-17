@@ -157,6 +157,13 @@ describe("runGenerationJobWorker (standard)", () => {
       "finalize",
     ])
     expect(mockGenerate).toHaveBeenCalledTimes(2)
+    // Context read only — the worker must not pay WASM TeX diagram compiles.
+    expect(mockLoad).toHaveBeenCalledWith(
+      expect.anything(),
+      worksheetId,
+      profileId,
+      { attachDiagrams: false }
+    )
   })
 
   it("stops at partial and marks remaining orders skipped when credits run out", async () => {

@@ -168,6 +168,7 @@
     "editFree": "แก้ไข (ฟรี)",
     "regenerateCredit": "สร้างใหม่ (1 เครดิต)",
     "questionActions": "การดำเนินการข้อ {order}",
+    "diagramLabel": "แผนภาพสำหรับข้อ {order}",
     "updatingQuestion": "กำลังอัปเดตคำถาม...",
     "questionUpdated": "อัปเดตคำถามแล้ว",
     "generateBeforeRegenerate": "สร้างใบงานก่อนสร้างคำถามใหม่",

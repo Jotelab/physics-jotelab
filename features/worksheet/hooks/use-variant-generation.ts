@@ -33,66 +33,70 @@ export function useVariantGeneration(params: {
   const [variantStatusMessage, setVariantStatusMessage] = useState<string | null>(null)
   const [variantError, setVariantError] = useState<string | null>(null)
   const [isSavingVariants, setIsSavingVariants] = useState(false)
-  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const pollVariantJobRef = useRef<((jobId: string) => Promise<void>) | null>(null)
+  // Token pattern (same as use-worksheet-generator): a restart bumps the token
+  // so an older loop's awaited tick becomes a no-op, and unmount invalidates
+  // every loop — no timer refs or self-referencing callbacks to keep in sync.
+  const pollTokenRef = useRef(0)
+  const isMountedRef = useRef(true)
 
-  const clearPollTimer = useCallback(() => {
-    if (pollTimerRef.current) {
-      clearTimeout(pollTimerRef.current)
-      pollTimerRef.current = null
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+      pollTokenRef.current += 1
     }
   }, [])
 
-  useEffect(() => clearPollTimer, [clearPollTimer])
+  const pollVariantJobUntilTerminal = useCallback(
+    async (jobId: string, token: number) => {
+      const isCurrent = () => isMountedRef.current && pollTokenRef.current === token
 
-  const pollVariantJob = useCallback(
-    async (jobId: string) => {
-      const result = await getVariantGenerationJobAction(jobId)
+      while (isCurrent()) {
+        const result = await getVariantGenerationJobAction(jobId)
 
-      if (!result.ok) {
-        setVariantError(result.message)
-        setIsGeneratingVariants(false)
-        setVariantProgress(null)
-        return
-      }
-
-      const poll = result.data
-
-      if (poll.variantProgress) {
-        setVariantProgress(poll.variantProgress)
-      }
-
-      setVariantStatusMessage(poll.statusMessage)
-
-      if (poll.creditBalance !== null) {
-        onCreditBalanceUpdated?.(poll.creditBalance)
-      }
-
-      if (poll.isTerminal) {
-        setIsGeneratingVariants(false)
-        setVariantProgress(null)
-
-        if (poll.variants && poll.variants.length > 0) {
-          onVariantsGenerated?.(poll.variants)
+        if (!isCurrent()) {
+          return
         }
 
-        if (poll.status === "failed") {
-          setVariantError(poll.statusMessage)
+        if (!result.ok) {
+          setVariantError(result.message)
+          setIsGeneratingVariants(false)
+          setVariantProgress(null)
+          return
         }
 
-        return
-      }
+        const poll = result.data
 
-      pollTimerRef.current = setTimeout(() => {
-        void pollVariantJobRef.current?.(jobId)
-      }, POLL_INTERVAL_MS)
+        if (poll.variantProgress) {
+          setVariantProgress(poll.variantProgress)
+        }
+
+        setVariantStatusMessage(poll.statusMessage)
+
+        if (poll.creditBalance !== null) {
+          onCreditBalanceUpdated?.(poll.creditBalance)
+        }
+
+        if (poll.isTerminal) {
+          setIsGeneratingVariants(false)
+          setVariantProgress(null)
+
+          if (poll.variants && poll.variants.length > 0) {
+            onVariantsGenerated?.(poll.variants)
+          }
+
+          if (poll.status === "failed") {
+            setVariantError(poll.statusMessage)
+          }
+
+          return
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
+      }
     },
     [onCreditBalanceUpdated, onVariantsGenerated]
   )
-
-  useEffect(() => {
-    pollVariantJobRef.current = pollVariantJob
-  })
 
   const startVariantGeneration = useCallback(
     async (additionalCount: number) => {
@@ -100,7 +104,7 @@ export function useVariantGeneration(params: {
         return
       }
 
-      clearPollTimer()
+      const token = ++pollTokenRef.current
       setVariantError(null)
       setVariantStatusMessage(null)
       setIsGeneratingVariants(true)
@@ -111,6 +115,10 @@ export function useVariantGeneration(params: {
         additionalCount,
       })
 
+      if (!isMountedRef.current || pollTokenRef.current !== token) {
+        return
+      }
+
       if (!result.ok) {
         setVariantError(result.message)
         setIsGeneratingVariants(false)
@@ -118,14 +126,13 @@ export function useVariantGeneration(params: {
         return
       }
 
-      await pollVariantJob(result.data.jobId)
+      await pollVariantJobUntilTerminal(result.data.jobId, token)
     },
     [
       worksheetId,
       isWorksheetComplete,
       questionCount,
-      clearPollTimer,
-      pollVariantJob,
+      pollVariantJobUntilTerminal,
     ]
   )
 

@@ -5,6 +5,7 @@ import { z } from "zod"
 
 import { generationSettingsSchema, worksheetVariantsPayloadSchema } from "@/features/generate/schemas"
 import { fetchWorksheetQuestions } from "@/features/generate/utils/fetch-worksheet-questions"
+import { attachQuestionDiagrams } from "@/lib/tikz/attach-diagram"
 import type { Subject, WorksheetQuestion } from "@/features/generate/types"
 import type { LibraryWorksheetDetail, LibraryWorksheetSummary } from "@/features/library/types"
 import { mapWorksheetListRowToSummary, type WorksheetListRow } from "@/features/library/map-worksheet-summary"
@@ -106,11 +107,14 @@ export const getLibraryWorksheet = cache(async function getLibraryWorksheet(
     return null
   }
 
-  const questions = await fetchWorksheetQuestions(supabase, data.id)
+  const rawQuestions = await fetchWorksheetQuestions(supabase, data.id)
 
-  if (questions === null) {
+  if (rawQuestions === null) {
     throw new Error("Could not load worksheet questions")
   }
+
+  // Attach templated diagrams for the saved-worksheet view (DEVELOPMENT_PLAN §2.2).
+  const questions = await attachQuestionDiagrams(rawQuestions)
 
   return toDetail(data, questions)
 })

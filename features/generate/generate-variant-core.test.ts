@@ -15,10 +15,20 @@ const mockRpc = vi.fn()
 const mockWorksheetsSingle = vi.fn()
 const mockWorksheetQuestionsOrder = vi.fn()
 const mockVariantWorksheetQuestion = vi.fn()
+const mockGenerateEngineQuestion = vi.fn()
 
 vi.mock("@/lib/ai/variant-question", () => ({
   variantWorksheetQuestion: (...args: unknown[]) => mockVariantWorksheetQuestion(...args),
 }))
+
+vi.mock("@/lib/ai/generate-engine-question", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/lib/ai/generate-engine-question")>()
+  return {
+    ...actual,
+    generateEngineQuestion: (...args: unknown[]) => mockGenerateEngineQuestion(...args),
+  }
+})
 
 function createSupabaseClient() {
   return {
@@ -87,6 +97,7 @@ function makeWorksheetQuestionRows(questions: typeof fullWorksheetQuestions = fu
     given_values: question.given_values,
     target_variable: question.target_variable,
     solution: question.solution,
+    ...(question.sympy_data ? { sympy_data: question.sympy_data } : {}),
   }))
 }
 
@@ -576,5 +587,126 @@ describe("generateVariantRollForQuestion", () => {
 
     expect(result).toEqual(failure("VARIANT_FAILED"))
     expect(mockVariantWorksheetQuestion).not.toHaveBeenCalled()
+  })
+})
+
+describe("generateVariantRollForQuestion (engine-backed master)", () => {
+  const masterSympyData = {
+    topic: "suvat",
+    seed: 11,
+    given: [
+      { symbol: "u", value: 0, exact: "0", unit: "m/s" },
+      { symbol: "a", value: 2, exact: "2", unit: "m/s^2" },
+      { symbol: "t", value: 5, exact: "5", unit: "s" },
+    ],
+    find: { symbol: "v", value: 10, exact: "10", unit: "m/s" },
+    steps: [
+      {
+        expr_latex: "v = u + a t",
+        substituted_latex: "v = 0 + 2 \cdot 5",
+        result_latex: "v = 10\ \text{m/s}",
+      },
+    ],
+    final_answer: { value: 10, exact: "10", unit: "m/s", latex: "10\ \text{m/s}" },
+    policy_applied: "easy",
+    plausible: true,
+  }
+
+  const rerolledSympyData = {
+    ...masterSympyData,
+    seed: 12,
+    given: [
+      { symbol: "u", value: 0, exact: "0", unit: "m/s" },
+      { symbol: "a", value: 3, exact: "3", unit: "m/s^2" },
+      { symbol: "t", value: 4, exact: "4", unit: "s" },
+    ],
+    find: { symbol: "v", value: 12, exact: "12", unit: "m/s" },
+    final_answer: { value: 12, exact: "12", unit: "m/s", latex: "12\ \text{m/s}" },
+  }
+
+  const engineMaster = { ...fullWorksheetQuestions[0]!, sympy_data: masterSympyData }
+  const engineQuestions = [engineMaster, ...fullWorksheetQuestions.slice(1)]
+
+  const engineGeneratedQuestion = {
+    format: "calculation" as const,
+    question_text: "รถมีความเร่ง 3 m/s² เป็นเวลา 4 วินาที จงหาความเร็วปลาย",
+    given_values: [
+      { symbol: "v₀", label: "ความเร็วต้น", value: 0, unit: "m/s" },
+      { symbol: "a", label: "ความเร่ง", value: 3, unit: "m/s²" },
+      { symbol: "t", label: "เวลา", value: 4, unit: "s" },
+    ],
+    target_variable: { symbol: "v", label: "ความเร็วปลาย", unit: "m/s" },
+    solution: {
+      steps: ["$v = u + a t$", "$v = 0 + 3 \cdot 4$", "$v = 12\ \text{m/s}$"],
+      final_answer: "$12\ \text{m/s}$",
+    },
+    sympy_data: rerolledSympyData,
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockWorksheetsSingle.mockResolvedValue({
+      data: makeWorksheetRow({
+        generation_settings: { lesson: "motion-1d", scenario: "โจทย์การเคลื่อนที่" },
+      }),
+      error: null,
+    })
+    mockWorksheetQuestions(engineQuestions)
+    mockGenerateEngineQuestion.mockResolvedValue(engineGeneratedQuestion)
+  })
+
+  it("re-rolls through the engine with the master's Given/Find split and stores sympy_data", async () => {
+    mockVariantReservationFlow()
+
+    const supabase = createSupabaseClient()
+
+    const result = await generateVariantRollForQuestion({
+      supabase,
+      profileId,
+      worksheetId,
+      label: variantLabel,
+      order,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(mockVariantWorksheetQuestion).not.toHaveBeenCalled()
+    expect(mockGenerateEngineQuestion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lesson: "motion-1d",
+        given: ["u", "a", "t"],
+        find: "v",
+        previousQuestionsContext: [engineMaster.question_text],
+      })
+    )
+    expect(mockRpc).toHaveBeenCalledWith(
+      "complete_variant_roll_reservation",
+      expect.objectContaining({
+        p_roll: expect.objectContaining({
+          order: 1,
+          question_text: engineGeneratedQuestion.question_text,
+          sympy_data: rerolledSympyData,
+        }),
+      })
+    )
+  })
+
+  it("stays on the LLM variant path when the master has no engine payload", async () => {
+    mockWorksheetQuestions(fullWorksheetQuestions)
+    mockVariantWorksheetQuestion.mockResolvedValue(validGeneratedVariantQuestion)
+    mockVariantReservationFlow()
+
+    const supabase = createSupabaseClient()
+
+    const result = await generateVariantRollForQuestion({
+      supabase,
+      profileId,
+      worksheetId,
+      label: variantLabel,
+      order,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(mockGenerateEngineQuestion).not.toHaveBeenCalled()
+    expect(mockVariantWorksheetQuestion).toHaveBeenCalled()
   })
 })

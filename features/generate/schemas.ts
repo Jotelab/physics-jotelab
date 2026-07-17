@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+import { sympyDataSchema } from "@/lib/engine/sympy-data"
+
 import {
   MAX_FINAL_ANSWER_LEN,
   MAX_GIVEN_STRING_VALUE_LEN,
@@ -13,8 +15,10 @@ import {
   MAX_SCENARIO_LEN,
   MAX_SOLUTION_STEP_LEN,
   MAX_SOLUTION_STEPS,
+  MAX_DIAGRAM_SVG_LEN,
   MAX_SYMBOL_LEN,
   MAX_TARGET_VARIABLES,
+  MAX_TIKZ_CODE_LEN,
   MAX_UNIT_LEN,
   MAX_WORKSHEET_QUESTION_COUNT,
 } from "./limits"
@@ -43,6 +47,20 @@ export const givenValueSchema = z.object({
   unit: z.string().min(1).max(MAX_UNIT_LEN).optional(),
 })
 
+// Builder selections constrain which quantities the generator should provide;
+// they do not necessarily pin a numeric value. Keep `value` optional here so
+// presets without a default are represented by omission instead of the invalid
+// empty-string sentinel. Accept a value when present for saved legacy settings
+// and presets that intentionally pin one (for example, initial velocity = 0).
+export const givenVariableConstraintSchema = z.object({
+  symbol: z.string().min(1).max(MAX_SYMBOL_LEN),
+  label: z.string().min(1).max(MAX_LABEL_LEN),
+  value: z
+    .union([z.number(), z.string().min(1).max(MAX_GIVEN_STRING_VALUE_LEN)])
+    .optional(),
+  unit: z.string().min(1).max(MAX_UNIT_LEN).optional(),
+})
+
 export const targetVariableSchema = z.object({
   symbol: z.string().min(1).max(MAX_SYMBOL_LEN),
   label: z.string().min(1).max(MAX_LABEL_LEN),
@@ -65,7 +83,10 @@ export const worksheetHeaderConfigSchema = z.object({
 export const generationSettingsSchema = z.object({
   lesson: z.string().trim().min(1).max(MAX_LESSON_LEN),
   scenario: z.string().trim().min(1).max(MAX_SCENARIO_LEN),
-  given_variables: z.array(givenValueSchema).max(MAX_GIVEN_VARIABLES).optional(),
+  given_variables: z
+    .array(givenVariableConstraintSchema)
+    .max(MAX_GIVEN_VARIABLES)
+    .optional(),
   target_variables: z.array(targetVariableSchema).max(MAX_TARGET_VARIABLES).optional(),
   target_randomize: z.boolean().optional(),
   math_complexity: mathComplexitySchema.optional(),
@@ -78,7 +99,10 @@ export const generateWorksheetInputSchema = z.object({
   lesson: z.string().trim().min(1).max(MAX_LESSON_LEN),
   scenario: z.string().trim().min(1).max(MAX_SCENARIO_LEN),
   question_count: z.number().int().min(1).max(MAX_INITIAL_WORKSHEET_QUESTION_COUNT),
-  given_variables: z.array(givenValueSchema).max(MAX_GIVEN_VARIABLES).optional(),
+  given_variables: z
+    .array(givenVariableConstraintSchema)
+    .max(MAX_GIVEN_VARIABLES)
+    .optional(),
   target_variables: z.array(targetVariableSchema).max(MAX_TARGET_VARIABLES).optional(),
   target_randomize: z.boolean().optional(),
   math_complexity: mathComplexitySchema.optional(),
@@ -112,6 +136,33 @@ export const calculationQuestionSchema = z.object({
   given_values: z.array(givenValueSchema).min(1).max(MAX_GIVEN_VARIABLES),
   target_variable: targetVariableSchema,
   solution: solutionSchema,
+  // Verbatim engine payload every number traces back to (DEVELOPMENT_PLAN §1.2).
+  // Optional: LLM-only lessons and legacy rows omit it; the neuro-symbolic path
+  // attaches it. It is never model-authored — the LLM output schemas leave it
+  // unset and it is assembled from the engine response.
+  sympy_data: sympyDataSchema.optional(),
+  // TikZ diagram source (DEVELOPMENT_PLAN §2.1). Optional: questions without a
+  // diagram omit it. This is the durable, persisted field; the compiled SVG
+  // below is derived from it server-side, not authored by hand.
+  tikz_code: z.string().min(1).max(MAX_TIKZ_CODE_LEN).optional(),
+  // Compiled, self-contained vector SVG for `tikz_code`, assembled server-side
+  // (see `lib/tikz`). Render-time only — carried on the question object so the
+  // A4 canvas can paginate/print it synchronously, but not persisted inline.
+  diagram_svg: z.string().min(1).max(MAX_DIAGRAM_SVG_LEN).optional(),
+})
+
+// The "Structured AI Output" split (DEVELOPMENT_PLAN §2.2, proposal): the model
+// authors only prose + math — `question_text` (text) and `solution` (katex) — and
+// never the diagram or the engine payload. `tikz_code` is separated out (it comes
+// from the deterministic engine template, or a *validated* LLM diagram later),
+// `diagram_svg` is compiled server-side, and `sympy_data` originates in the
+// engine. Passing this narrower schema to `generateObject` keeps those three
+// fields out of the model's structured output — so a model can't emit a
+// compiled/engine field the DB allowlist would reject.
+export const modelCalculationOutputSchema = calculationQuestionSchema.omit({
+  tikz_code: true,
+  diagram_svg: true,
+  sympy_data: true,
 })
 
 const calculationWorksheetQuestionSchema = calculationQuestionSchema.extend({
@@ -148,6 +199,10 @@ export const variantQuestionRollSchema = z.object({
   given_values: z.array(givenValueSchema).min(1).max(MAX_GIVEN_VARIABLES),
   solution: solutionSchema,
   question_text: z.string().min(1).max(MAX_QUESTION_TEXT_LEN).optional(),
+  // Engine-backed rolls re-roll through the symbolic engine (same Given/Find
+  // split, fresh seed) and carry its verified payload, exactly like a question
+  // (DEVELOPMENT_PLAN §1.2). LLM-only lessons omit it.
+  sympy_data: sympyDataSchema.optional(),
 })
 
 export const worksheetVariantSchema = z.object({

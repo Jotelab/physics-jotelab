@@ -8,6 +8,7 @@ import { BlockMath, InlineMath } from "react-katex"
 
 import { Button } from "@/components/ui/button"
 import type { SkippedSlot, WorksheetQuestion } from "@/features/generate/types"
+import { TikzDiagram } from "@/features/worksheet/components/tikz-diagram"
 import { WorksheetEditableHeader } from "@/features/worksheet/components/worksheet-editable-header"
 import type { WorksheetHeaderChangeHandlers } from "@/features/worksheet/hooks/use-worksheet-header-config"
 import { useWorksheetPagination } from "@/features/worksheet/hooks/use-worksheet-pagination"
@@ -334,6 +335,14 @@ function QuestionBlock({
         <p className="ml-10 mb-3 rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground print:hidden">
           {t("updatingQuestion")}
         </p>
+      ) : null}
+
+      {question.diagram_svg ? (
+        <TikzDiagram
+          svg={question.diagram_svg}
+          label={t("diagramLabel", { order: question.order })}
+          className="ml-10 mb-3"
+        />
       ) : null}
 
       {viewMode === "worksheet" ? (

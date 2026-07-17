@@ -2,7 +2,6 @@ import { z } from "zod"
 
 import type { GenerationErrorCode } from "@/features/generate/errors"
 import { resolveStructuredFailure } from "@/features/generate/errors"
-import type { AppFailure } from "@/features/generate/errors"
 import { worksheetQuestionSchema } from "@/features/generate/schemas"
 import type { WorksheetQuestion } from "@/features/generate/types"
 
@@ -14,12 +13,99 @@ const reserveResponseShapeSchema = z
     creditBalance: z.union([z.number(), z.string()]).optional(),
     pendingQuestionId: z.string().uuid().optional(),
     alreadyCompleted: z.boolean().optional(),
-    question: z.unknown().optional(),
     success: z.boolean().optional(),
     code: z.string().optional(),
     message: z.string().optional(),
   })
   .passthrough()
+
+/**
+ * The reserve RPC envelope is one protocol shared by every credit flavor
+ * (generate/regenerate questions, variant rolls); only the completed-item key
+ * and its schema differ. This generic parses the shared envelope once so the
+ * flavors cannot drift; wrappers below rename `item` to their payload.
+ */
+export type ParsedReserveEnvelope<TItem> =
+  | {
+      kind: "completed"
+      item: TItem
+      creditBalance: number
+    }
+  | {
+      kind: "reserved"
+      reservationId: string
+      creditBalance: number
+      pendingQuestionId?: string
+    }
+  | {
+      kind: "failed"
+      code: GenerationErrorCode
+      message: string
+    }
+
+export function parseReserveEnvelope<TItem>(
+  reserveResult: unknown,
+  options: {
+    /** Key carrying the already-completed item, e.g. `question` or `roll`. */
+    itemKey: string
+    itemSchema: z.ZodType<TItem>
+    failureMessage: string
+  }
+): ParsedReserveEnvelope<TItem> | null {
+  const shape = reserveResponseShapeSchema.safeParse(reserveResult)
+
+  if (!shape.success) {
+    return null
+  }
+
+  if (shape.data.success === false) {
+    const failed = resolveStructuredFailure(
+      shape.data,
+      "RESERVE_FAILED",
+      options.failureMessage
+    )
+    return {
+      kind: "failed",
+      code: failed.code,
+      message: failed.message,
+    }
+  }
+
+  const creditBalance = parseCreditBalance(shape.data.creditBalance)
+
+  if (creditBalance === null) {
+    return null
+  }
+
+  if (shape.data.alreadyCompleted === true) {
+    const item = options.itemSchema.safeParse(
+      (shape.data as Record<string, unknown>)[options.itemKey]
+    )
+
+    if (!item.success) {
+      return null
+    }
+
+    return {
+      kind: "completed",
+      item: item.data,
+      creditBalance,
+    }
+  }
+
+  if (!shape.data.reservationId) {
+    return null
+  }
+
+  return {
+    kind: "reserved",
+    reservationId: shape.data.reservationId,
+    creditBalance,
+    ...(shape.data.pendingQuestionId
+      ? { pendingQuestionId: shape.data.pendingQuestionId }
+      : {}),
+  }
+}
 
 export type ParsedReserveResponse =
   | {
@@ -39,62 +125,26 @@ export type ParsedReserveResponse =
       message: string
     }
 
-function parseReserveFailure(shape: z.infer<typeof reserveResponseShapeSchema>): AppFailure {
-  return resolveStructuredFailure(
-    shape,
-    "RESERVE_FAILED",
-    "Could not reserve a credit for this question."
-  )
-}
-
 export function parseReserveResponse(reserveResult: unknown): ParsedReserveResponse | null {
-  const shape = reserveResponseShapeSchema.safeParse(reserveResult)
+  const envelope = parseReserveEnvelope(reserveResult, {
+    itemKey: "question",
+    itemSchema: worksheetQuestionSchema,
+    failureMessage: "Could not reserve a credit for this question.",
+  })
 
-  if (!shape.success) {
+  if (envelope === null) {
     return null
   }
 
-  if (shape.data.success === false) {
-    const failed = parseReserveFailure(shape.data)
-    return {
-      kind: "failed",
-      code: failed.code,
-      message: failed.message,
-    }
-  }
-
-  const creditBalance = parseCreditBalance(shape.data.creditBalance)
-
-  if (creditBalance === null) {
-    return null
-  }
-
-  if (shape.data.alreadyCompleted === true) {
-    const question = worksheetQuestionSchema.safeParse(shape.data.question)
-
-    if (!question.success) {
-      return null
-    }
-
+  if (envelope.kind === "completed") {
     return {
       kind: "completed",
-      question: question.data,
-      creditBalance,
+      question: envelope.item,
+      creditBalance: envelope.creditBalance,
     }
   }
 
-  if (!shape.data.reservationId) {
-    return null
-  }
-
-  return {
-    kind: "reserved",
-    reservationId: shape.data.reservationId,
-    creditBalance,
-    ...(shape.data.pendingQuestionId
-      ? { pendingQuestionId: shape.data.pendingQuestionId }
-      : {}),
-  }
+  return envelope
 }
 
 export function parseCancelResponse(cancelResult: unknown): number | null {

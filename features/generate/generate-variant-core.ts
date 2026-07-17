@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
+import {
+  generateEngineQuestion,
+  sympyDataGivenNames,
+} from "@/lib/ai/generate-engine-question"
 import { variantWorksheetQuestion } from "@/lib/ai/variant-question"
+import { shouldUseEngine } from "@/lib/engine/topics"
 
 import { failure, parseRpcFailure } from "./errors"
 import type { AppFailure } from "./errors"
@@ -15,6 +20,7 @@ import {
 import { withCreditReservation } from "./utils/with-credit-reservation"
 import type { ParsedReservation } from "./utils/with-credit-reservation"
 import { loadOwnedWorksheet } from "./utils/load-owned-worksheet"
+import type { OwnedWorksheetRow } from "./utils/load-owned-worksheet"
 import { DEFAULT_MATH_COMPLEXITY } from "./constants/difficulty-settings"
 
 const VARIANT_FALLBACK_CODE = "VARIANT_FAILED" as const
@@ -68,6 +74,11 @@ function toVariantRoll(
     roll.question_text = generated.question_text
   }
 
+  // Engine-backed rolls store the verified payload verbatim, like a question.
+  if (generated.sympy_data) {
+    roll.sympy_data = generated.sympy_data
+  }
+
   return variantQuestionRollSchema.parse(roll)
 }
 
@@ -79,10 +90,19 @@ export async function generateVariantRollForQuestion(params: {
   worksheetId: string
   label: VariantLabel
   order: number
+  /**
+   * The worker's already-loaded worksheet + master questions (masters never
+   * change during a variant job), threaded in to avoid one worksheet lookup and
+   * one full question fetch per roll. Direct calls omit them and load here.
+   */
+  knownWorksheet?: OwnedWorksheetRow
+  knownQuestions?: WorksheetQuestion[]
 }): Promise<VariantRollResult> {
-  const { supabase, profileId, worksheetId, label, order } = params
+  const { supabase, profileId, worksheetId, label, order, knownWorksheet, knownQuestions } =
+    params
 
-  const worksheet = await loadOwnedWorksheet(supabase, worksheetId, profileId)
+  const worksheet =
+    knownWorksheet ?? (await loadOwnedWorksheet(supabase, worksheetId, profileId))
 
   if (!worksheet) {
     return failure("WORKSHEET_ACCESS_DENIED")
@@ -92,7 +112,8 @@ export async function generateVariantRollForQuestion(params: {
     return failure("WORKSHEET_ALREADY_COMPLETE")
   }
 
-  const existingQuestions = await fetchWorksheetQuestions(supabase, worksheetId)
+  const existingQuestions =
+    knownQuestions ?? (await fetchWorksheetQuestions(supabase, worksheetId))
 
   if (existingQuestions === null) {
     return failure("QUESTIONS_LOAD_FAILED")
@@ -108,10 +129,9 @@ export async function generateVariantRollForQuestion(params: {
     return failure("QUESTION_NOT_FOUND")
   }
 
-  const generationSettings = generationSettingsSchema.safeParse(worksheet.generation_settings)
-  const mathComplexity = generationSettings.success
-    ? (generationSettings.data.math_complexity ?? DEFAULT_MATH_COMPLEXITY)
-    : DEFAULT_MATH_COMPLEXITY
+  const parsedSettings = generationSettingsSchema.safeParse(worksheet.generation_settings)
+  const generationSettings = parsedSettings.success ? parsedSettings.data : null
+  const mathComplexity = generationSettings?.math_complexity ?? DEFAULT_MATH_COMPLEXITY
 
   const idempotencyKey = buildVariantRollIdempotencyKey(worksheet.id, label, order)
 
@@ -130,12 +150,32 @@ export async function generateVariantRollForQuestion(params: {
     cancel: (reservationId) =>
       cancelVariantRollReservation(supabase, reservationId, idempotencyKey),
     run: async (context) => {
-      const generatedQuestion = await variantWorksheetQuestion({
-        subject: worksheet.subject,
-        masterQuestion,
-        variantLabel: label,
-        mathComplexity,
-      })
+      // Neuro-symbolic invariant (DEVELOPMENT_PLAN §0): an engine-backed master
+      // re-rolls through the engine — same Given/Find split, fresh seed, LLM
+      // phrases only — so variant numbers and answer keys stay verified. The
+      // LLM variant path remains for LLM-only lessons and legacy rows. E2E stub
+      // mode keeps the variant stub (it varies numbers per label).
+      const masterSympyData = masterQuestion.sympy_data
+      const generatedQuestion =
+        masterSympyData !== undefined &&
+        generationSettings !== null &&
+        process.env.E2E_STUB_GENERATION !== "true" &&
+        shouldUseEngine(generationSettings.lesson, worksheet.subject)
+          ? await generateEngineQuestion({
+              subject: worksheet.subject,
+              lesson: generationSettings.lesson,
+              scenario: generationSettings.scenario,
+              previousQuestionsContext: [masterQuestion.question_text],
+              mathComplexity,
+              given: sympyDataGivenNames(masterSympyData),
+              find: masterSympyData.find.symbol,
+            })
+          : await variantWorksheetQuestion({
+              subject: worksheet.subject,
+              masterQuestion,
+              variantLabel: label,
+              mathComplexity,
+            })
 
       const roll = toVariantRoll(masterQuestion, generatedQuestion)
 

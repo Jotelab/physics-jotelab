@@ -1,10 +1,13 @@
 import type { VariableRow } from "@/features/generate/data/generation-presets"
-import type { GivenVariable, TargetVariable } from "@/features/generate/types"
+import type {
+  GivenVariableConstraint,
+  TargetVariable,
+} from "@/features/generate/types"
 
-function parseVariableValue(raw: string): string | number {
+function parseVariableValue(raw: string): string | number | undefined {
   const trimmed = raw.trim()
   if (!trimmed) {
-    return ""
+    return undefined
   }
 
   const asNumber = Number(trimmed)
@@ -15,13 +18,15 @@ function parseVariableValue(raw: string): string | number {
   return trimmed
 }
 
-export function mapGivenRowsToVariables(rows: VariableRow[]): GivenVariable[] {
+export function mapGivenRowsToVariables(rows: VariableRow[]): GivenVariableConstraint[] {
   return rows.map((row) => {
-    const variable: GivenVariable = {
+    const value = parseVariableValue(row.value)
+    const variable: GivenVariableConstraint = {
       symbol: row.symbol,
       label: row.label,
-      value: parseVariableValue(row.value),
     }
+
+    if (value !== undefined) variable.value = value
 
     if (row.unit.trim()) {
       variable.unit = row.unit.trim()

@@ -72,6 +72,8 @@ E2E_STUB_GENERATION=true pnpm test:e2e:authenticated e2e/authenticated/generate-
 
 **CI authenticated E2E**: add the `run-e2e` label to a pull request. GitHub Actions starts local Supabase in Docker, runs migrations, and executes the authenticated Playwright suite. No repository secrets or variables are required. Create the `run-e2e` label in GitHub (Issues → Labels) if it does not exist yet.
 
+**Engine contract fixture**: `tests/fixtures/sympy-data-contract.json` is a copy of the canonical `sympy_data` payload pinned in `jotelab-ai/tests/fixtures/sympy_data_contract.json`; `lib/engine/topics.test.ts` parses it with the Zod mirror to catch two-repo contract drift. When the engine contract changes, regenerate both copies (command in `jotelab-ai/tests/test_contract_fixture.py`).
+
 AI integration smoke test (not part of `pnpm test`):
 
 ```bash
