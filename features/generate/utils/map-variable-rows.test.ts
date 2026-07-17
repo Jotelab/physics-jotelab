@@ -19,12 +19,24 @@ describe("mapGivenRowsToVariables", () => {
         unit: "",
         value: "2.5",
       },
+      {
+        id: "3",
+        symbol: "a",
+        label: "acceleration",
+        unit: "m/s²",
+        value: "",
+      },
     ])
 
     expect(result[0]?.value).toBe(5)
     expect(result[0]?.unit).toBe("s")
     expect(result[1]?.value).toBe(2.5)
     expect(result[1]?.unit).toBeUndefined()
+    expect(result[2]).toEqual({
+      symbol: "a",
+      label: "acceleration",
+      unit: "m/s²",
+    })
   })
 })
 

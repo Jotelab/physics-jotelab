@@ -1,10 +1,14 @@
-import type { GivenVariable, TargetVariable, ConceptualDifficulty } from "@/features/generate/types"
+import type {
+  GivenVariableConstraint,
+  TargetVariable,
+  ConceptualDifficulty,
+} from "@/features/generate/types"
 import {
   CONCEPTUAL_DIFFICULTY_PROMPTS,
   DEFAULT_CONCEPTUAL_DIFFICULTY,
 } from "@/features/generate/constants/difficulty-settings"
 
-function formatGivenVariable(variable: GivenVariable) {
+function formatGivenVariable(variable: GivenVariableConstraint) {
   const valuePart =
     variable.value === "" || variable.value === null || variable.value === undefined
       ? variable.symbol
@@ -26,7 +30,7 @@ export type ScenarioPromptOptions = {
 
 export function buildScenarioPrompt(
   baseScenario: string,
-  givenVariables?: GivenVariable[],
+  givenVariables?: GivenVariableConstraint[],
   activeTarget?: TargetVariable,
   options?: ScenarioPromptOptions
 ) {

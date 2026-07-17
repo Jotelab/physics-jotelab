@@ -72,6 +72,25 @@ describe("buildGenerateWorksheetInput", () => {
     ])
   })
 
+  it("omits the value for a given-variable constraint without a preset default", () => {
+    const result = buildGenerateWorksheetInput({
+      ...baseParams,
+      givenVariableIds: ["phys-a"],
+      findVariableIds: ["phys-v"],
+    })
+
+    expect(result.success).toBe(true)
+    if (!result.success) return
+
+    expect(result.data.given_variables).toEqual([
+      {
+        symbol: "a",
+        label: "acceleration",
+        unit: "m/s²",
+      },
+    ])
+  })
+
   it("sets target_randomize when the flag is enabled", () => {
     const result = buildGenerateWorksheetInput({
       ...baseParams,

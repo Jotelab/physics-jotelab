@@ -5,6 +5,7 @@ import type {
   conceptualDifficultySchema,
   generatedQuestionSchema,
   generateWorksheetInputSchema,
+  givenVariableConstraintSchema,
   givenValueSchema,
   mathComplexitySchema,
   questionFormatSchema,
@@ -21,6 +22,7 @@ export type Subject = z.infer<typeof subjectSchema>
 export type MathComplexity = z.infer<typeof mathComplexitySchema>
 export type ConceptualDifficulty = z.infer<typeof conceptualDifficultySchema>
 export type GivenVariable = z.infer<typeof givenValueSchema>
+export type GivenVariableConstraint = z.infer<typeof givenVariableConstraintSchema>
 export type TargetVariable = z.infer<typeof targetVariableSchema>
 export type GenerateWorksheetInput = z.infer<typeof generateWorksheetInputSchema>
 export type QuestionFormat = z.infer<typeof questionFormatSchema>

@@ -47,6 +47,20 @@ export const givenValueSchema = z.object({
   unit: z.string().min(1).max(MAX_UNIT_LEN).optional(),
 })
 
+// Builder selections constrain which quantities the generator should provide;
+// they do not necessarily pin a numeric value. Keep `value` optional here so
+// presets without a default are represented by omission instead of the invalid
+// empty-string sentinel. Accept a value when present for saved legacy settings
+// and presets that intentionally pin one (for example, initial velocity = 0).
+export const givenVariableConstraintSchema = z.object({
+  symbol: z.string().min(1).max(MAX_SYMBOL_LEN),
+  label: z.string().min(1).max(MAX_LABEL_LEN),
+  value: z
+    .union([z.number(), z.string().min(1).max(MAX_GIVEN_STRING_VALUE_LEN)])
+    .optional(),
+  unit: z.string().min(1).max(MAX_UNIT_LEN).optional(),
+})
+
 export const targetVariableSchema = z.object({
   symbol: z.string().min(1).max(MAX_SYMBOL_LEN),
   label: z.string().min(1).max(MAX_LABEL_LEN),
@@ -69,7 +83,10 @@ export const worksheetHeaderConfigSchema = z.object({
 export const generationSettingsSchema = z.object({
   lesson: z.string().trim().min(1).max(MAX_LESSON_LEN),
   scenario: z.string().trim().min(1).max(MAX_SCENARIO_LEN),
-  given_variables: z.array(givenValueSchema).max(MAX_GIVEN_VARIABLES).optional(),
+  given_variables: z
+    .array(givenVariableConstraintSchema)
+    .max(MAX_GIVEN_VARIABLES)
+    .optional(),
   target_variables: z.array(targetVariableSchema).max(MAX_TARGET_VARIABLES).optional(),
   target_randomize: z.boolean().optional(),
   math_complexity: mathComplexitySchema.optional(),
@@ -82,7 +99,10 @@ export const generateWorksheetInputSchema = z.object({
   lesson: z.string().trim().min(1).max(MAX_LESSON_LEN),
   scenario: z.string().trim().min(1).max(MAX_SCENARIO_LEN),
   question_count: z.number().int().min(1).max(MAX_INITIAL_WORKSHEET_QUESTION_COUNT),
-  given_variables: z.array(givenValueSchema).max(MAX_GIVEN_VARIABLES).optional(),
+  given_variables: z
+    .array(givenVariableConstraintSchema)
+    .max(MAX_GIVEN_VARIABLES)
+    .optional(),
   target_variables: z.array(targetVariableSchema).max(MAX_TARGET_VARIABLES).optional(),
   target_randomize: z.boolean().optional(),
   math_complexity: mathComplexitySchema.optional(),

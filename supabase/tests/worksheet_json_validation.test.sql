@@ -5,7 +5,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(15);
+select plan(16);
 
 do $$
 declare
@@ -229,6 +229,23 @@ select ok(
 select ok(
   public.is_valid_generation_settings(current_setting('test.valid_multi_target_settings')::jsonb),
   'valid generation settings with multiple target_variables passes'
+);
+
+select ok(
+  public.is_valid_generation_settings(
+    jsonb_build_object(
+      'lesson', 'Motion in one dimension',
+      'scenario', 'Find final velocity.',
+      'given_variables', jsonb_build_array(
+        jsonb_build_object(
+          'symbol', 'a',
+          'label', 'acceleration',
+          'unit', 'm/s²'
+        )
+      )
+    )
+  ),
+  'generation settings accept an unpinned given-variable constraint'
 );
 
 select ok(
