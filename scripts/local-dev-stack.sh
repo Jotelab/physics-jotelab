@@ -46,6 +46,19 @@ case "$create_response" in
   *)       echo "Could not create test user (HTTP ${create_response})" >&2; exit 1 ;;
 esac
 
+# Local Postgres differs from hosted Supabase in two ways that break the app
+# (missing default table grants; octet_length(jsonb) does not resolve) —
+# apply the idempotent fixes in supabase/local-fixes.sql. Re-run this script
+# after any `supabase db reset`.
+db_container=$(docker ps --format '{{.Names}}' | grep '^supabase_db_' | head -1)
+if [[ -n "$db_container" ]]; then
+  docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+    < supabase/local-fixes.sql >/dev/null
+  echo "Applied supabase/local-fixes.sql (grants + jsonb size-check casts)"
+else
+  echo "WARNING: could not find the supabase_db container to apply local-fixes.sql" >&2
+fi
+
 if [[ -f .env.local ]]; then
   cp .env.local ".env.local.bak.$(date +%s)"
   echo "Backed up existing .env.local"
