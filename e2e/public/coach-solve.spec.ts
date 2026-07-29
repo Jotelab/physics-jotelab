@@ -44,8 +44,16 @@ test.describe("coached solve (stubbed engine)", () => {
       .filter({ hasNot: page.locator('annotation:text-is("v = u + at")') })
       .first()
 
+    // First interaction: on a dev server the page can still be hydrating, so
+    // retry the selection until the submit button reacts (i.e. onClick is live).
+    await expect(async () => {
+      await wrongOption.click()
+      await expect(
+        equationStep.getByRole("button", { name: "ตรวจสมการ" })
+      ).toBeEnabled({ timeout: 1_000 })
+    }).toPass({ timeout: 15_000 })
+
     // Attempt 1 (wrong): generic nudge.
-    await wrongOption.click()
     await equationStep.getByRole("button", { name: "ตรวจสมการ" }).click()
     await expect(equationStep.getByRole("status")).toContainText(
       "ลองดูว่าโจทย์ให้ค่าอะไรมาบ้าง"
