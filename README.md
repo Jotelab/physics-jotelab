@@ -18,6 +18,11 @@ PhysicsJotelab is a physics worksheet generation platform for high-school practi
 - **Account page** — view profile and credit balance
 - **Internationalization** — English and Thai language support (next-intl)
 - **Background generation** — long-running worksheet generation via Inngest workflows
+- **Neuro-symbolic generation** — engine-backed lessons get every number from the
+  SymPy engine service; the LLM only phrases Thai prose (see `docs/ai-contract.md`)
+- **Interactive coaching (`/learn`)** — solve an engine-generated problem in three
+  checked steps with misconception-targeted Thai hints; the engine judges every
+  input, no account required (see `docs/ux-ui-spec.md`)
 
 ## Getting Started
 
@@ -40,6 +45,19 @@ Copy `.env.example` to `.env.local` and fill in the required values:
 ```bash
 cp .env.example .env.local
 ```
+
+For engine-backed generation and the `/learn` coach, also point the app at a
+running engine service (`jotelab-ai` repo; production deploy runbook in
+`jotelab-ai/docs/deploy-render.md`):
+
+```bash
+# jotelab-ai: ENGINE_API_KEY=dev-secret uvicorn service.app:app --port 8000
+ENGINE_BASE_URL=http://127.0.0.1:8000
+ENGINE_API_KEY=dev-secret
+```
+
+*How to test:* `curl -s $ENGINE_BASE_URL/health` lists the engine topics, and
+`/learn` renders a Thai SUVAT problem instead of the connection-error box.
 
 ## Testing
 

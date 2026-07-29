@@ -33,7 +33,9 @@ export type EngineTopic = {
   variables: Record<string, EngineVariableMeta>
 }
 
-const SUVAT: EngineTopic = {
+// Exported for the coaching surface (features/coach), which is SUVAT-only in
+// v1 and needs the display metadata without going through a lesson id.
+export const SUVAT: EngineTopic = {
   topic: "suvat",
   variables: {
     u: { symbol: "v₀", label: "ความเร็วต้น", unit: "m/s" },
