@@ -253,7 +253,9 @@ function WorksheetGenerationActions({
               {t("generatingProgressShort", { current: status.progress.current, total: status.progress.total })}
             </p>
           ) : null}
-          <div className="flex gap-2">
+          {/* flex-wrap: the two touch-wide buttons cannot shrink below their
+              nowrap labels — let the second stack instead of overflowing. */}
+          <div className="flex flex-wrap gap-2">
             <Button
               id="regenerate-all-btn"
               type="button"

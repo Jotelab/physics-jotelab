@@ -39,8 +39,10 @@ export function DashboardShell({
     }
   }, [drawerOpen])
 
+  // print: the viewport clamp (100dvh + nested overflow) would truncate the
+  // printed worksheet to a single page — unclamp the whole shell chain.
   return (
-    <div className="flex h-[100dvh] overflow-hidden">
+    <div className="flex h-[100dvh] overflow-hidden print:h-auto print:overflow-visible">
       <Sidebar profile={profile} />
 
       <SidebarDrawer
@@ -63,7 +65,7 @@ export function DashboardShell({
       <main
         id="main-content"
         aria-label={t("mainContent")}
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto print:overflow-visible"
       >
         <div className="sticky top-0 z-30 flex h-[4.5rem] shrink-0 items-center gap-4 border-b bg-background/95 px-5 backdrop-blur lg:hidden print:hidden">
           <Button
