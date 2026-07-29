@@ -22,7 +22,12 @@ PhysicsJotelab is a physics worksheet generation platform for high-school practi
   SymPy engine service; the LLM only phrases Thai prose (see `docs/ai-contract.md`)
 - **Interactive coaching (`/learn`)** — solve an engine-generated problem in three
   checked steps with misconception-targeted Thai hints; the engine judges every
-  input, no account required (see `docs/ux-ui-spec.md`)
+  input, no account required (see `docs/ux-ui-spec.md`). Signed-in students'
+  attempts persist to `coaching_attempts` and surface as a progress card on the
+  account page (see `docs/data-model.md`).
+  *How to test:* `npx vitest run features/coach` and
+  `E2E_STUB_GENERATION=true pnpm test:e2e:public` (full coached solve in a
+  browser, engine stubbed).
 
 ## Getting Started
 

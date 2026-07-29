@@ -6,6 +6,7 @@ import Image from "next/image"
 import { PageHeader } from "@/components/layout/page-header"
 import { cardClass } from "@/lib/ui-classes"
 import { getUserProfile } from "@/features/auth/get-user-profile"
+import { CoachProgressCard } from "@/features/coach/components/coach-progress-card"
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata")
@@ -58,6 +59,10 @@ export default async function AccountPage() {
             <p className="mt-1 text-2xl font-semibold">{profile?.credit_balance ?? 0}</p>
           </div>
         </div>
+      </div>
+
+      <div className="mt-4">
+        <CoachProgressCard />
       </div>
     </div>
   )

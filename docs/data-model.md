@@ -14,6 +14,18 @@ are the source of truth — this doc is the map, not the territory).
 | `credit_reservations` | reserve → complete/refund lifecycle per generation | `20260601000000_credit_reservations` |
 | `generation_jobs` | async generation with progress + stuck-job reaping | `20260608*`, `20260627*` |
 | `generation_settings` | per-user defaults (variables, difficulty, subject) | `20260524*`, `20260621*` |
+| `coaching_attempts` | one row per checked coaching input (step, error type, hints, solved) | `20260729000000_coaching_attempts` |
+
+## `coaching_attempts` (C1.3)
+
+Signed-in students' coached-solve inputs, written through the
+`record_coaching_attempt` SECURITY DEFINER RPC (RLS allows `select` of own
+rows only; no direct writes). `question_key` is `topic:seed:find` — the engine
+is seeded, so the key re-derives the exact question without duplicating
+`sympy_data` per attempt. Anonymous `/learn` solves are deliberately not
+stored: the coaching surface works with no account, and its attempt log then
+lives only in the browser console (`[coach-attempt]`). The account page's
+progress card aggregates these rows (`features/coach/progress.ts`).
 
 ## Credit rules
 
@@ -46,6 +58,12 @@ Zod schema in lock-step with `build_sympy_data`.
 ```bash
 # Schema-dependent server logic (mocked Supabase client):
 npx vitest run features/generate features/worksheet
+
+# Coaching persistence + progress aggregation:
+npx vitest run features/coach
+
+# Full coached solve in a browser (stubbed engine, no services needed):
+E2E_STUB_GENERATION=true npm run test:e2e:public
 
 # Against a real local stack (requires supabase CLI):
 supabase db reset          # applies every migration in order
