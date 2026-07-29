@@ -34,7 +34,7 @@ export function GenerateWorkspace({
   })
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row lg:overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col bg-background lg:flex-row lg:overflow-hidden print:overflow-visible">
       <WorksheetConfigPanel {...configPanelProps} hideHeader header={children} />
       <WorksheetPreviewPanel {...previewPanelProps} />
       {editDialogProps ? <EditQuestionDialog {...editDialogProps} /> : null}
