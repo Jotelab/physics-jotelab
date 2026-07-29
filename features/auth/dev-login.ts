@@ -38,5 +38,14 @@ export async function signInWithDevPasswordAction(
     redirect("/login?error=dev_credentials")
   }
 
+  // Mirror /auth/callback: the profile row is created at sign-in time —
+  // without it every generation RPC fails with "Profile not found".
+  const { error: profileError } = await supabase.rpc("ensure_user_profile")
+
+  if (profileError) {
+    await supabase.auth.signOut()
+    redirect("/login?error=profile")
+  }
+
   redirect("/generate")
 }

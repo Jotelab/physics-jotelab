@@ -1,14 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-const { mockSignInWithPassword, mockCreateClient, mockRedirect } = vi.hoisted(
-  () => ({
-    mockSignInWithPassword: vi.fn(),
-    mockCreateClient: vi.fn(),
-    mockRedirect: vi.fn((location: string) => {
-      throw new Error(`NEXT_REDIRECT:${location}`)
-    }),
-  })
-)
+const {
+  mockSignInWithPassword,
+  mockSignOut,
+  mockRpc,
+  mockCreateClient,
+  mockRedirect,
+} = vi.hoisted(() => ({
+  mockSignInWithPassword: vi.fn(),
+  mockSignOut: vi.fn(),
+  mockRpc: vi.fn(),
+  mockCreateClient: vi.fn(),
+  mockRedirect: vi.fn((location: string) => {
+    throw new Error(`NEXT_REDIRECT:${location}`)
+  }),
+}))
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: mockCreateClient,
@@ -32,8 +38,10 @@ function formData(entries: Record<string, string>): FormData {
 beforeEach(() => {
   vi.clearAllMocks()
   mockCreateClient.mockResolvedValue({
-    auth: { signInWithPassword: mockSignInWithPassword },
+    auth: { signInWithPassword: mockSignInWithPassword, signOut: mockSignOut },
+    rpc: mockRpc,
   })
+  mockRpc.mockResolvedValue({ error: null })
 })
 
 afterEach(() => {
@@ -69,6 +77,29 @@ describe("signInWithDevPasswordAction", () => {
       email: "e2e@test.jotelab.local",
       password: "pw",
     })
+  })
+
+  it("ensures the profile exists after signing in (like /auth/callback)", async () => {
+    vi.stubEnv("DEV_PASSWORD_LOGIN", "true")
+    mockSignInWithPassword.mockResolvedValue({ error: null })
+
+    await expect(
+      signInWithDevPasswordAction(formData({ email: "a@b.c", password: "pw" }))
+    ).rejects.toThrow("NEXT_REDIRECT:/generate")
+
+    expect(mockRpc).toHaveBeenCalledWith("ensure_user_profile")
+  })
+
+  it("signs out and reports when the profile cannot be ensured", async () => {
+    vi.stubEnv("DEV_PASSWORD_LOGIN", "true")
+    mockSignInWithPassword.mockResolvedValue({ error: null })
+    mockRpc.mockResolvedValue({ error: { message: "boom" } })
+
+    await expect(
+      signInWithDevPasswordAction(formData({ email: "a@b.c", password: "pw" }))
+    ).rejects.toThrow("NEXT_REDIRECT:/login?error=profile")
+
+    expect(mockSignOut).toHaveBeenCalled()
   })
 
   it("refuses to run when the flag is off", async () => {
