@@ -78,15 +78,6 @@ pnpm test:e2e:ui       # Playwright UI mode
 
 Public E2E tests (auth redirects, login page) run without Supabase. Authenticated E2E uses a **local Docker Supabase** stack (`supabase start`) with stub generation — no remote secrets required.
 
-**Fully local app incl. login** (no cloud Supabase, no Google OAuth): run
-`bash scripts/local-dev-stack.sh` — it starts local Supabase, creates a test
-user, and writes `.env.local` with `DEV_PASSWORD_LOGIN=true`, which renders a
-password form on `/login` for that user. The flag is dev-tooling only: never
-set it on a deployed environment.
-*How to test:* `npm run dev` → sign in at `/login` with the printed
-credentials → lands on `/generate`; `npx vitest run features/auth` covers the
-gate and action.
-
 **Local authenticated E2E** (requires Docker and the Supabase CLI):
 
 ```bash

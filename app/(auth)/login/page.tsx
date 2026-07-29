@@ -3,10 +3,7 @@ import { getTranslations } from "next-intl/server"
 import { redirect } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { signInWithGoogleAction } from "@/features/auth/actions"
-import { devPasswordLoginEnabled } from "@/features/auth/dev-login-enabled"
-import { signInWithDevPasswordAction } from "@/features/auth/dev-login"
 import { cardClass, pageTitleClass } from "@/lib/ui-classes"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/server"
@@ -45,11 +42,9 @@ export default async function LoginPage({
         ? t("loginErrorOauth")
         : error === "callback"
           ? t("loginErrorCallback")
-          : error === "dev_credentials"
-            ? "Invalid email or password (dev sign-in)."
-            : error
-              ? tErrors("UNKNOWN")
-              : null
+          : error
+            ? tErrors("UNKNOWN")
+            : null
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/10">
@@ -69,28 +64,6 @@ export default async function LoginPage({
             {t("loginWithGoogle")}
           </Button>
         </form>
-        {devPasswordLoginEnabled() ? (
-          /* Local-stack only (DEV_PASSWORD_LOGIN=true): password sign-in
-             against a local Supabase — never rendered on deployed envs. */
-          <form
-            action={signInWithDevPasswordAction}
-            className="mt-6 space-y-2 border-t pt-4 text-left"
-          >
-            <p className="text-xs font-medium text-muted-foreground">
-              Dev sign-in (local Supabase)
-            </p>
-            <Input name="email" type="email" placeholder="email" required />
-            <Input
-              name="password"
-              type="password"
-              placeholder="password"
-              required
-            />
-            <Button type="submit" variant="outline" size="touch-wide">
-              Sign in with password
-            </Button>
-          </form>
-        ) : null}
       </div>
     </div>
   )
