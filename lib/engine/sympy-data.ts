@@ -40,6 +40,21 @@ export const sympyFinalAnswerSchema = sympyNumberSchema.extend({
   latex: z.string().min(1),
 })
 
+export const sympyAuxiliarySchema = sympyNumberSchema.extend({
+  symbol: z.string().min(1),
+})
+
+/**
+ * The engine's figure payload (engine-owned TikZ work, jotelab-ai
+ * `templates/diagrams.py`).
+ *
+ * Kept deliberately loose (`z.unknown()`): the renderer switches on `kind`, and
+ * pinning the segment/total shape here would mean re-editing this file every
+ * time the engine grows a role. Displaying it raw keeps drift visible rather
+ * than silently swallowed.
+ */
+export const sympyDiagramSchema = z.unknown()
+
 export const sympyDataSchema = z.object({
   topic: z.string().min(1),
   seed: z.number().int(),
@@ -49,9 +64,20 @@ export const sympyDataSchema = z.object({
   final_answer: sympyFinalAnswerSchema,
   policy_applied: z.string().min(1),
   plausible: z.boolean(),
+  /**
+   * Both emitted by the engine today; a Zod object strips keys it does not
+   * declare, so omitting them silently dropped them at the trust boundary
+   * (found on the sandbox testbench). `auxiliary` carries a system template's
+   * internal unknowns (the meet point of a pursuit, the burn-out velocity of a
+   * two-phase ascent); `diagram` carries the engine-authored figure that
+   * replaced LLM-drawn TikZ.
+   */
+  auxiliary: z.array(sympyAuxiliarySchema).optional(),
+  diagram: sympyDiagramSchema.optional(),
 })
 
 export type SympyData = z.infer<typeof sympyDataSchema>
 export type SympyGiven = z.infer<typeof sympyGivenSchema>
 export type SympyFind = z.infer<typeof sympyFindSchema>
 export type SympyStep = z.infer<typeof sympyStepSchema>
+export type SympyAuxiliary = z.infer<typeof sympyAuxiliarySchema>
