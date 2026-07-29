@@ -13,7 +13,8 @@ import { SUVAT } from "@/lib/engine/topics"
 import type { SympyData } from "@/lib/engine/sympy-data"
 
 import { generateCoachProblem } from "../actions"
-import { recordAttempt } from "../attempt-log"
+import { recordAttempt, setAttemptTransport } from "../attempt-log"
+import { persistAttempt } from "../persist-attempt"
 import {
   checkAnswer,
   checkEquationChoice,
@@ -36,6 +37,10 @@ import type { CheckResult, CoachStep } from "../types"
  * solution (`sympy_data`); wrong answers escalate nudge → targeted
  * micro-explanation → worked step, then offer an isomorphic re-roll.
  */
+
+// Signed-in students' attempts persist to `coaching_attempts`; anonymous
+// solves degrade to the console mirror inside recordAttempt (C1.3).
+setAttemptTransport(persistAttempt)
 
 type StepState = {
   attempts: number

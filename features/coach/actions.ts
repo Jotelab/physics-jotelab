@@ -1,8 +1,9 @@
 "use server"
 
+import { e2eStubEngineQuestion } from "@/lib/ai/e2e-stub-question"
 import { engineGenerate, EngineError } from "@/lib/engine/client"
 import { SUVAT } from "@/lib/engine/topics"
-import type { SympyData } from "@/lib/engine/sympy-data"
+import { sympyDataSchema, type SympyData } from "@/lib/engine/sympy-data"
 
 import { relationForSplit } from "./equations"
 
@@ -29,6 +30,16 @@ export async function generateCoachProblem(params?: {
   find?: string
   difficulty?: "easy" | "medium" | "hard"
 }): Promise<CoachGenerateResult> {
+  // E2E stub (same boundary pattern as generate-engine-question): a coached
+  // solve runs in Playwright with no engine service. The fixed payload is its
+  // own isomorphic re-roll — the pinned split always matches.
+  if (process.env.E2E_STUB_GENERATION === "true") {
+    return {
+      ok: true,
+      sympyData: sympyDataSchema.parse(e2eStubEngineQuestion.sympy_data),
+    }
+  }
+
   try {
     // The engine should only ever hand back a bankable SUVAT split; the bounded
     // retry is defense in depth so the coach never renders a problem it cannot
