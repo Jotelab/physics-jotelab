@@ -63,6 +63,9 @@ function syntheticSuvat(given: [string, string, string], find: string): SympyDat
 
 describe.skipIf(!process.env.TIKZ_BENCHMARK)("TikZ compilation rate", () => {
   it("compiles every templated SUVAT diagram variant through real TeX", async () => {
+    const svgDir = join(process.cwd(), "benchmarks", "results", "tikz")
+    mkdirSync(svgDir, { recursive: true })
+
     const rows: { name: string; ok: boolean; ms: number }[] = []
     for (const split of SPLITS) {
       const data = syntheticSuvat(split.given, split.find)
@@ -73,6 +76,14 @@ describe.skipIf(!process.env.TIKZ_BENCHMARK)("TikZ compilation rate", () => {
       try {
         const svg = await compileTikz(tikz!)
         ok = svg.startsWith("<svg")
+        if (ok) {
+          // Keep the artifact inspectable: the compiled diagram itself is the
+          // evidence, not just the pass/fail bit.
+          writeFileSync(
+            join(svgDir, `suvat-${split.given.join("")}-${split.find}.svg`),
+            svg
+          )
+        }
       } catch {
         ok = false
       }

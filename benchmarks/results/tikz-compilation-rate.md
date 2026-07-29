@@ -6,11 +6,11 @@ engine (node-tikzjax), no mocks.
 
 | diagram variant | compiled | ms |
 | --- | --- | ---: |
-| given u,a,t → find v | yes | 2977 |
-| given u,a,t → find s | yes | 429 |
-| given u,a,s → find v | yes | 395 |
-| given u,v,t → find s | yes | 334 |
-| given v,a,t → find s | yes | 301 |
+| given u,a,t → find v | yes | 2914 |
+| given u,a,t → find s | yes | 386 |
+| given u,a,s → find v | yes | 346 |
+| given u,v,t → find s | yes | 381 |
+| given v,a,t → find s | yes | 370 |
 | **rate** | **5/5** | |
 
 LLM-generated TikZ is on the cut list; per-model production rates come
