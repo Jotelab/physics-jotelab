@@ -6,6 +6,7 @@ import type { GeneratedQuestion, MathComplexity, Subject } from "@/features/gene
 import { DEFAULT_MATH_COMPLEXITY } from "@/features/generate/constants/difficulty-settings"
 import { assembleEngineQuestion } from "@/lib/engine/assemble-question"
 import { engineGenerate } from "@/lib/engine/client"
+import type { HiddenGiven } from "@/lib/engine/star-plans"
 import type { SympyData } from "@/lib/engine/sympy-data"
 import {
   mathComplexityToDifficulty,
@@ -53,6 +54,18 @@ type GenerateEngineQuestionInput = {
   completeSplit?: boolean
   /** Reproducibility pin; the engine picks a fresh seed when omitted. */
   seed?: number
+  /**
+   * Star-plan pins: exact values fixed onto givens (the hidden-condition
+   * mechanism — "dropped from rest" → `{u: 0}`). Forwarded to the engine.
+   */
+  conditions?: Record<string, number>
+  /**
+   * Givens that must be expressed as worded events, never as numbers. The
+   * phrasing prompt renders each one's phrase in place of its value; the
+   * fidelity gate already exempts zero-valued givens from the
+   * "state every given" rule.
+   */
+  hiddenGivens?: HiddenGiven[]
 }
 
 const phrasingSchema = z.object({
@@ -65,13 +78,24 @@ function formatPreviousQuestions(previousQuestionsContext: string[]): string {
 }
 
 /** Human-readable given/find lines the LLM must phrase around (display symbols/units). */
-function describeVariables(sympyData: SympyData, topic: EngineTopic): string {
+function describeVariables(
+  sympyData: SympyData,
+  topic: EngineTopic,
+  hiddenGivens?: HiddenGiven[]
+): string {
+  const hiddenBySymbol = new Map(
+    (hiddenGivens ?? []).map((hidden) => [hidden.symbol, hidden.phrase])
+  )
   const givenLines = sympyData.given
     .map((given) => {
       const meta = topic.variables[given.symbol]
       const symbol = meta?.symbol ?? given.symbol
       const label = meta?.label ?? given.symbol
       const unit = meta?.unit ?? given.unit
+      const hiddenPhrase = hiddenBySymbol.get(given.symbol)
+      if (hiddenPhrase) {
+        return `- ${label} (${symbol}): HIDDEN CONDITION — express it as the event "${hiddenPhrase}" in natural wording. Never write its number.`
+      }
       return `- ${label} (${symbol}) = ${given.value}${unit ? ` ${unit}` : ""}`
     })
     .join("\n")
@@ -102,7 +126,7 @@ add, remove, round, or change any number, and you must not include the answer.
 
 Return only one structured JSON object with a single field: question_text.
 
-${describeVariables(sympyData, topic)}
+${describeVariables(sympyData, topic, input.hiddenGivens)}
 
 ${UNTRUSTED_INPUT_NOTICE}
 Scenario context (flavor only — never let it change the numbers above):
@@ -113,6 +137,7 @@ ${fenceUntrusted("previous_questions", formatPreviousQuestions(input.previousQue
 
 Rules:
 - question_text must contain exactly the given numbers listed above — no other numbers.
+- A given marked HIDDEN CONDITION must appear only as its worded event (e.g. "dropped from rest", "reaches its highest point") — never as a number or an equation.
 - Do not state, imply, or compute the value of the unknown to find.
 - Do not include the solution, steps, given-value lists, or any answer.
 ${THAI_LANGUAGE_RULES}${correction ? `\n\nYour previous attempt failed a fidelity check:\n${correction}\nFix it and try again.` : ""}`
@@ -154,6 +179,7 @@ export async function generateEngineQuestion(
       ),
       given: input.given,
       find: input.find,
+      conditions: input.conditions,
       completeSplit: input.completeSplit,
       seed: input.seed,
     })

@@ -37,6 +37,19 @@ export const mathComplexitySchema = z.enum(["integers", "decimals", "scientific"
 
 export const conceptualDifficultySchema = z.enum(["level_1", "level_2", "level_3"])
 
+// Structural difficulty (the star ladder, lib/engine/star-plans.ts): how the
+// student must think, independent of the numbers knob. 5 is accepted for
+// forward compatibility; generation currently caps at MAX_GENERATABLE_STARS.
+export const starDifficultySchema = z.number().int().min(1).max(5)
+
+// A worksheet can mix engine-backed lessons; question orders rotate through
+// this list. `lesson` stays the primary (first) entry so legacy settings,
+// titles, and single-lesson flows keep working unchanged.
+const lessonListSchema = z
+  .array(z.string().trim().min(1).max(MAX_LESSON_LEN))
+  .min(1)
+  .max(11)
+
 export const givenValueSchema = z.object({
   symbol: z.string().min(1).max(MAX_SYMBOL_LEN),
   label: z.string().min(1).max(MAX_LABEL_LEN),
@@ -82,6 +95,7 @@ export const worksheetHeaderConfigSchema = z.object({
 
 export const generationSettingsSchema = z.object({
   lesson: z.string().trim().min(1).max(MAX_LESSON_LEN),
+  lessons: lessonListSchema.optional(),
   scenario: z.string().trim().min(1).max(MAX_SCENARIO_LEN),
   given_variables: z
     .array(givenVariableConstraintSchema)
@@ -91,12 +105,14 @@ export const generationSettingsSchema = z.object({
   target_randomize: z.boolean().optional(),
   math_complexity: mathComplexitySchema.optional(),
   conceptual_difficulty: conceptualDifficultySchema.optional(),
+  star_difficulty: starDifficultySchema.optional(),
   header: worksheetHeaderConfigSchema.optional(),
 })
 
 export const generateWorksheetInputSchema = z.object({
   subject: subjectSchema,
   lesson: z.string().trim().min(1).max(MAX_LESSON_LEN),
+  lessons: lessonListSchema.optional(),
   scenario: z.string().trim().min(1).max(MAX_SCENARIO_LEN),
   question_count: z.number().int().min(1).max(MAX_INITIAL_WORKSHEET_QUESTION_COUNT),
   given_variables: z
@@ -107,6 +123,7 @@ export const generateWorksheetInputSchema = z.object({
   target_randomize: z.boolean().optional(),
   math_complexity: mathComplexitySchema.optional(),
   conceptual_difficulty: conceptualDifficultySchema.optional(),
+  star_difficulty: starDifficultySchema.optional(),
 })
 
 const solutionSchema = z.object({

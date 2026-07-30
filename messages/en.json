@@ -115,6 +115,28 @@
       "level_2": "Level 2: Unit conversions",
       "level_3": "Level 3: Distractor data"
     },
+    "topics": {
+      "title": "Topics",
+      "hint": "Pick one or more topic cards — questions rotate through your picks.",
+      "selectedCount": "{count} selected",
+      "customTitle": "Or type a custom topic",
+      "mixedHint": "Mixing topics: a fitting scenario is chosen per question.",
+      "multiVariablesHint": "Variable pins apply to single-topic worksheets — when mixing topics, the engine picks a valid variable split per question."
+    },
+    "starDifficulty": {
+      "title": "Star difficulty",
+      "level_1_name": "Direct",
+      "level_1_blurb": "One formula in its natural direction: read, substitute, solve.",
+      "level_2_name": "Sequential",
+      "level_2_blurb": "One result feeds the next formula, or a genuine rearrangement is needed.",
+      "level_3_name": "Hidden conditions",
+      "level_3_blurb": "A given arrives as words — \"dropped from rest\", \"reaches the top\" — not as a number.",
+      "level_4_name": "Compound",
+      "level_4_blurb": "Simultaneous systems and working backwards through them.",
+      "level_5_name": "Cross-topic",
+      "level_5_blurb": "One problem spanning topics, parts wired exactly.",
+      "fiveStarSoon": "5★ chains span several parts — they arrive once worksheets support multi-part questions."
+    },
     "questions": "Questions",
     "numberOfQuestions": "Number of questions",
     "limitedQuestions": "Limited to {count, plural, one {# question} other {# questions}} by your credit balance.",
@@ -221,6 +243,19 @@
         "waves-oscillations": "Waves & oscillations",
         "electrostatics": "Electrostatics",
         "magnetic-fields": "Magnetic fields"
+      },
+      "lessonDescriptions": {
+        "motion-1d": "Constant-acceleration motion in a straight line — v = u + at and friends.",
+        "vectors-1d": "Signed velocity and displacement on a line: direction matters.",
+        "distance-displacement": "Path length versus net displacement for multi-leg trips.",
+        "average-speed": "Average speed and velocity across trips with several segments.",
+        "free-fall": "Objects dropped or thrown downward under gravity.",
+        "upward-throw": "Straight-up launches: the rise, the momentary stop at the top, the fall back.",
+        "multi-stage-motion": "Accelerate first, then cruise — two phases, one journey.",
+        "motion-graphs": "Read velocity–time graphs: slopes are accelerations, areas are displacements.",
+        "relative-velocity": "How fast one moving body looks from another on the same line.",
+        "pursuit": "A chaser and a leader — solve the moment they meet.",
+        "two-phase-ascent": "A rocket burns, then coasts to its peak — two phases solved together."
       },
       "scenarios": {
         "motion-1d": {

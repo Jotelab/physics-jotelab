@@ -7,6 +7,7 @@ import {
   sympyDataGivenNames,
 } from "@/lib/ai/generate-engine-question"
 import { regenerateWorksheetQuestion } from "@/lib/ai/regenerate-question"
+import { pickStarPlan, type StarDifficulty } from "@/lib/engine/star-plans"
 import {
   engineNameForDisplaySymbol,
   resolveEngineTopic,
@@ -46,6 +47,54 @@ type ProfileRow = {
 function parseGenerationSettings(settings: unknown) {
   const parsed = generationSettingsSchema.safeParse(settings)
   return parsed.success ? parsed.data : null
+}
+
+/**
+ * The lesson a given question order draws from. Multi-topic worksheets rotate
+ * through `lessons` in order (deterministic, so append/regenerate agree with
+ * the original run); single-topic worksheets use `lesson` as before.
+ */
+function lessonForOrder(
+  generationSettings: z.infer<typeof generationSettingsSchema>,
+  order: number
+): string {
+  const lessons = generationSettings.lessons
+  if (!lessons || lessons.length === 0) {
+    return generationSettings.lesson
+  }
+  return lessons[(order - 1) % lessons.length]
+}
+
+/**
+ * Resolve the star plan for one order, if the worksheet asked for star
+ * difficulty and the order's topic has one. The order (not the engine seed)
+ * drives plan choice, so a worksheet cycles the pool question by question and
+ * the choice is stable across retries of the same order.
+ */
+function getStarPlanArgs(
+  generationSettings: z.infer<typeof generationSettingsSchema>,
+  order: number,
+  lesson: string,
+  subject: Subject
+) {
+  const stars = generationSettings.star_difficulty
+  if (!stars) {
+    return null
+  }
+  const topic = resolveEngineTopic(lesson, subject)
+  if (!topic) {
+    return null
+  }
+  const picked = pickStarPlan(stars as StarDifficulty, topic.topic, order - 1)
+  if (!picked) {
+    return null
+  }
+  return {
+    given: picked.plan.given,
+    find: picked.plan.find,
+    conditions: picked.plan.conditions,
+    hiddenGivens: picked.plan.hidden,
+  }
 }
 
 /**
@@ -246,32 +295,49 @@ export async function generateQuestionForWorksheet(params: {
     cancel: (reservationId) =>
       cancelGenerateReservation(supabase, reservationId, idempotencyKey),
     run: async (context) => {
-      // Neuro-symbolic lessons generate through the engine (numbers first, LLM
-      // phrases); other lessons stay on the pure-LLM path (DEVELOPMENT_PLAN §1.2).
-      const generatedQuestion = shouldUseEngine(
-        generationSettings.lesson,
+      // Multi-topic worksheets rotate lessons by order; single-topic ones use
+      // the primary lesson. The stored scenario belongs to the primary lesson,
+      // so rotated orders phrase against a neutral scenario instead.
+      const lesson = lessonForOrder(generationSettings, order)
+      const scenario =
+        lesson === generationSettings.lesson
+          ? generationSettings.scenario
+          : "A typical everyday situation for this topic."
+      // A star plan pins the whole split (given/find/conditions) — structural
+      // difficulty defines the problem's shape, so it wins over advanced pins.
+      const starPlanArgs = getStarPlanArgs(
+        generationSettings,
+        order,
+        lesson,
         worksheet.subject
       )
+
+      // Neuro-symbolic lessons generate through the engine (numbers first, LLM
+      // phrases); other lessons stay on the pure-LLM path (DEVELOPMENT_PLAN §1.2).
+      const generatedQuestion = shouldUseEngine(lesson, worksheet.subject)
         ? await generateEngineQuestion({
             subject: worksheet.subject,
-            lesson: generationSettings.lesson,
-            scenario: generationSettings.scenario,
+            lesson,
+            scenario,
             previousQuestionsContext,
             mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
-            // Advanced-mode pins (target rotation + given constraints), mapped
-            // to engine names; the engine completes them into a valid split.
-            ...getEnginePins(
-              generationSettings,
-              order,
-              worksheet.id,
-              generationSettings.lesson,
-              worksheet.subject
-            ),
-            completeSplit: true,
+            ...(starPlanArgs ??
+              // Advanced-mode pins (target rotation + given constraints), mapped
+              // to engine names; the engine completes them into a valid split.
+              {
+                ...getEnginePins(
+                  generationSettings,
+                  order,
+                  worksheet.id,
+                  lesson,
+                  worksheet.subject
+                ),
+                completeSplit: true,
+              }),
           })
         : await generateWorksheetQuestion({
             subject: worksheet.subject,
-            lesson: generationSettings.lesson,
+            lesson,
             scenario: getPromptScenario(generationSettings, order, worksheet.id),
             previousQuestionsContext,
             mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
@@ -372,23 +438,46 @@ export async function regenerateQuestionForWorksheet(params: {
       // Given/Find split with a fresh engine seed — same topic + structure, new
       // numbers and new phrasing (DEVELOPMENT_PLAN §1.2). Questions without an
       // engine payload (LLM-only lessons / legacy rows) regenerate via the LLM.
+      // Zero-valued givens were structural pins ("dropped from rest",
+      // "brakes to a stop"), so a re-roll re-pins them — otherwise the engine
+      // would sample a fresh number and quietly change the problem's shape.
       const originalSympyData = originalQuestion.sympy_data
+      const regenerateLesson = lessonForOrder(generationSettings, originalQuestion.order)
+      const zeroConditions = originalSympyData
+        ? Object.fromEntries(
+            originalSympyData.given
+              .filter((given) => given.value === 0)
+              .map((given) => [given.symbol, 0])
+          )
+        : {}
       const generatedQuestion =
         originalSympyData &&
-        shouldUseEngine(generationSettings.lesson, worksheet.subject)
+        shouldUseEngine(regenerateLesson, worksheet.subject)
           ? await generateEngineQuestion({
               subject: worksheet.subject,
-              lesson: generationSettings.lesson,
-              scenario: generationSettings.scenario,
+              lesson: regenerateLesson,
+              scenario:
+                regenerateLesson === generationSettings.lesson
+                  ? generationSettings.scenario
+                  : "A typical everyday situation for this topic.",
               previousQuestionsContext: [originalQuestion.question_text],
               mathComplexity:
                 generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
               given: sympyDataGivenNames(originalSympyData),
               find: originalSympyData.find.symbol,
+              ...(Object.keys(zeroConditions).length > 0
+                ? {
+                    conditions: zeroConditions,
+                    hiddenGivens: Object.keys(zeroConditions).map((symbol) => ({
+                      symbol,
+                      phrase: `${symbol} = 0 — implied by the wording (starts or ends at rest)`,
+                    })),
+                  }
+                : {}),
             })
           : await regenerateWorksheetQuestion({
               subject: worksheet.subject,
-              lesson: generationSettings.lesson,
+              lesson: regenerateLesson,
               scenario: getPromptScenario(
                 generationSettings,
                 originalQuestion.order,
