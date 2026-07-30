@@ -156,6 +156,79 @@ describe("WorksheetPreview", () => {
     expect(getWorksheetPages().getByText("Question 2 was skipped.")).toBeInTheDocument()
   })
 
+  it("localizes a skipped slot that carries a failure code", () => {
+    render(
+      <WorksheetPreview
+        header={previewHeader("Physics: Motion", "2 questions")}
+        questions={[validWorksheetQuestion]}
+        skippedSlots={[
+          {
+            order: 2,
+            message: "Could not reach the symbolic engine: fetch failed",
+            code: "ENGINE_UNAVAILABLE",
+          },
+        ]}
+        viewMode="worksheet"
+      />
+    )
+
+    // The localized code wins; the raw server internals never render.
+    expect(
+      getWorksheetPages().getByText(
+        "The calculation engine could not be reached. Your credit has been refunded — please try again."
+      )
+    ).toBeInTheDocument()
+    expect(
+      getWorksheetPages().queryByText(/Could not reach the symbolic engine/)
+    ).not.toBeInTheDocument()
+  })
+
+  it("labels an engine-backed question as engine-verified", () => {
+    render(
+      <WorksheetPreview
+        header={previewHeader("Physics: Motion", "1 question")}
+        questions={[
+          {
+            ...validWorksheetQuestion,
+            sympy_data: {
+              topic: "suvat",
+              seed: 1,
+              given: [{ symbol: "u", value: 2, exact: "2", unit: "m/s" }],
+              find: { symbol: "v", value: 10, exact: "10", unit: "m/s" },
+              steps: [
+                {
+                  expr_latex: "v = u + a t",
+                  substituted_latex: "v = 2 + 2 \\cdot 4",
+                  result_latex: "v = 10",
+                },
+              ],
+              final_answer: { value: 10, exact: "10", unit: "m/s", latex: "10" },
+              policy_applied: "easy",
+              plausible: true,
+            },
+          },
+        ]}
+        viewMode="worksheet"
+      />
+    )
+
+    expect(getWorksheetPages().getByText("Engine-verified")).toBeInTheDocument()
+  })
+
+  it("labels a question without sympy_data as AI-authored", () => {
+    render(
+      <WorksheetPreview
+        header={previewHeader("Physics: Motion", "1 question")}
+        questions={[validWorksheetQuestion]}
+        viewMode="worksheet"
+      />
+    )
+
+    expect(
+      getWorksheetPages().getByText("AI-authored — numbers not engine-verified")
+    ).toBeInTheDocument()
+  })
+
   it("opens the question action menu", async () => {
     const user = userEvent.setup()
     const onToggleMenu = vi.fn()

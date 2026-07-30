@@ -164,6 +164,8 @@
     "finalAnswer": "คำตอบสุดท้าย:",
     "target": "หาค่า:",
     "emptyPreview": "คำถามที่สร้างจะแสดงที่นี่ทีละข้อ",
+    "provenanceEngine": "เอนจินตรวจสอบแล้ว",
+    "provenanceLlm": "AI แต่งโจทย์ — ตัวเลขไม่ผ่านการตรวจโดยเอนจิน",
     "layingOutPages": "กำลังจัดหน้า",
     "editFree": "แก้ไข (ฟรี)",
     "regenerateCredit": "สร้างใหม่ (1 เครดิต)",

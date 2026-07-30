@@ -278,6 +278,12 @@ function QuestionBlock({
   const t = useTranslations("generate")
   const isBusy = questionActions?.busyQuestionId === question.id
   const isMenuOpen = questionActions?.openMenuQuestionId === question.id
+  // Provenance is derived, never stored: `sympy_data` exists iff the numbers
+  // came out of the symbolic engine's verified payload (ADR-005). A question
+  // from the LLM-only path carries no sympy_data — its numbers were computed
+  // by the model and the user must be able to tell (the "AI never computes"
+  // invariant only holds on the engine path). Prints with the worksheet.
+  const isEngineVerified = Boolean(question.sympy_data)
 
   return (
     <article className="group relative break-inside-avoid">
@@ -286,6 +292,16 @@ function QuestionBlock({
           {question.order}
         </div>
         <div className="min-w-0 flex-1">
+          <span
+            className={cn(
+              "float-right ml-2 rounded-sm border px-1.5 py-0.5 text-[10px] leading-4",
+              isEngineVerified
+                ? "border-muted-foreground/30 text-muted-foreground"
+                : "border-amber-500/50 text-amber-700 dark:text-amber-500 print:text-black"
+            )}
+          >
+            {isEngineVerified ? t("provenanceEngine") : t("provenanceLlm")}
+          </span>
           <div className="text-sm leading-6">
             <MathText>{question.question_text}</MathText>
           </div>

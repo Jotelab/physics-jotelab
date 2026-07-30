@@ -164,6 +164,8 @@
     "finalAnswer": "Final answer:",
     "target": "Target:",
     "emptyPreview": "Generated questions will appear here one by one.",
+    "provenanceEngine": "Engine-verified",
+    "provenanceLlm": "AI-authored — numbers not engine-verified",
     "layingOutPages": "Laying out pages",
     "editFree": "Edit (Free)",
     "regenerateCredit": "Regenerate (1 Credit)",
