@@ -17,6 +17,8 @@ import {
   resolveLessonKey,
   type LessonPresetId,
 } from "@/features/generate/data/generation-presets"
+import { DEFAULT_SUBJECT } from "@/features/generate/schemas"
+import { resolveEngineTopic } from "@/lib/engine/topics"
 
 interface LessonComboboxProps {
   value: string
@@ -49,7 +51,11 @@ export function LessonCombobox({
     setInputValue(displayValue)
   }
 
-  const presets = getLessonPresets()
+  // Suggest only lessons with real engine-backed content; the catalog's
+  // LLM-only lessons stay reachable as free text until their engines land.
+  const presets = getLessonPresets().filter(
+    (preset) => resolveEngineTopic(preset.id, DEFAULT_SUBJECT) !== null
+  )
   const isShowingCatalogSelection =
     resolved.isPreset && resolved.lessonId && inputValue === displayValue
   const query = isShowingCatalogSelection ? "" : inputValue.trim().toLowerCase()
