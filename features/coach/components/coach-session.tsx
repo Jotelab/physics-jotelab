@@ -8,6 +8,7 @@ import { BlockMath, InlineMath } from "react-katex"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { TikzDiagram } from "@/features/worksheet/components/tikz-diagram"
 import { cn } from "@/lib/utils"
 import { SUVAT } from "@/lib/engine/topics"
 import type { SympyData } from "@/lib/engine/sympy-data"
@@ -58,8 +59,16 @@ const STEP_TITLES: Record<CoachStep, string> = {
   answer: "③ คำนวณหาคำตอบ",
 }
 
-export function CoachSession({ initial }: { initial: SympyData }) {
+export function CoachSession({
+  initial,
+  initialDiagramSvg = null,
+}: {
+  initial: SympyData
+  /** Templated motion diagram for `initial` (compiled server-side), if any. */
+  initialDiagramSvg?: string | null
+}) {
   const [sympyData, setSympyData] = useState(initial)
+  const [diagramSvg, setDiagramSvg] = useState(initialDiagramSvg)
   const [steps, setSteps] = useState<Record<CoachStep, StepState>>({
     equation: FRESH_STEP,
     substitution: FRESH_STEP,
@@ -160,6 +169,7 @@ export function CoachSession({ initial }: { initial: SympyData }) {
         return
       }
       setSympyData(result.sympyData)
+      setDiagramSvg(result.diagramSvg)
       setSteps({ equation: FRESH_STEP, substitution: FRESH_STEP, answer: FRESH_STEP })
       setChosenEquation(null)
       setSubstitutions({})
@@ -209,6 +219,9 @@ export function CoachSession({ initial }: { initial: SympyData }) {
       <section className="rounded-lg border bg-card p-4 shadow-sm">
         <h2 className="mb-2 text-sm font-medium text-muted-foreground">โจทย์</h2>
         <p className="text-base leading-relaxed">{problem.questionText}</p>
+        {diagramSvg ? (
+          <TikzDiagram svg={diagramSvg} label="แผนภาพประกอบโจทย์" className="mt-3" />
+        ) : null}
       </section>
 
       {/* Step ① — equation MCQ */}

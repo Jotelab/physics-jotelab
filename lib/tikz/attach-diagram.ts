@@ -1,6 +1,7 @@
 import "server-only"
 
 import type { WorksheetQuestion } from "@/features/generate/types"
+import type { SympyData } from "@/lib/engine/sympy-data"
 
 import { compileTikz } from "./compile"
 import { logTikzAttempt } from "./compilation-log"
@@ -131,6 +132,35 @@ export async function attachQuestionDiagram(
     // Already logged by compileCached; keep the source for traceability and
     // render without a picture.
     return { ...question, tikz_code: tikz }
+  }
+}
+
+/**
+ * Compile the templated diagram for a bare `sympy_data` payload — the coach
+ * surface's variant of attach (C1): no `WorksheetQuestion` wrapper, and no
+ * E2E-stub skip. The coached problem is a single fixed payload in stub mode, so
+ * the one compile lands in the shared cache and every later solve (and
+ * Playwright visit) reuses it — this is also the only diagram path that works
+ * in the zero-service local clone. Best-effort like attach: `null` means "no
+ * template for this topic" or "compile failed"; the solve renders without a
+ * picture.
+ */
+export async function templateDiagramSvg(
+  sympyData: SympyData,
+  deps: AttachDiagramDeps = {}
+): Promise<string | null> {
+  const tikz = buildTemplateTikz(sympyData)
+  if (!tikz) {
+    return null
+  }
+
+  const compile = deps.compile ?? ((code: string) => compileTikz(code))
+
+  try {
+    return await compileCached(sympyData.topic, tikz, compile)
+  } catch {
+    // Already logged by compileCached.
+    return null
   }
 }
 

@@ -8,6 +8,7 @@ import {
   attachQuestionDiagram,
   attachQuestionDiagrams,
   clearDiagramCacheForTests,
+  templateDiagramSvg,
 } from "./attach-diagram"
 
 function sympyData(givenSymbols: string[], findSymbol: string): SympyData {
@@ -122,6 +123,63 @@ describe("attachQuestionDiagram", () => {
 
     expect(result.tikz_code).toContain("\\begin{tikzpicture}")
     expect(result.diagram_svg).toBeUndefined()
+  })
+})
+
+describe("templateDiagramSvg", () => {
+  it("compiles the templated diagram for a sympy payload", async () => {
+    const compile = vi.fn(async () => "<svg>coach</svg>")
+
+    const svg = await templateDiagramSvg(sympyData(["u", "a", "t"], "v"), { compile })
+
+    expect(svg).toBe("<svg>coach</svg>")
+    expect(compile).toHaveBeenCalledOnce()
+  })
+
+  it("returns null for a topic without a template", async () => {
+    const compile = vi.fn(async () => "<svg>never</svg>")
+
+    const svg = await templateDiagramSvg(
+      { ...sympyData(["u", "a", "t"], "v"), topic: "projectile" },
+      { compile }
+    )
+
+    expect(svg).toBeNull()
+    expect(compile).not.toHaveBeenCalled()
+  })
+
+  it("returns null when the compile fails", async () => {
+    const compile = vi.fn(async () => {
+      throw new Error("tex boom")
+    })
+
+    const svg = await templateDiagramSvg(sympyData(["u", "a", "t"], "v"), { compile })
+
+    expect(svg).toBeNull()
+  })
+
+  it("still compiles under E2E_STUB_GENERATION (unlike worksheet attach)", async () => {
+    vi.stubEnv("E2E_STUB_GENERATION", "true")
+    try {
+      const compile = vi.fn(async () => "<svg>stub-mode</svg>")
+
+      const svg = await templateDiagramSvg(sympyData(["u", "a", "t"], "v"), { compile })
+
+      expect(svg).toBe("<svg>stub-mode</svg>")
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it("shares the compile cache with attachQuestionDiagram", async () => {
+    const compile = vi.fn(async () => "<svg>shared-cache</svg>")
+    const data = sympyData(["u", "a", "t"], "v")
+
+    await templateDiagramSvg(data, { compile })
+    const attached = await attachQuestionDiagram(question(data), { compile })
+
+    expect(compile).toHaveBeenCalledOnce()
+    expect(attached.diagram_svg).toBe("<svg>shared-cache</svg>")
   })
 })
 

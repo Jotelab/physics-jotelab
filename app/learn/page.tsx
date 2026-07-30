@@ -35,7 +35,10 @@ export default async function LearnPage() {
         </p>
       </header>
       {result.ok ? (
-        <CoachSession initial={result.sympyData} />
+        <CoachSession
+          initial={result.sympyData}
+          initialDiagramSvg={result.diagramSvg}
+        />
       ) : (
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm">
           <p className="font-medium">ยังเชื่อมต่อเอนจินไม่ได้</p>
