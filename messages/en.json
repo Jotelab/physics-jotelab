@@ -119,6 +119,7 @@
       "title": "Topics",
       "hint": "Pick one or more topic cards — questions rotate through your picks.",
       "selectedCount": "{count} selected",
+      "deckHint": "Hover or tap to fan out the 11 topic cards.",
       "customTitle": "Or type a custom topic",
       "mixedHint": "Mixing topics: a fitting scenario is chosen per question.",
       "multiVariablesHint": "Variable pins apply to single-topic worksheets — when mixing topics, the engine picks a valid variable split per question."
