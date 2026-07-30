@@ -50,6 +50,12 @@
     "worksheetTitle": "ใบงาน",
     "worksheetDescription": "ดูใบงาน \"{title}\" ในคลัง PhysicsJotelab ของคุณ"
   },
+  "loader": {
+    "solving": "กำลังแก้สมการหา x…",
+    "converting": "กำลังแปลงหน่วย…",
+    "aligning": "กำลังจัดแนวเวกเตอร์…",
+    "checking": "กำลังตรวจเฉลยอีกรอบ…"
+  },
   "auth": {
     "tagline": "สร้างใบงานคำนวณระดับมัธยมปลายได้ในไม่กี่วินาที",
     "loginWithGoogle": "เข้าสู่ระบบด้วย Google",
@@ -75,7 +81,7 @@
   "library": {
     "title": "คลัง",
     "subtitle": "เปิดใบงานที่บันทึกไว้โดยไม่ใช้เครดิต",
-    "emptyFirst": "ยังไม่มีใบงาน",
+    "emptyFirst": "คลังของคุณยังหยุดนิ่งอยู่ — ตามกฎของนิวตัน ต้องมีแรงมากระทำสักหน่อย",
     "generateFirst": "สร้างใบงานแรกของคุณ",
     "emptyPage": "ไม่มีใบงานในหน้านี้",
     "backToPageOne": "กลับไปหน้า 1",
@@ -369,7 +375,7 @@
     "pageLoadFailed": "ไม่สามารถโหลดหน้านี้ได้",
     "pageLoadFailedDescription": "คำขอล้มเหลวก่อนที่พื้นที่ทำงานจะโหลดเสร็จ",
     "pageNotFound": "ไม่พบหน้า",
-    "pageNotFoundDescription": "ไม่พบหน้าที่คุณร้องขอ",
+    "pageNotFoundDescription": "หน้านี้หลุดออกไปนอกเอกภพที่สังเกตได้แล้ว ส่วนอื่นของแอปยังอยู่ที่เดิมครบถ้วนดี",
     "INSUFFICIENT_CREDITS": "เครดิตของคุณไม่เพียงพอ",
     "WORKSHEET_ACCESS_DENIED": "คุณไม่มีสิทธิ์เข้าถึงใบงานนี้",
     "WORKSHEET_ALREADY_COMPLETE": "ใบงานนี้สมบูรณ์แล้ว",

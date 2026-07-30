@@ -45,6 +45,8 @@ interface BuilderDropdownListProps<T> {
   selectedKey: string
   getKey: (option: T) => string
   getLabel: (option: T) => string
+  /** Richer option content (icons, stars); getLabel still supplies the accessible text. */
+  renderOption?: (option: T) => ReactNode
   onSelect: (option: T) => void
 }
 
@@ -55,6 +57,7 @@ export function BuilderDropdownList<T>({
   selectedKey,
   getKey,
   getLabel,
+  renderOption,
   onSelect,
 }: BuilderDropdownListProps<T>) {
   if (options.length === 0) return null
@@ -78,7 +81,7 @@ export function BuilderDropdownList<T>({
                 isSelected ? "opacity-100" : "opacity-0"
               )}
             />
-            {getLabel(option)}
+            {renderOption ? renderOption(option) : getLabel(option)}
           </li>
         )
       })}
@@ -120,6 +123,10 @@ interface BuilderSelectDropdownProps<T> {
   hint?: ReactNode
   getKey: (option: T) => string
   getLabel: (option: T) => string
+  /** Richer option content in the list; getLabel still supplies the accessible text. */
+  renderOption?: (option: T) => ReactNode
+  /** Richer selected-value content in the trigger. */
+  renderValue?: (option: T) => ReactNode
   onChange: (option: T) => void
 }
 
@@ -134,11 +141,14 @@ export function BuilderSelectDropdown<T>({
   hint,
   getKey,
   getLabel,
+  renderOption,
+  renderValue,
   onChange,
 }: BuilderSelectDropdownProps<T>) {
   const { open, setOpen, containerRef } = useBuilderDropdown()
   const selected = options.find((o) => getKey(o) === value)
   const displayLabel = selected ? getLabel(selected) : null
+  const displayContent = selected && renderValue ? renderValue(selected) : displayLabel
 
   function handleSelect(option: T) {
     onChange(option)
@@ -170,7 +180,7 @@ export function BuilderSelectDropdown<T>({
               !displayLabel && "text-muted-foreground"
             )}
           >
-            {displayLabel ?? placeholder}
+            {displayContent ?? placeholder}
           </button>
           <button
             type="button"
@@ -192,6 +202,7 @@ export function BuilderSelectDropdown<T>({
             selectedKey={value}
             getKey={getKey}
             getLabel={getLabel}
+            renderOption={renderOption}
             onSelect={handleSelect}
           />
         ) : null}

@@ -50,6 +50,12 @@
     "worksheetTitle": "Worksheet",
     "worksheetDescription": "View the \"{title}\" worksheet in your PhysicsJotelab library."
   },
+  "loader": {
+    "solving": "Solving for x…",
+    "converting": "Converting units…",
+    "aligning": "Aligning vectors…",
+    "checking": "Double-checking the answer key…"
+  },
   "auth": {
     "tagline": "Generate high-school calculation worksheets in seconds.",
     "loginWithGoogle": "Login with Google",
@@ -75,7 +81,7 @@
   "library": {
     "title": "Library",
     "subtitle": "Open saved worksheets without spending credits.",
-    "emptyFirst": "No worksheets yet.",
+    "emptyFirst": "Your library is at rest — it stays that way until a force acts on it.",
     "generateFirst": "Generate your first worksheet",
     "emptyPage": "No worksheets on this page.",
     "backToPageOne": "Go back to page 1",
@@ -163,7 +169,7 @@
     "solution": "Solution",
     "finalAnswer": "Final answer:",
     "target": "Target:",
-    "emptyPreview": "Generated questions will appear here one by one.",
+    "emptyPreview": "Generated questions land here one by one.",
     "layingOutPages": "Laying out pages",
     "editFree": "Edit (Free)",
     "regenerateCredit": "Regenerate (1 Credit)",
@@ -369,7 +375,7 @@
     "pageLoadFailed": "Could not load this page",
     "pageLoadFailedDescription": "The request failed before the workspace could finish loading.",
     "pageNotFound": "Page not found",
-    "pageNotFoundDescription": "The page you requested does not exist.",
+    "pageNotFoundDescription": "This page has escaped the observable universe. The rest of the app is right where you left it.",
     "INSUFFICIENT_CREDITS": "You do not have enough credits.",
     "WORKSHEET_ACCESS_DENIED": "You do not have access to this worksheet.",
     "WORKSHEET_ALREADY_COMPLETE": "This worksheet is already complete.",

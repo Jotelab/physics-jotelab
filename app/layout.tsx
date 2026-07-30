@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Noto_Sans_Thai } from "next/font/google";
+import { Baloo_2, Geist, Geist_Mono, Mitr, Noto_Sans_Thai } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextIntlClientProvider } from "next-intl";
@@ -20,6 +20,19 @@ const geistMono = Geist_Mono({
 const notoSansThai = Noto_Sans_Thai({
   variable: "--font-noto-sans-thai",
   subsets: ["thai", "latin"],
+});
+
+/* Heading pair: Baloo 2 covers Latin; Thai glyphs fall through to Mitr via
+   the --font-heading stack in globals.css. Body faces are unchanged. */
+const baloo = Baloo_2({
+  variable: "--font-baloo",
+  subsets: ["latin"],
+});
+
+const mitr = Mitr({
+  variable: "--font-mitr",
+  subsets: ["thai", "latin"],
+  weight: ["400", "500", "600"],
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -47,7 +60,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${notoSansThai.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${notoSansThai.variable} ${baloo.variable} ${mitr.variable} h-full antialiased`}
     >
       <body
         className={`min-h-full flex flex-col ${isThai ? "font-[family-name:var(--font-noto-sans-thai)]" : ""}`}
