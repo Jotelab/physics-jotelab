@@ -99,65 +99,83 @@ function WorksheetBasicFields({
   const t = useTranslations("generate")
 
   const usingCards = form.selectedLessonIds.length > 0
+  const needsScenario =
+    !form.isMultiTopic && Boolean(form.primaryLesson) && !form.resolvedScenarioId
+  const sectionEyebrowClass =
+    "text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
 
   return (
-    <div className="space-y-6">
-      <LessonCardGrid
-        selectedIds={form.selectedLessonIds}
-        onToggle={form.onLessonCardToggle}
-        disabled={form.controlsDisabled}
-      />
+    <div className="space-y-7">
+      <div className="space-y-4">
+        <p className={sectionEyebrowClass}>{t("sections.practice")}</p>
 
-      {!usingCards ? (
-        <details className="group">
-          <summary className="cursor-pointer list-none text-xs text-muted-foreground underline-offset-4 hover:underline">
-            {t("topics.customTitle")}
-          </summary>
-          <div className="mt-3">
-            <LessonCombobox
-              value={form.lesson}
-              onChange={form.onLessonChange}
-              onSuggestionSelect={form.onLessonSuggestionSelect}
+        <LessonCardGrid
+          selectedIds={form.selectedLessonIds}
+          onToggle={form.onLessonCardToggle}
+          disabled={form.controlsDisabled}
+        />
+
+        {!usingCards ? (
+          <details className="group">
+            <summary className="cursor-pointer list-none text-xs text-muted-foreground underline-offset-4 hover:underline">
+              {t("topics.customTitle")}
+            </summary>
+            <div className="mt-3">
+              <LessonCombobox
+                value={form.lesson}
+                onChange={form.onLessonChange}
+                onSuggestionSelect={form.onLessonSuggestionSelect}
+                disabled={form.controlsDisabled}
+              />
+            </div>
+          </details>
+        ) : null}
+
+        {form.isMultiTopic ? (
+          <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            {t("topics.mixedHint")}
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            <ScenarioSelect
+              lesson={form.primaryLesson}
+              value={form.resolvedScenarioId}
+              onChange={form.onScenarioChange}
               disabled={form.controlsDisabled}
             />
+            {needsScenario ? (
+              <p className="text-xs text-muted-foreground">{t("scenarioRequired")}</p>
+            ) : null}
           </div>
-        </details>
-      ) : null}
+        )}
+      </div>
 
-      {form.isMultiTopic ? (
-        <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          {t("topics.mixedHint")}
-        </p>
-      ) : (
-        <ScenarioSelect
-          lesson={form.primaryLesson}
-          value={form.resolvedScenarioId}
-          onChange={form.onScenarioChange}
+      <div className="space-y-4">
+        <p className={sectionEyebrowClass}>{t("sections.challenge")}</p>
+
+        <MathComplexitySelect
+          value={form.mathComplexity}
+          onChange={form.onMathComplexityChange}
           disabled={form.controlsDisabled}
         />
-      )}
 
-      <MathComplexitySelect
-        value={form.mathComplexity}
-        onChange={form.onMathComplexityChange}
-        disabled={form.controlsDisabled}
-      />
-
-      {usingCards ? (
-        <StarDifficultySelect
-          value={form.starDifficulty}
-          onChange={form.onStarDifficultyChange}
-          disabled={form.controlsDisabled}
-        />
-      ) : (
-        <ConceptualDifficultySelect
-          value={form.conceptualDifficulty}
-          onChange={form.onConceptualDifficultyChange}
-          disabled={form.controlsDisabled}
-        />
-      )}
+        {usingCards ? (
+          <StarDifficultySelect
+            value={form.starDifficulty}
+            onChange={form.onStarDifficultyChange}
+            disabled={form.controlsDisabled}
+          />
+        ) : (
+          <ConceptualDifficultySelect
+            value={form.conceptualDifficulty}
+            onChange={form.onConceptualDifficultyChange}
+            disabled={form.controlsDisabled}
+          />
+        )}
+      </div>
 
       <div className="space-y-3">
+        <p className={sectionEyebrowClass}>{t("sections.amount")}</p>
         <div className="flex items-center justify-between gap-3">
           <label htmlFor="question-count" className={formLabelClass}>
             {t("questions")}
@@ -279,7 +297,7 @@ function WorksheetGenerationActions({
         >
           {status.isGenerating && status.progress
             ? t("generatingProgressShort", { current: status.progress.current, total: status.progress.total })
-            : t("generateWorksheet", { cost: credits.cost })}
+            : t("generateWorksheet")}
         </Button>
       ) : (
         <div className="flex flex-col gap-2">

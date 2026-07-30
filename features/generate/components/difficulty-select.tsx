@@ -135,12 +135,22 @@ export function StarDifficultySelect({ value, onChange, disabled }: StarDifficul
           )
         })}
       </div>
-      <p className="text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">
-          {t(`starDifficulty.level_${value}_name`)}.
-        </span>{" "}
-        {t(`starDifficulty.level_${value}_blurb`)}
-      </p>
+      {/* Explainer coupled to the control: updates with the level, visually
+          attached via the gold star-colored edge. */}
+      <div className="rounded-lg border-l-2 border-[var(--chart-4)] bg-muted/40 px-3 py-2">
+        <p className="text-xs font-medium">
+          {t("starDifficulty.levelLabel", {
+            level: value,
+            name: t(`starDifficulty.level_${value}_name`),
+          })}
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          {t(`starDifficulty.level_${value}_blurb`)}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground italic">
+          {t(`starDifficulty.level_${value}_example`)}
+        </p>
+      </div>
     </div>
   )
 }

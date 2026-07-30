@@ -172,17 +172,21 @@ export function LessonCardGrid({ selectedIds, onToggle, disabled }: LessonCardGr
                     "hover:-translate-y-0.5 hover:border-ring/60 hover:shadow-md active:scale-[0.98] motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100",
                     "outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
                     "disabled:pointer-events-none disabled:opacity-50",
-                    selected ? "border-primary bg-accent/50 shadow-md" : "border-border shadow-sm"
+                    // Selection must read at a glance: accent ring + border,
+                    // tinted background, filled indicator.
+                    selected
+                      ? "border-primary bg-primary/10 shadow-md ring-2 ring-primary/50"
+                      : "border-border shadow-sm"
                   )}
                   style={{ animationDelay: `${index * 70}ms` }}
                 >
                   <span
                     aria-hidden="true"
                     className={cn(
-                      "mb-2 flex size-5 items-center justify-center self-end rounded-md border transition-colors",
+                      "mb-2 flex size-5 items-center justify-center self-end rounded-md transition-colors",
                       selected
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background"
+                        ? "border border-primary bg-primary text-primary-foreground"
+                        : "border-2 border-muted-foreground/40 bg-background"
                     )}
                   >
                     {selected ? (
