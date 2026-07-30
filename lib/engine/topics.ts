@@ -52,6 +52,19 @@ const ENGINE_TOPICS_BY_LESSON: Record<string, EngineTopic> = {
 }
 
 /**
+ * Every engine-backed lesson with its topic, for surfaces that sweep the whole
+ * catalog (the prose-fidelity benchmark). Enumerating the map keeps such
+ * sweeps in lockstep with what this branch actually wires — a new lesson added
+ * above is picked up with no benchmark change.
+ */
+export function engineBackedLessons(): { lessonId: string; topic: EngineTopic }[] {
+  return Object.entries(ENGINE_TOPICS_BY_LESSON).map(([lessonId, topic]) => ({
+    lessonId,
+    topic,
+  }))
+}
+
+/**
  * Resolve the engine topic for a lesson, or `null` if the lesson has no engine
  * template yet (those stay on the LLM-only path per §1.3).
  */

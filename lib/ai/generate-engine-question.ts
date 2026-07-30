@@ -118,7 +118,9 @@ Rules:
 ${THAI_LANGUAGE_RULES}${correction ? `\n\nYour previous attempt failed a fidelity check:\n${correction}\nFix it and try again.` : ""}`
 }
 
-async function phraseQuestion(
+// Exported for the prose-fidelity benchmark (benchmarks/prose-fidelity.test.ts),
+// which must measure the *production* prompt + schema, not a copy that drifts.
+export async function phraseQuestion(
   input: GenerateEngineQuestionInput,
   sympyData: SympyData,
   topic: EngineTopic,
