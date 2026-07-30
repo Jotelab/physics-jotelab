@@ -3,7 +3,11 @@ import { test, expect } from "@playwright/test"
 test.describe("authenticated dashboard", () => {
   test("generate page loads builder", async ({ page }) => {
     await page.goto("/generate")
-    await expect(page.getByText("Worksheet Preview")).toBeVisible({ timeout: 15_000 })
+    // "Worksheet Preview" appears twice (header breadcrumb + editable-title
+    // button); target the editable title so strict mode stays satisfied.
+    await expect(
+      page.getByRole("button", { name: "Edit worksheet title" })
+    ).toBeVisible({ timeout: 15_000 })
     await expect(page.locator("#lesson-combobox")).toBeVisible()
   })
 
