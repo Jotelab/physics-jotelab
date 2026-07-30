@@ -13,13 +13,18 @@
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --animate-pendulum: pendulum-swing 1.8s cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
   --animate-star-pop: star-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  --animate-card-deal: card-deal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-card-deal: card-deal 0.55s cubic-bezier(0.22, 1.2, 0.36, 1) both;
 
-  /* Cards dealing out of the collapsed topic deck. */
+  /* Cards dealing sideways out of the collapsed topic deck — an unhurried
+     slide with a tilt that settles, like cards fanned from a pile. */
   @keyframes card-deal {
     from {
       opacity: 0;
-      transform: translateY(-8px) scale(0.97);
+      transform: translateX(-36px) rotate(-4deg) scale(0.94);
+    }
+    60% {
+      opacity: 1;
+      transform: translateX(3px) rotate(0.8deg) scale(1.01);
     }
     to {
       opacity: 1;

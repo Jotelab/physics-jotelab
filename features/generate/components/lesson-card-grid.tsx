@@ -19,7 +19,8 @@ interface LessonCardGridProps {
  * Topic selection as a deck of checkbox cards. Collapsed, the topics sit as a
  * stacked deck (title + selection summary on the front card); hovering fans
  * the deck out as a peek, and any click pins it open. Expanded, the cards
- * deal into a scrollable list — name + description per topic, multi-select.
+ * deal into a horizontal hand — portrait card shapes, scrolled/swiped
+ * sideways with snap points — name + description per topic, multi-select.
  *
  * Only engine-backed lessons appear as cards (their generation is verified
  * end to end); the free-text combobox below the deck keeps the LLM-only
@@ -145,10 +146,12 @@ export function LessonCardGrid({ selectedIds, onToggle, disabled }: LessonCardGr
       {expanded ? (
         <>
           <p className="text-xs text-muted-foreground">{t("topics.hint")}</p>
+          {/* A horizontal hand of cards: portrait card shapes, scroll (or
+              swipe) sideways for more, snapping card by card. */}
           <div
             role="group"
             aria-label={t("topics.title")}
-            className="grid max-h-80 grid-cols-1 gap-2.5 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-1"
+            className="flex snap-x snap-mandatory gap-3 overflow-x-auto pt-1 pb-2"
           >
             {topics.map(({ id }, index) => {
               const selected = selectedIds.includes(id)
@@ -164,25 +167,19 @@ export function LessonCardGrid({ selectedIds, onToggle, disabled }: LessonCardGr
                     onToggle(id)
                   }}
                   className={cn(
-                    "animate-card-deal relative rounded-xl border bg-background p-3 pr-11 text-left",
+                    "animate-card-deal relative flex h-52 w-40 shrink-0 snap-start flex-col rounded-2xl border bg-background p-3 text-left",
                     "transition-all duration-150 ease-[var(--ease-spring)]",
-                    "hover:border-ring/60 hover:shadow-sm active:scale-[0.98] motion-reduce:active:scale-100",
+                    "hover:-translate-y-0.5 hover:border-ring/60 hover:shadow-md active:scale-[0.98] motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100",
                     "outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
                     "disabled:pointer-events-none disabled:opacity-50",
-                    selected ? "border-primary bg-accent/50 shadow-sm" : "border-border"
+                    selected ? "border-primary bg-accent/50 shadow-md" : "border-border shadow-sm"
                   )}
-                  style={{ animationDelay: `${index * 30}ms` }}
+                  style={{ animationDelay: `${index * 70}ms` }}
                 >
-                  <span className="font-heading block text-sm font-semibold">
-                    {t(`presets.lessons.${id}`)}
-                  </span>
-                  <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                    {t(`presets.lessonDescriptions.${id}`)}
-                  </span>
                   <span
                     aria-hidden="true"
                     className={cn(
-                      "absolute top-3 right-3 flex size-5 items-center justify-center rounded-md border transition-colors",
+                      "mb-2 flex size-5 items-center justify-center self-end rounded-md border transition-colors",
                       selected
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-border bg-background"
@@ -191,6 +188,12 @@ export function LessonCardGrid({ selectedIds, onToggle, disabled }: LessonCardGr
                     {selected ? (
                       <Check className="animate-star-pop size-3.5" strokeWidth={3} />
                     ) : null}
+                  </span>
+                  <span className="font-heading block text-sm leading-snug font-semibold">
+                    {t(`presets.lessons.${id}`)}
+                  </span>
+                  <span className="mt-1.5 line-clamp-5 block text-xs leading-relaxed text-muted-foreground">
+                    {t(`presets.lessonDescriptions.${id}`)}
                   </span>
                 </button>
               )

@@ -84,8 +84,9 @@ generation — see jotelab-sandbox/engine-service/run.sh, and set
 1. `/generate` — the Lesson combobox is now a deck of topic cards: collapsed,
    it sits as a stacked pile with a selection summary; hovering fans it out
    as a peek (mouse-out restacks it), clicking pins it open, and the cards
-   deal into a scrollable list (Esc or the header restacks). Each card shows
-   the topic name and description and toggles with a popping check.
+   deal sideways into a horizontal hand you scroll/swipe through, snapping
+   card by card (Esc or the header restacks). Each card is a portrait card
+   shape with the topic name and description and a popping check.
 2. Pick one card → scenario picker appears (per-topic scenarios); pick 2+
    cards → scenario picker is replaced by the mixed-topics hint and
    generation rotates topics across question orders.
