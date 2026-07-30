@@ -142,7 +142,7 @@
       "level_5_name": "Cross-topic",
       "level_5_blurb": "One problem spanning topics, parts wired exactly.",
       "level_5_example": "e.g. A drop feeds a skid — one part's answer carries into the next.",
-      "fiveStarSoon": "5★ chains span several parts — they arrive once worksheets support multi-part questions."
+      "fiveStarSoon": "For now, 5★ generates the hardest single-part structure (4★) — full multi-part chains arrive once worksheets support them."
     },
     "sections": {
       "practice": "What to practice",

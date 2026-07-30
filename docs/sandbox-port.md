@@ -37,10 +37,19 @@ Regeneration re-pins zero-valued givens so a re-roll keeps the structure.
 
 **Not ported — 5★ chain generation.** Chain plans need multi-part questions;
 the persisted question format is single-part (and part symbols collide when
-flattened), so 5★ is selectable in code (`STAR_PLANS[5]`) but locked in the
-UI and capped by `MAX_GENERATABLE_STARS` in generation. Unlocking it needs a
-multi-part `format` member in `worksheetQuestionSchema`, a DB
-`is_valid_worksheet_question` migration, and a chain client — a follow-up.
+flattened). 5★ is selectable in the UI, but generation caps at
+`MAX_GENERATABLE_STARS` (4★ structure) and the control says so. True chain
+generation needs a multi-part `format` member in `worksheetQuestionSchema`,
+a DB `is_valid_worksheet_question` migration, and a chain client — a
+follow-up.
+
+**DB migration required:**
+`supabase/migrations/20260731000000_star_difficulty_multi_topic_settings.sql`
+extends the `is_valid_generation_settings` allowlist with `lessons` and
+`star_difficulty` — without it, every card-configured worksheet fails at
+`generate_worksheet_init` with "Could not start worksheet generation". Apply
+to the local stack with `npx supabase migration up` (or `npx supabase db
+reset` for a fresh database).
 
 ## The new generate config
 
@@ -58,10 +67,10 @@ and vice versa.
 **Star difficulty control**
 (`StarDifficultySelect` in `difficulty-select.tsx`)
 
-Card selections show the 1–5★ tactile star control (5★ visible but locked
-with an explanation); a custom free-text topic keeps the old conceptual
-difficulty dropdown. Math complexity stays a separate numbers knob in both
-modes.
+Card selections show the 1–5★ tactile star control; picking 5★ notes that
+it generates the hardest single-part structure (4★) until chains land. A
+custom free-text topic keeps the old conceptual difficulty dropdown. Math
+complexity stays a separate numbers knob in both modes.
 
 **Config plumbing:** `generateWorksheetInputSchema` and
 `generationSettingsSchema` gain optional `lessons` (mixed topics) and
@@ -91,7 +100,7 @@ generation — see jotelab-sandbox/engine-service/run.sh, and set
    cards → scenario picker is replaced by the mixed-topics hint and
    generation rotates topics across question orders.
 3. With any card selected, "Conceptual difficulty" is replaced by the
-   "Star difficulty" 1–5★ control; hover 5★ for the lock explanation. Clear
+   "Difficulty" 1–5★ control; selecting 5★ explains the 4★ fallback. Clear
    cards and type a custom topic → the conceptual dropdown returns.
 4. Generate at 3★ with the Free fall card: expect wordings like "dropped from
    rest" with no `u = 0` stated numerically; the answer key still shows u = 0

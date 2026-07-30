@@ -97,7 +97,6 @@ export function StarDifficultySelect({ value, onChange, disabled }: StarDifficul
         className="flex items-center gap-0.5"
       >
         {levels.map((level) => {
-          const locked = level > MAX_GENERATABLE_STARS
           const filled = level <= value
           return (
             <button
@@ -106,18 +105,13 @@ export function StarDifficultySelect({ value, onChange, disabled }: StarDifficul
               role="radio"
               aria-checked={value === level}
               aria-label={`${level}★ ${t(`starDifficulty.level_${level}_name`)}`}
-              disabled={disabled || locked}
-              title={
-                locked
-                  ? t("starDifficulty.fiveStarSoon")
-                  : t(`starDifficulty.level_${level}_name`)
-              }
+              disabled={disabled}
+              title={t(`starDifficulty.level_${level}_name`)}
               onClick={() => onChange(level)}
               className={cn(
                 "rounded-md p-1.5 outline-none transition-transform duration-150 ease-[var(--ease-spring)]",
                 "hover:scale-110 active:scale-95 motion-reduce:hover:scale-100 motion-reduce:active:scale-100",
-                "focus-visible:ring-3 focus-visible:ring-ring/50",
-                locked && "cursor-not-allowed opacity-40 hover:scale-100"
+                "focus-visible:ring-3 focus-visible:ring-ring/50"
               )}
             >
               <Star
@@ -150,6 +144,11 @@ export function StarDifficultySelect({ value, onChange, disabled }: StarDifficul
         <p className="mt-1 text-xs text-muted-foreground italic">
           {t(`starDifficulty.level_${value}_example`)}
         </p>
+        {value > MAX_GENERATABLE_STARS ? (
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {t("starDifficulty.fiveStarSoon")}
+          </p>
+        ) : null}
       </div>
     </div>
   )
