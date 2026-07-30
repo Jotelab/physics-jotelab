@@ -55,6 +55,23 @@ export default defineConfig({
           },
         ]
       : []),
+    // Opt-in outage drill (e2e/outage/): requires a webServer whose real
+    // generation path points at a dead engine — see the spec header for the
+    // exact env. Kept out of default runs so `playwright test` stays green
+    // with the stubbed server.
+    ...(hasAuthenticatedE2E && process.env.E2E_ENGINE_OUTAGE === "true"
+      ? [
+          {
+            name: "engine-outage",
+            testMatch: /outage\/.*\.spec\.ts/,
+            fullyParallel: false,
+            dependencies: ["setup"],
+            use: {
+              storageState: "e2e/.auth/user.json",
+            },
+          },
+        ]
+      : []),
   ],
   webServer: {
     command: process.env.CI ? "npm run start" : "npm run dev",
@@ -69,6 +86,14 @@ export default defineConfig({
       E2E_STUB_GENERATION: process.env.E2E_STUB_GENERATION ?? "",
       SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
       SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET ?? "",
+      // Engine config passthrough so the outage project can point the real
+      // generation path at a dead ENGINE_BASE_URL.
+      ENGINE_BASE_URL: process.env.ENGINE_BASE_URL ?? "",
+      ENGINE_API_KEY: process.env.ENGINE_API_KEY ?? "",
+      GENERATION_MODE: process.env.GENERATION_MODE ?? "",
+      // Outage drills run the real path without an Inngest key by executing
+      // the job worker inline (see sendGenerationJobEvent).
+      GENERATION_INLINE: process.env.GENERATION_INLINE ?? "",
     },
   },
 })

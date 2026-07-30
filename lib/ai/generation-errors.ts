@@ -6,6 +6,7 @@ import {
 import { z } from "zod"
 
 import { failure, type AppFailure, type GenerationErrorCode } from "@/features/generate/errors"
+import { EngineError } from "@/lib/engine/client"
 
 const DEFAULT_GENERATION_MESSAGE = "We could not generate the question."
 const DEFAULT_REGENERATE_MESSAGE = "Could not regenerate the question. No credits were spent."
@@ -32,6 +33,13 @@ export function getGenerationFailure(
   fallbackCode: GenerationErrorCode = "GENERATE_FAILED",
   fallbackMessage = DEFAULT_GENERATION_MESSAGE
 ): AppFailure {
+  // Engine failures get their own code (not the fallback) so the client can
+  // localize them and the user learns the credit came back — never the raw
+  // "Could not reach the symbolic engine: fetch failed" internals.
+  if (error instanceof EngineError) {
+    return failure("ENGINE_UNAVAILABLE")
+  }
+
   if (error instanceof LoadAPIKeyError) {
     return failure(fallbackCode, "Google AI API key is missing or invalid.")
   }

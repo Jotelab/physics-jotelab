@@ -185,7 +185,7 @@ async function runStandardGenerationJobWorker(params: {
           return { type: "failed", message: result.message }
         }
 
-        return { type: "skipped", message: result.message }
+        return { type: "skipped", message: result.message, code: result.code }
       },
       onSaved: (order, saved, state) => {
         state.questions = saved.questions
@@ -203,8 +203,8 @@ async function runStandardGenerationJobWorker(params: {
           }),
         ]
       },
-      onSkipped: (order, message, state) => {
-        state.skippedOrders.push({ order, message })
+      onSkipped: (order, message, state, code) => {
+        state.skippedOrders.push({ order, message, ...(code ? { code } : {}) })
       },
       serializeProgress: (state) => ({
         lastCompletedOrder: state.lastCompletedOrder,

@@ -15,6 +15,7 @@ export const GENERATION_ERROR_CODES = [
   "PROFILE_NOT_FOUND",
   "NOT_AUTHENTICATED",
   "VALIDATION_FAILED",
+  "ENGINE_UNAVAILABLE",
   "GENERATE_FAILED",
   "REGENERATE_FAILED",
   "VARIANT_FAILED",
@@ -40,6 +41,8 @@ export const GENERATION_ERROR_MESSAGES: Record<GenerationErrorCode, string> = {
   PROFILE_NOT_FOUND: "Profile not found.",
   NOT_AUTHENTICATED: "You must be logged in.",
   VALIDATION_FAILED: "Please check your input and try again.",
+  ENGINE_UNAVAILABLE:
+    "The calculation engine could not be reached. Your credit has been refunded — please try again.",
   GENERATE_FAILED: "We could not generate the question.",
   REGENERATE_FAILED: "Could not regenerate the question. No credits were spent.",
   VARIANT_FAILED: "Could not generate the variant. No credits were spent.",
@@ -50,6 +53,9 @@ export const GENERATION_ERROR_MESSAGES: Record<GenerationErrorCode, string> = {
 
 const RETRYABLE_CODES = new Set<GenerationErrorCode>([
   "UNKNOWN",
+  // A transient network blip to the engine deserves one more attempt; a real
+  // outage fails the retry too and the slot surfaces ENGINE_UNAVAILABLE.
+  "ENGINE_UNAVAILABLE",
   "GENERATE_FAILED",
   "VARIANT_FAILED",
   "SAVE_FAILED",

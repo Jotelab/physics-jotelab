@@ -72,6 +72,8 @@ function createSupabaseClient() {
   }
 }
 
+import { EngineError } from "@/lib/engine/client"
+
 import { generateQuestionForWorksheet, regenerateQuestionForWorksheet } from "./generate-question-core"
 import { failure } from "./errors"
 import { buildGenerateIdempotencyKey, buildRegenerateIdempotencyKey } from "./utils/idempotency-key"
@@ -282,6 +284,45 @@ describe("generateQuestionForWorksheet", () => {
       expect.objectContaining({ subject: "physics", lesson: "motion-1d" })
     )
     expect(mockGenerateWorksheetQuestion).not.toHaveBeenCalled()
+  })
+
+  it("returns ENGINE_UNAVAILABLE and cancels the reservation when the engine is unreachable", async () => {
+    mockWorksheetsSingle.mockResolvedValue({
+      data: makeWorksheetRow({
+        generation_settings: { lesson: "motion-1d", scenario: "Find velocity." },
+      }),
+      error: null,
+    })
+    mockGenerateEngineQuestion.mockRejectedValue(
+      new EngineError("Could not reach the symbolic engine: fetch failed")
+    )
+    mockGenerateReservationFlow()
+
+    const supabase = createSupabaseClient()
+
+    const result = await generateQuestionForWorksheet({
+      supabase,
+      profileId,
+      worksheetId,
+      order: 1,
+      previousQuestionsContext: [],
+    })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      // The dedicated code lets the client localize the outage and promise the
+      // refund; the raw fetch error must never surface.
+      expect(result.code).toBe("ENGINE_UNAVAILABLE")
+      expect(result.message).not.toContain("fetch failed")
+    }
+    expect(mockRpc).toHaveBeenNthCalledWith(
+      2,
+      "cancel_generate_question_reservation",
+      expect.objectContaining({
+        p_reservation_id: reservationId,
+        p_idempotency_key: generateIdempotencyKey,
+      })
+    )
   })
 
   it("passes advanced-mode pins to the engine as mapped given/find constraints", async () => {

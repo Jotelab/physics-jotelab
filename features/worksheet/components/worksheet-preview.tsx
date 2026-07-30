@@ -248,13 +248,19 @@ function DisplayItemBlock({
 }
 
 function SkippedQuestionBlock({ skipped }: { skipped: SkippedSlot }) {
+  const tErrors = useTranslations("errors")
+
   return (
     <article className="break-inside-avoid rounded-md border border-dashed border-destructive/30 bg-destructive/5 p-4">
       <div className="flex items-start gap-3">
         <div className="flex size-7 shrink-0 items-center justify-center rounded-full border text-sm font-medium">
           {skipped.order}
         </div>
-        <p className="text-sm text-destructive">{skipped.message}</p>
+        {/* A known failure code renders in the viewer's locale; the server's
+            English message is only the fallback for legacy/unknown skips. */}
+        <p className="text-sm text-destructive">
+          {skipped.code ? tErrors(skipped.code) : skipped.message}
+        </p>
       </div>
     </article>
   )

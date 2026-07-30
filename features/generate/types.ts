@@ -1,5 +1,6 @@
 import type { z } from "zod"
 
+import type { GenerationErrorCode } from "./errors"
 import type {
   calculationQuestionSchema,
   conceptualDifficultySchema,
@@ -39,6 +40,12 @@ export type WorksheetVersionLabel = "A" | VariantLabel
 export type SkippedSlot = {
   order: number
   message: string
+  /**
+   * Failure code of the skip, when the worker knew it. Lets the client render
+   * a localized message (messages/{en,th}.json `errors` namespace) instead of
+   * the server's English `message`, which stays as the fallback.
+   */
+  code?: GenerationErrorCode
 }
 
 export type VariantSkippedSlot = {
