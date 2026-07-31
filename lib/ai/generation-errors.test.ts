@@ -2,12 +2,26 @@ import { APICallError, LoadAPIKeyError, TypeValidationError } from "ai"
 import { describe, expect, it } from "vitest"
 import { z } from "zod"
 
+import { EngineError } from "@/lib/engine/client"
+
 import {
   getGenerationErrorMessage,
+  getGenerationFailure,
   getRegenerateErrorMessage,
 } from "./generation-errors"
 
 describe("getGenerationErrorMessage", () => {
+  it("maps EngineError to ENGINE_UNAVAILABLE, hiding the technical message", () => {
+    const result = getGenerationFailure(
+      new EngineError("Could not reach the symbolic engine: fetch failed")
+    )
+
+    expect(result.code).toBe("ENGINE_UNAVAILABLE")
+    expect(result.message).toBe(
+      "The calculation engine could not be reached. Your credit has been refunded — please try again."
+    )
+  })
+
   it("maps LoadAPIKeyError", () => {
     expect(getGenerationErrorMessage(new LoadAPIKeyError({ message: "missing" }))).toBe(
       "Google AI API key is missing or invalid."

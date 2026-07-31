@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import type { GenerationProgress, SkippedSlot, VariantLabel, VariantSkippedSlot, WorksheetQuestion, WorksheetVariant } from "./types"
+import { parseGenerationErrorCode } from "./errors"
 import { worksheetVariantSchema } from "./schemas"
 
 export const generationJobStatusSchema = z.enum([
@@ -52,12 +53,18 @@ const skippedOrderSchema = z.object({
   order: z.number().int().min(1),
   message: z.string().min(1),
   label: z.enum(["B", "C", "D"]).optional(),
+  code: z.string().optional(),
 })
 
 export function parseSkippedOrders(value: unknown): SkippedSlot[] {
   const parsed = z.array(skippedOrderSchema).safeParse(value)
   return parsed.success
-    ? parsed.data.map(({ order, message }) => ({ order, message }))
+    ? parsed.data.map(({ order, message, code }) => {
+        // Old rows (and unknown future codes) parse to a code-less slot; the
+        // client then falls back to the stored English message.
+        const parsedCode = parseGenerationErrorCode(code)
+        return { order, message, ...(parsedCode ? { code: parsedCode } : {}) }
+      })
     : []
 }
 

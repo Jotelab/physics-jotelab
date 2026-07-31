@@ -58,9 +58,16 @@ export async function sendGenerationJobEvent(params: {
   worksheetId: string
   profileId: string
 }) {
-  if (process.env.E2E_STUB_GENERATION === "true") {
-    // The worker resolves the job kind itself, so both standard and variant
-    // jobs run synchronously through the same stub entry point.
+  // E2E stubs and GENERATION_INLINE both run the worker synchronously in the
+  // request (the worker resolves the job kind itself, so standard and variant
+  // jobs share this entry point). GENERATION_INLINE exists for environments
+  // with no Inngest key that still need the *real* generation path — the local
+  // dev stack and the engine-outage drill (e2e/outage/). Never set it in
+  // production: a full worksheet would block one request for minutes.
+  if (
+    process.env.E2E_STUB_GENERATION === "true" ||
+    process.env.GENERATION_INLINE === "true"
+  ) {
     await runGenerationJobWorker(params)
     return
   }

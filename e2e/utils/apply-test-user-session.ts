@@ -44,11 +44,14 @@ export async function applyTestUserSession(page: Page, baseURL: string) {
 
   const hostname = new URL(baseURL).hostname
 
+  // Playwright's addCookies rejects `url` combined with `domain`/`path`
+  // ("Cookie should have either url or domain"). Passing all three broke the
+  // whole `setup` project — and with it every authenticated spec — so we pin
+  // the cookie with `domain` + `path` only.
   await page.context().addCookies([
     {
       name: getSupabaseAuthCookieName(supabaseUrl),
       value: encodeSupabaseSessionCookie(data.session),
-      url: baseURL,
       domain: hostname,
       path: "/",
       httpOnly: false,

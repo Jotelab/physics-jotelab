@@ -219,7 +219,10 @@ describe("runGenerationJobWorker (standard)", () => {
     expect(result).toEqual({ status: "completed" })
     const final = progressUpdates(rpcCalls).at(-1)
     expect(final).toMatchObject({ p_status: "completed" })
-    expect(final?.p_skipped_orders).toEqual([{ order: 2, message: "bad shape" }])
+    // The failure code rides along so the client can localize the skip.
+    expect(final?.p_skipped_orders).toEqual([
+      { order: 2, message: "bad shape", code: "VALIDATION_FAILED" },
+    ])
   })
 
   it("fails the job when the worksheet cannot be loaded at all", async () => {

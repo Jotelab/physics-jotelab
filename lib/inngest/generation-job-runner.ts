@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { loadWorksheetQuestionsForProfile } from "@/features/generate/generate-question-core"
+import type { GenerationErrorCode } from "@/features/generate/errors"
 import type { GenerationJobRow } from "@/features/generate/generation-job-types"
 import type { WorksheetQuestion, WorksheetVariant } from "@/features/generate/types"
 import type { OwnedWorksheetRow } from "@/features/generate/utils/load-owned-worksheet"
@@ -53,7 +54,7 @@ export async function updateGenerationJobProgress(
 export type ItemOutcome<TSaved> =
   | { type: "saved"; saved: TSaved }
   | { type: "credits" }
-  | { type: "skipped"; message: string }
+  | { type: "skipped"; message: string; code?: GenerationErrorCode }
   | { type: "failed"; message: string }
 
 /** Progress fields a worker serializes from its in-memory state for persistence. */
@@ -109,7 +110,7 @@ export type GenerationJobConfig<TItem, TSaved, TState, TResult> = {
   /** Mutate state for each terminal outcome of an item. */
   onSaved: (item: TItem, saved: TSaved, state: TState, job: GenerationJobRow) => void
   onCredits: (item: TItem, items: TItem[], state: TState, job: GenerationJobRow) => void
-  onSkipped: (item: TItem, message: string, state: TState) => void
+  onSkipped: (item: TItem, message: string, state: TState, code?: GenerationErrorCode) => void
   /** Serialize state into the progress-update payload (persist / finalize / fail). */
   serializeProgress: (state: TState) => JobProgressFields
   /** Inngest step id for the terminal finalize step. */
@@ -224,7 +225,7 @@ export async function runGenerationJob<TItem, TSaved, TState, TResult>(params: {
     for (let i = 0; i < batch.length; i += 1) {
       const outcome = outcomes[i]
       if (outcome.type === "skipped") {
-        config.onSkipped(batch[i], outcome.message, state)
+        config.onSkipped(batch[i], outcome.message, state, outcome.code)
       }
     }
 

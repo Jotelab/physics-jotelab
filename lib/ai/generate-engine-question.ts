@@ -5,7 +5,7 @@ import { MAX_QUESTION_TEXT_LEN } from "@/features/generate/limits"
 import type { GeneratedQuestion, MathComplexity, Subject } from "@/features/generate/types"
 import { DEFAULT_MATH_COMPLEXITY } from "@/features/generate/constants/difficulty-settings"
 import { assembleEngineQuestion } from "@/lib/engine/assemble-question"
-import { engineGenerate } from "@/lib/engine/client"
+import { engineGenerate, EngineError } from "@/lib/engine/client"
 import type { SympyData } from "@/lib/engine/sympy-data"
 import {
   mathComplexityToDifficulty,
@@ -118,7 +118,9 @@ Rules:
 ${THAI_LANGUAGE_RULES}${correction ? `\n\nYour previous attempt failed a fidelity check:\n${correction}\nFix it and try again.` : ""}`
 }
 
-async function phraseQuestion(
+// Exported for the prose-fidelity benchmark (benchmarks/prose-fidelity.test.ts),
+// which must measure the *production* prompt + schema, not a copy that drifts.
+export async function phraseQuestion(
   input: GenerateEngineQuestionInput,
   sympyData: SympyData,
   topic: EngineTopic,
@@ -181,6 +183,13 @@ export async function generateEngineQuestion(
     return assembleEngineQuestion(sympyData, topic, questionText)
   } catch (error) {
     logGenerationError("generateEngineQuestion", error)
+    // EngineError must survive as-is: getGenerationFailure keys on the type to
+    // emit ENGINE_UNAVAILABLE (localized, promises the refund). Flattening it
+    // into a plain Error here is what used to downgrade outages to the generic
+    // GENERATE_FAILED copy.
+    if (error instanceof EngineError) {
+      throw error
+    }
     throw new Error(getGenerationErrorMessage(error))
   }
 }
