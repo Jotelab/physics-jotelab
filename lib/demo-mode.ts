@@ -113,9 +113,23 @@ export class DemoFlagsInProductionError extends Error {
  * Hard gate for production. A missing `ENGINE_BASE_URL` is deliberately *not*
  * fatal here — that is a deployment gap the engine client already fails closed
  * on, not content misrepresentation.
+ *
+ * **Why there is an escape hatch.** `next build` always sets
+ * `NODE_ENV=production`, including for builds that are never deployed — most
+ * importantly the authenticated E2E flow, which legitimately needs
+ * `E2E_STUB_GENERATION=true pnpm build`. A guard that blocks a documented
+ * workflow gets deleted, not respected, so `ALLOW_DEMO_FLAGS_IN_BUILD=true`
+ * opts out deliberately and visibly.
+ *
+ * The hatch is itself gated: it is ignored when `VERCEL` is present, so it can
+ * never be the reason a demo flag reaches a real deployment. Local builds can
+ * opt out; a deploy cannot.
  */
 export function assertNoDemoFlagsInProduction(env: Env): void {
   if (env.NODE_ENV !== "production") return
+
+  const onVercel = Boolean(env.VERCEL)
+  if (!onVercel && env.ALLOW_DEMO_FLAGS_IN_BUILD === "true") return
 
   const offending = activeDemoFlags(env).filter(
     (flag) => flag.key !== "ENGINE_BASE_URL"
