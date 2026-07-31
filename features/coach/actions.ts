@@ -7,6 +7,7 @@ import { sympyDataSchema, type SympyData } from "@/lib/engine/sympy-data"
 import { templateDiagramSvg } from "@/lib/tikz/attach-diagram"
 
 import { relationForSplit } from "./equations"
+import type { CoachDifficulty } from "./types"
 
 /**
  * Server actions for the coaching surface (C1.1).
@@ -40,7 +41,14 @@ export async function generateCoachProblem(params?: {
   given?: string[]
   /** …and its find name. */
   find?: string
-  difficulty?: "easy" | "medium" | "hard"
+  difficulty?: CoachDifficulty
+  /**
+   * Pin exact values onto givens — the remediation planner's targeted-drill
+   * mechanism (a sign drill pins a negative acceleration). Forwarded verbatim;
+   * the engine treats a pinned given as fixed rather than sampled, so the
+   * numbers still originate in the symbolic layer.
+   */
+  conditions?: Record<string, number>
 }): Promise<CoachGenerateResult> {
   // E2E stub (same boundary pattern as generate-engine-question): a coached
   // solve runs in Playwright with no engine service. The fixed payload is its
@@ -60,6 +68,7 @@ export async function generateCoachProblem(params?: {
         difficulty: params?.difficulty ?? "easy",
         given: params?.given,
         find: params?.find,
+        conditions: params?.conditions,
       })
       last = sympyData
       const split = sympyData.given.map((given) => given.symbol)

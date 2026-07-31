@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 
 import { generateCoachProblem } from "@/features/coach/actions"
+import { CoachProgressCard } from "@/features/coach/components/coach-progress-card"
 import { CoachSession } from "@/features/coach/components/coach-session"
 
 /**
@@ -28,17 +30,30 @@ export default async function LearnPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
       <header className="mb-6">
-        <h1 className="text-2xl font-semibold">ฝึกทำโจทย์ทีละขั้น</h1>
+        <Link
+          href="/generate"
+          className="text-sm text-muted-foreground underline underline-offset-2"
+        >
+          ← กลับไปหน้าสร้างใบงาน
+        </Link>
+        <h1 className="mt-2 text-2xl font-semibold">ฝึกทำโจทย์ทีละขั้น</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           ระบบจะตรวจทุกขั้นตอนของคุณกับคำตอบที่คำนวณโดยเอนจินสัญลักษณ์ —
           ตอบผิดจะได้คำใบ้ที่ตรงกับจุดที่พลาด ไม่ใช่เฉลยทันที
+          และโจทย์ข้อถัดไปจะถูกเลือกจากจุดที่คุณเพิ่งพลาด
         </p>
       </header>
       {result.ok ? (
-        <CoachSession
-          initial={result.sympyData}
-          initialDiagramSvg={result.diagramSvg}
-        />
+        <>
+          <CoachSession
+            initial={result.sympyData}
+            initialDiagramSvg={result.diagramSvg}
+          />
+          {/* Renders null for anonymous solves, so the page stays account-free. */}
+          <div className="mt-8">
+            <CoachProgressCard />
+          </div>
+        </>
       ) : (
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm">
           <p className="font-medium">ยังเชื่อมต่อเอนจินไม่ได้</p>

@@ -2,6 +2,7 @@
   "common": {
     "appName": "PhysicsJotelab",
     "generate": "สร้าง",
+    "learn": "ฝึกทำโจทย์",
     "library": "คลัง",
     "account": "บัญชี",
     "logout": "ออกจากระบบ",

@@ -39,6 +39,21 @@ export const EXPLANATIONS: Record<CoachErrorType, string> = {
     "มีค่าที่แทนไม่ตรงกับที่โจทย์กำหนด — กลับไปอ่านโจทย์แล้วตรวจตัวเลขทีละตัวอีกครั้ง",
 }
 
+/**
+ * Compact names for the same taxonomy, for places that report *what was
+ * diagnosed* rather than teach it — the end-of-problem summary and the
+ * remediation chip. Short by design: the long form above stays the teaching
+ * text.
+ */
+export const ERROR_LABELS: Record<CoachErrorType, string> = {
+  "wrong-equation": "เลือกสมการผิด",
+  "swapped-variables": "สลับตัวแปร",
+  "sign-error": "เครื่องหมายผิด",
+  "unit-slip": "หน่วยคลาดเคลื่อน",
+  "arithmetic-slip": "คิดเลขพลาด",
+  "value-slip": "แทนค่าไม่ตรงโจทย์",
+}
+
 /** Section headers for the worked-step reveal, per step. */
 export const WORKED_LABELS: Record<CoachStep, string> = {
   equation: "สมการที่ใช้คือ",

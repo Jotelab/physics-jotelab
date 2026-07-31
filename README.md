@@ -28,6 +28,16 @@ PhysicsJotelab is a physics worksheet generation platform for high-school practi
   *How to test:* `npx vitest run features/coach` and
   `E2E_STUB_GENERATION=true pnpm test:e2e:public` (full coached solve in a
   browser, engine stubbed).
+- **Misconception-driven remediation** — the diagnosis decides the *next*
+  problem, not just the hint: a conceptual miss repeats the same Given/Find
+  shape, a sign error serves a drill with the acceleration pinned negative
+  (`conditions`), an execution slip re-rolls fresh numbers, and a clean solve
+  steps the difficulty band then rotates to a new relation
+  (`features/coach/remediation.ts`). The rules are plain and deterministic —
+  no model chooses, and the engine still owns every number.
+  *How to test:* `npx vitest run features/coach/remediation.test.ts features/coach/components`
+  — covers the plan for each error class plus the UI calling `/generate` with
+  the planned constraints.
 
 ## Getting Started
 

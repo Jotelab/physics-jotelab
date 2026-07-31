@@ -92,6 +92,14 @@ test.describe("coached solve (stubbed engine)", () => {
     ).toBe(true)
     expect(attemptLogs.length).toBeGreaterThanOrEqual(5)
 
+    // The remediation loop is visible: the misconception the classifier named
+    // on this problem is reported, and drives the recommended next step.
+    await expect(solvedPanel.getByText("เลือกสมการผิด")).toBeVisible()
+    await expect(solvedPanel.getByText("ขั้นต่อไปที่แนะนำ")).toBeVisible()
+    await expect(
+      solvedPanel.getByText("ทบทวนโจทย์รูปแบบเดิมอีกครั้ง", { exact: false })
+    ).toBeVisible()
+
     // Isomorphic re-roll: same Given/Find structure, session reset.
     await solvedPanel
       .getByRole("button", { name: "โจทย์แบบเดียวกันข้อใหม่" })

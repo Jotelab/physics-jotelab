@@ -22,7 +22,8 @@ That is the capability generic AI tutors cannot offer.
   numbers, worked solutions, and deterministic diagrams.
 - **Students** practice on `/learn`: an engine-generated problem solved in
   three checked steps, with misconception-targeted hints instead of instant
-  answer reveals.
+  answer reveals — and a *next* problem chosen from whatever the classifier
+  just diagnosed, so the app teaches rather than only grades.
 
 ## Core flows
 
@@ -31,6 +32,7 @@ That is the capability generic AI tutors cannot offer.
 | Worksheet generation | `/generate` | engine `sympy_data` + runtime Data Fidelity gate (`lib/ai/data-fidelity.ts`) |
 | Worksheet library / export | `/library` | stored `sympy_data` travels verbatim; PDF is vector (ADR-006) |
 | Coached solve | `/learn` | every structured input checked against `sympy_data.steps` (`features/coach/`) |
+| Remediation | `/learn` | the diagnosed misconception becomes the next `/generate` constraint set (`features/coach/remediation.ts`) |
 
 ## Risks the design answers
 
@@ -47,7 +49,7 @@ That is the capability generic AI tutors cannot offer.
 # Invariant 1: numbers originate in the engine and survive to the UI
 npx vitest run lib/ai/data-fidelity.test.ts lib/engine
 
-# Invariant 2: the engine-judged coach loop
+# Invariant 2: the engine-judged coach loop, incl. misconception → next problem
 npx vitest run features/coach
 
 # Live: run the engine service (see jotelab-ai/docs/deploy-render.md for the
