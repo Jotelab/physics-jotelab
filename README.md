@@ -64,6 +64,39 @@ ENGINE_API_KEY=dev-secret
 *How to test:* `curl -s $ENGINE_BASE_URL/health` lists the engine topics, and
 `/learn` renders a Thai SUVAT problem instead of the connection-error box.
 
+### Judge / evaluation profile
+
+Some settings make the app serve content that only *looks* engine-generated —
+`E2E_STUB_GENERATION` (fixed stub), `SHOWCASE_PRESET` (curated hand-authored
+bank for motion-1d at 4★), `GENERATION_MODE=llm_only` (the model computes).
+They are useful locally and dangerous in a demo, because a stubbed worksheet is
+indistinguishable on screen from a real one.
+
+For any run whose output will be taken as evidence — judging, a recorded demo,
+a screenshot in the report — use the evaluation profile:
+
+```bash
+cp .env.judge.example .env.local   # then fill in the blanks
+```
+
+Two guard rails enforce this so it cannot be forgotten:
+
+- **Startup warning** — `instrumentation.ts` prints every active demo switch
+  and what it does when the server boots. A clean evaluation run prints nothing.
+- **Production refusal** — `next.config.ts` throws `DemoFlagsInProductionError`
+  rather than produce a production bundle with any of them enabled. Note this
+  reads `.env.local` too, so `npm run build` fails while a demo flag is set —
+  unset it (or build for a non-production environment) to proceed.
+
+*How to test:*
+
+```bash
+npx vitest run lib/demo-mode.test.ts        # the rules themselves (16 cases)
+SHOWCASE_PRESET=true npm run dev            # prints the demo-mode warning
+SHOWCASE_PRESET=true npx next build         # fails with DemoFlagsInProductionError
+npx next build                              # succeeds with the flags unset
+```
+
 ## Testing
 
 ```bash
