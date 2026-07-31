@@ -67,10 +67,10 @@ ENGINE_API_KEY=dev-secret
 ### Judge / evaluation profile
 
 Some settings make the app serve content that only *looks* engine-generated —
-`E2E_STUB_GENERATION` (fixed stub), `SHOWCASE_PRESET` (curated hand-authored
-bank for motion-1d at 4★), `GENERATION_MODE=llm_only` (the model computes).
-They are useful locally and dangerous in a demo, because a stubbed worksheet is
-indistinguishable on screen from a real one.
+`E2E_STUB_GENERATION` (fixed stub question, for Playwright) and
+`GENERATION_MODE=llm_only` (the model computes the numbers). They are useful in
+CI and dangerous in a demo, because a stubbed worksheet is indistinguishable on
+screen from a real one.
 
 For any run whose output will be taken as evidence — judging, a recorded demo,
 a screenshot in the report — use the evaluation profile:
@@ -92,8 +92,8 @@ Two guard rails enforce this so it cannot be forgotten:
 
 ```bash
 npx vitest run lib/demo-mode.test.ts        # the rules themselves (16 cases)
-SHOWCASE_PRESET=true npm run dev            # prints the demo-mode warning
-SHOWCASE_PRESET=true npx next build         # fails with DemoFlagsInProductionError
+E2E_STUB_GENERATION=true npm run dev        # prints the demo-mode warning
+E2E_STUB_GENERATION=true npx next build     # fails with DemoFlagsInProductionError
 npx next build                              # succeeds with the flags unset
 ```
 

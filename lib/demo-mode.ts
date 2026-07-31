@@ -1,12 +1,15 @@
 /**
  * Demo-mode guard rails.
  *
- * Several switches make the app produce content that *looks* engine-generated
- * but is not: `E2E_STUB_GENERATION` returns a fixed stub, `SHOWCASE_PRESET`
- * serves a curated hand-authored bank, `GENERATION_MODE=llm_only` lets the
- * model compute numbers. Each exists for a good local reason, and each is
- * silent — nothing in a running app distinguishes a preset worksheet from a
- * real one.
+ * Some switches make the app produce content that *looks* engine-generated but
+ * is not: `E2E_STUB_GENERATION` returns a fixed stub so Playwright can run
+ * without the engine, and `GENERATION_MODE=llm_only` lets the model compute
+ * numbers. Each exists for a good reason, and each is silent — nothing in a
+ * running app distinguishes a stubbed worksheet from a real one.
+ *
+ * (A third switch, `SHOWCASE_PRESET`, served a curated hand-authored bank for
+ * demos. It was removed rather than guarded: a setting whose whole purpose is
+ * to be indistinguishable from real output does not belong in a submission.)
  *
  * That silence is the risk: the project's entire claim is that every number
  * comes from the symbolic engine, so a demo given on a stubbed configuration
@@ -45,14 +48,6 @@ export function activeDemoFlags(env: Env): DemoFlag[] {
       key: "E2E_STUB_GENERATION",
       effect:
         "generation returns a fixed stub question — no engine call, no model call",
-    })
-  }
-
-  if (isEnabled(env.SHOWCASE_PRESET)) {
-    flags.push({
-      key: "SHOWCASE_PRESET",
-      effect:
-        "motion-1d at 4★ serves a curated, hand-authored question bank instead of generating",
     })
   }
 

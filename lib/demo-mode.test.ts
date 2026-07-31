@@ -16,7 +16,6 @@ describe("activeDemoFlags", () => {
 
   it.each([
     ["E2E_STUB_GENERATION", "true"],
-    ["SHOWCASE_PRESET", "true"],
     ["DEV_PASSWORD_LOGIN", "true"],
   ])("detects %s", (key, value) => {
     const flags = activeDemoFlags({ ...CLEAN, [key]: value })
@@ -34,7 +33,7 @@ describe("activeDemoFlags", () => {
 
   it("ignores flags that are set but not enabled", () => {
     expect(
-      activeDemoFlags({ ...CLEAN, SHOWCASE_PRESET: "false", E2E_STUB_GENERATION: "" })
+      activeDemoFlags({ ...CLEAN, DEV_PASSWORD_LOGIN: "false", E2E_STUB_GENERATION: "" })
     ).toEqual([])
   })
 
@@ -44,7 +43,7 @@ describe("activeDemoFlags", () => {
   })
 
   it("explains the effect of each flag, not just its name", () => {
-    const flags = activeDemoFlags({ ...CLEAN, SHOWCASE_PRESET: "true" })
+    const flags = activeDemoFlags({ ...CLEAN, E2E_STUB_GENERATION: "true" })
     expect(flags[0].effect.length).toBeGreaterThan(20)
   })
 })
@@ -57,10 +56,10 @@ describe("demoModeWarning", () => {
   it("names every active flag and says the content is not engine-generated", () => {
     const warning = demoModeWarning({
       ...CLEAN,
-      SHOWCASE_PRESET: "true",
+      DEV_PASSWORD_LOGIN: "true",
       E2E_STUB_GENERATION: "true",
     })
-    expect(warning).toContain("SHOWCASE_PRESET")
+    expect(warning).toContain("DEV_PASSWORD_LOGIN")
     expect(warning).toContain("E2E_STUB_GENERATION")
     expect(warning).toMatch(/NOT engine-generated/i)
   })
@@ -78,7 +77,7 @@ describe("assertNoDemoFlagsInProduction", () => {
       assertNoDemoFlagsInProduction({
         ...CLEAN,
         NODE_ENV: "development",
-        SHOWCASE_PRESET: "true",
+        E2E_STUB_GENERATION: "true",
       })
     ).not.toThrow()
   })
@@ -88,7 +87,7 @@ describe("assertNoDemoFlagsInProduction", () => {
       assertNoDemoFlagsInProduction({
         ...CLEAN,
         NODE_ENV: "production",
-        SHOWCASE_PRESET: "true",
+        E2E_STUB_GENERATION: "true",
       })
     ).toThrow(DemoFlagsInProductionError)
   })
