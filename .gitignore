@@ -82,3 +82,6 @@ repomix-outputs/
 # Supabase CLI local state
 supabase/.temp/
 .env*
+# …but the committed templates carry no secrets and must ship with the repo.
+!.env.example
+!.env.judge.example
