@@ -27,7 +27,13 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
     include: ["**/*.{test,spec}.{ts,tsx}"],
-    exclude: ["node_modules", ".next", "e2e"],
+    // Anchored globs, not bare names: a bare "node_modules" only matches the
+    // path at the repo root, so a nested checkout (a git worktree under
+    // `.claude/worktrees/`, which carries its own `node_modules` and Playwright
+    // `e2e/` specs) got scanned and reported ~129 phantom failed files. The
+    // `**/` forms exclude those at any depth, so `vitest run` reports this
+    // project's tests and nothing else.
+    exclude: ["**/node_modules/**", "**/.next/**", "**/e2e/**", "**/.claude/**"],
     coverage: {
       provider: "v8",
       reporter: process.env.CI ? ["text", "json-summary"] : ["text"],
