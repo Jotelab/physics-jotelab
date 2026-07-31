@@ -321,6 +321,7 @@ export async function generateQuestionForWorksheet(params: {
             scenario,
             previousQuestionsContext,
             mathComplexity: generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
+            starDifficulty: generationSettings.star_difficulty,
             ...(starPlanArgs ??
               // Advanced-mode pins (target rotation + given constraints), mapped
               // to engine names; the engine completes them into a valid split.
@@ -463,6 +464,7 @@ export async function regenerateQuestionForWorksheet(params: {
               previousQuestionsContext: [originalQuestion.question_text],
               mathComplexity:
                 generationSettings.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
+              starDifficulty: generationSettings.star_difficulty,
               given: sympyDataGivenNames(originalSympyData),
               find: originalSympyData.find.symbol,
               ...(Object.keys(zeroConditions).length > 0

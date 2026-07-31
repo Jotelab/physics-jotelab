@@ -17,6 +17,7 @@ import {
 import { getGenerationModel } from "./client"
 import { checkDataFidelity } from "./data-fidelity"
 import { e2eStubEngineQuestion } from "./e2e-stub-question"
+import { getShowcasePresetQuestion } from "./showcase-preset"
 import { getGenerationErrorMessage, logGenerationError } from "./generation-errors"
 import {
   THAI_LANGUAGE_RULES,
@@ -44,6 +45,12 @@ type GenerateEngineQuestionInput = {
   scenario: string
   previousQuestionsContext: string[]
   mathComplexity?: MathComplexity
+  /**
+   * The worksheet's structural star setting, threaded through for the hidden
+   * showcase preset gate (lib/ai/showcase-preset.ts); the engine itself takes
+   * structure from the star *plan* pins, never this number.
+   */
+  starDifficulty?: number
   /** Re-roll / advanced pin: reuse this Given/Find split (engine variable names). */
   given?: string[]
   find?: string
@@ -160,6 +167,13 @@ async function phraseQuestion(
 export async function generateEngineQuestion(
   input: GenerateEngineQuestionInput
 ): Promise<GeneratedQuestion> {
+  // Hidden showcase setting: curated preset bank for motion-1d at 4★ demos.
+  // Checked before the E2E stub so it wins in stubbed local clones.
+  const showcaseQuestion = getShowcasePresetQuestion(input)
+  if (showcaseQuestion) {
+    return showcaseQuestion
+  }
+
   // Stub both the engine and the LLM so Playwright CI stays green (§1.2).
   if (process.env.E2E_STUB_GENERATION === "true") {
     return e2eStubEngineQuestion
