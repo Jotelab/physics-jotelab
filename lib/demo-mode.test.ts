@@ -102,6 +102,29 @@ describe("assertNoDemoFlagsInProduction", () => {
     ).toThrow(/E2E_STUB_GENERATION/)
   })
 
+  it("lets a local build opt out deliberately — the E2E flow needs a stubbed build", () => {
+    expect(() =>
+      assertNoDemoFlagsInProduction({
+        ...CLEAN,
+        NODE_ENV: "production",
+        E2E_STUB_GENERATION: "true",
+        ALLOW_DEMO_FLAGS_IN_BUILD: "true",
+      })
+    ).not.toThrow()
+  })
+
+  it("ignores the opt-out on Vercel, so it can never excuse a real deployment", () => {
+    expect(() =>
+      assertNoDemoFlagsInProduction({
+        ...CLEAN,
+        NODE_ENV: "production",
+        E2E_STUB_GENERATION: "true",
+        ALLOW_DEMO_FLAGS_IN_BUILD: "true",
+        VERCEL: "1",
+      })
+    ).toThrow(DemoFlagsInProductionError)
+  })
+
   it("does not block production merely for an unconfigured engine", () => {
     // Fail-closed at request time is the engine client's job; a missing URL is
     // a deployment gap, not a misrepresentation of content.

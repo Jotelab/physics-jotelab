@@ -95,8 +95,10 @@ Two guard rails enforce this so it cannot be forgotten:
   and what it does when the server boots. A clean evaluation run prints nothing.
 - **Production refusal** — `next.config.ts` throws `DemoFlagsInProductionError`
   rather than produce a production bundle with any of them enabled. Note this
-  reads `.env.local` too, so `npm run build` fails while a demo flag is set —
-  unset it (or build for a non-production environment) to proceed.
+  reads `.env.local` too, so `npm run build` fails while a demo flag is set.
+  For builds that are never deployed — chiefly `pnpm build` before the
+  authenticated E2E suite — opt out with `ALLOW_DEMO_FLAGS_IN_BUILD=true`. That
+  hatch is ignored when `VERCEL` is set, so it can never excuse a real deploy.
 
 *How to test:*
 
@@ -135,7 +137,7 @@ gate and action.
 ```bash
 supabase start
 eval "$(bash scripts/ci-supabase-e2e-env.sh)"
-E2E_STUB_GENERATION=true pnpm build
+E2E_STUB_GENERATION=true ALLOW_DEMO_FLAGS_IN_BUILD=true pnpm build
 E2E_STUB_GENERATION=true pnpm test:e2e:authenticated
 ```
 
