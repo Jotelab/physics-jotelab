@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl"
 import {
   Wand2,
   Library,
+  GraduationCap,
   User,
   X,
   ChevronLeft,
@@ -54,6 +55,7 @@ function SidebarContent({
 
   const workspaceNavItems = [
     { href: "/generate", label: t("generate"), icon: Wand2 },
+    { href: "/learn", label: t("learn"), icon: GraduationCap },
     { href: "/library", label: t("library"), icon: Library },
   ]
 

@@ -23,6 +23,7 @@ import {
   parseStudentNumber,
 } from "../classify"
 import {
+  ERROR_LABELS,
   EXPLANATIONS,
   hintLevelForAttempt,
   NUDGES,
@@ -30,7 +31,13 @@ import {
   type HintLevel,
 } from "../explanations"
 import { buildCoachProblem, questionKey } from "../oracle"
-import type { CheckResult, CoachStep } from "../types"
+import { planNextProblem } from "../remediation"
+import type {
+  CheckResult,
+  CoachDifficulty,
+  CoachErrorType,
+  CoachStep,
+} from "../types"
 
 /**
  * The coached solve (C1.1): ① choose the equation → ② substitute values →
@@ -79,6 +86,11 @@ export function CoachSession({
   const [answerInput, setAnswerInput] = useState("")
   const [rerollError, setRerollError] = useState<string | null>(null)
   const [isRerolling, startReroll] = useTransition()
+  /** Band the *current* problem was generated at; the planner steps it. */
+  const [difficulty, setDifficulty] = useState<CoachDifficulty>("easy")
+  /** Every misconception the classifier named on this problem, in order. */
+  const [problemErrors, setProblemErrors] = useState<CoachErrorType[]>([])
+  const [completed, setCompleted] = useState(0)
 
   const problem = useMemo(() => buildCoachProblem(sympyData, SUVAT), [sympyData])
 
@@ -94,6 +106,27 @@ export function CoachSession({
   const currentStep = STEP_ORDER.find((step) => !steps[step].done) ?? null
   const solved = currentStep === null
 
+  const currentSplit = {
+    given: sympyData.given.map((given) => given.symbol),
+    find: sympyData.find.symbol,
+  }
+
+  /**
+   * What the app serves next, and why — chosen from the misconceptions the
+   * classifier named on this problem (see `remediation.ts`). The plan is
+   * recomputed as the student works, but only shown once the problem is solved.
+   */
+  const nextPlan = planNextProblem({
+    errors: problemErrors,
+    given: currentSplit.given,
+    find: currentSplit.find,
+    difficulty,
+    completed,
+  })
+
+  /** Distinct diagnoses on this problem, for the end-of-problem summary chip. */
+  const diagnosedErrors = [...new Set(problemErrors)]
+
   function applyResult(step: CoachStep, result: CheckResult, input: string) {
     const attempts = steps[step].attempts + 1
     recordAttempt({
@@ -106,8 +139,12 @@ export function CoachSession({
     })
     if (result.ok) {
       setSteps((prev) => ({ ...prev, [step]: { ...prev[step], attempts, done: true, hint: null } }))
+      // The answer step closing means the whole problem is solved.
+      if (step === "answer") setCompleted((prev) => prev + 1)
       return
     }
+    // Remediation reads this: what was diagnosed decides what comes next.
+    setProblemErrors((prev) => [...prev, result.errorType])
     const level = hintLevelForAttempt(attempts)
     const text =
       level === "nudge" ? NUDGES[step] : EXPLANATIONS[result.errorType]
@@ -153,28 +190,34 @@ export function CoachSession({
     applyResult("answer", checkAnswer(value, problem.answer.value), answerInput)
   }
 
-  function reroll(isomorphic: boolean) {
+  function loadProblem(params: {
+    given?: string[]
+    find?: string
+    difficulty: CoachDifficulty
+    conditions?: Record<string, number>
+  }) {
     setRerollError(null)
     startReroll(async () => {
-      const result = await generateCoachProblem(
-        isomorphic
-          ? {
-              given: sympyData.given.map((given) => given.symbol),
-              find: sympyData.find.symbol,
-            }
-          : undefined
-      )
+      const result = await generateCoachProblem(params)
       if (!result.ok) {
+        // No silent fallback to an easier problem: the manual re-roll buttons
+        // stay on screen, so a failed drill is visible rather than papered over.
         setRerollError(result.error)
         return
       }
       setSympyData(result.sympyData)
       setDiagramSvg(result.diagramSvg)
+      setDifficulty(params.difficulty)
+      setProblemErrors([])
       setSteps({ equation: FRESH_STEP, substitution: FRESH_STEP, answer: FRESH_STEP })
       setChosenEquation(null)
       setSubstitutions({})
       setAnswerInput("")
     })
+  }
+
+  function reroll(isomorphic: boolean) {
+    loadProblem(isomorphic ? { ...currentSplit, difficulty } : { difficulty })
   }
 
   const workedStep = (step: CoachStep) => (
@@ -346,8 +389,35 @@ export function CoachSession({
             <BlockMath math={problem.workedStep.substitutedLatex} />
             <BlockMath math={problem.workedStep.resultLatex} />
           </div>
+          {diagnosedErrors.length > 0 ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">จุดที่ระบบตรวจพบในข้อนี้:</span>
+              {diagnosedErrors.map((errorType) => (
+                <span
+                  key={errorType}
+                  className="rounded-full border border-amber-400/50 bg-amber-50 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
+                >
+                  {ERROR_LABELS[errorType]}
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          {/* The remediation loop: the diagnosis above picks the next problem. */}
+          <div className="mt-4 rounded-md border border-primary/30 bg-background/60 p-3">
+            <p className="text-sm font-medium">ขั้นต่อไปที่แนะนำ</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">{nextPlan.reason}</p>
+            <Button
+              className="mt-3"
+              onClick={() => loadProblem(nextPlan.params)}
+              disabled={isRerolling}
+            >
+              ฝึกต่อ
+            </Button>
+          </div>
+
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button onClick={() => reroll(true)} disabled={isRerolling}>
+            <Button variant="outline" onClick={() => reroll(true)} disabled={isRerolling}>
               โจทย์แบบเดียวกันข้อใหม่
             </Button>
             <Button variant="outline" onClick={() => reroll(false)} disabled={isRerolling}>
