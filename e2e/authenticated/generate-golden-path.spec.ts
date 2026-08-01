@@ -27,6 +27,19 @@ test.describe("generate golden path", () => {
 
     await page.locator("#generate-worksheet-btn").click()
 
+    // The shell is a fixed `100dvh` box, so the document must never scroll. The
+    // generating-progress live region is `sr-only` (position: absolute), and
+    // with no positioned ancestor it resolved against the initial containing
+    // block and stretched the document for the whole run — a page-level
+    // scrollbar for as long as a generation took. Assert while it is mounted.
+    await expect(page.locator("p.sr-only", { hasText: /\d+/ })).toBeAttached({ timeout: 30_000 })
+    expect(
+      await page.evaluate(() => {
+        const de = document.documentElement
+        return de.scrollHeight - de.clientHeight
+      })
+    ).toBe(0)
+
     // "จงหา" ("find …") is the stable imperative every question opens with; the
     // noun after it varies with the target variable, so don't pin the full
     // phrase (the engine-backed path phrases "จงหาการกระจัด", "จงหาความเร่ง", …).

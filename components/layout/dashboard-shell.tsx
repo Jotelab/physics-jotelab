@@ -63,7 +63,11 @@ export function DashboardShell({
       <main
         id="main-content"
         aria-label={t("mainContent")}
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto"
+        // `relative` so this scroller is also the containing block for page
+        // content: an absolutely positioned box (`sr-only` is one) would
+        // otherwise resolve against the initial containing block and scroll the
+        // document rather than the page.
+        className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-auto"
       >
         <div className="sticky top-0 z-30 flex h-[4.5rem] shrink-0 items-center gap-4 border-b bg-background/95 px-5 backdrop-blur lg:hidden print:hidden">
           <Button

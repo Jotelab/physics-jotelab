@@ -384,7 +384,13 @@ export function WorksheetConfigPanel({
   )
 
   return (
-    <section className="w-full shrink-0 border-b bg-background p-4 print:hidden md:p-6 lg:w-[340px] lg:overflow-y-auto lg:border-r lg:border-b-0 xl:w-[400px] 2xl:w-[360px]">
+    // `relative` is load-bearing: the live-region progress line below is
+    // `sr-only`, which is `position: absolute`. Without a positioned ancestor
+    // its containing block is the initial containing block, so it escapes this
+    // panel's scroller *and* the shell's `overflow-hidden` and stretches the
+    // document instead — a page-level scrollbar that appears for exactly as
+    // long as a generation runs.
+    <section className="relative w-full shrink-0 border-b bg-background p-4 print:hidden md:p-6 lg:w-[340px] lg:overflow-y-auto lg:border-r lg:border-b-0 xl:w-[400px] 2xl:w-[360px]">
       {header}
       {!hideHeader ? (
         <div className="mb-6">
