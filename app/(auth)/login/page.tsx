@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { getTranslations } from "next-intl/server"
 import { redirect } from "next/navigation"
 
+import { SpringDoodle } from "@/components/doodles"
 import { Button } from "@/components/ui/button"
 import { signInWithGoogleAction } from "@/features/auth/actions"
 import { cardClass, pageTitleClass } from "@/lib/ui-classes"
@@ -49,6 +50,9 @@ export default async function LoginPage({
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/10">
       <div className={cn(cardClass, "w-full max-w-sm text-center")}>
+        <div className="mb-2 flex justify-center">
+          <SpringDoodle />
+        </div>
         <h1 className={cn(pageTitleClass, "mb-2")}>{tCommon("appName")}</h1>
         <p className="mb-6 text-sm text-muted-foreground">{t("tagline")}</p>
         {loginErrorMessage ? (

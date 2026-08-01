@@ -4,13 +4,14 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import { validWorksheetQuestion } from "@/tests/fixtures/worksheet-question"
 
 import { fetchWorksheetQuestions } from "./fetch-worksheet-questions"
+import { asSupabaseClient } from "../../../tests/mocks/supabase-client"
 
 const worksheetId = "a1b2c3d4-e5f6-4789-a012-3456789abcde"
 const mockOrder = vi.fn()
 const mockGt = vi.fn(() => ({ order: mockOrder }))
 
 function createSupabaseClient() {
-  return {
+  return asSupabaseClient({
     from: vi.fn((table: string) => {
       if (table === "worksheet_questions") {
         return {
@@ -25,7 +26,7 @@ function createSupabaseClient() {
 
       throw new Error(`Unexpected table: ${table}`)
     }),
-  } as unknown as SupabaseClient
+  }) as unknown as SupabaseClient
 }
 
 function makeRow(question: typeof validWorksheetQuestion) {

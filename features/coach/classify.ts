@@ -1,3 +1,4 @@
+import { parseStudentValue } from "./parse-value"
 import type { CheckResult } from "./types"
 
 /**
@@ -24,24 +25,18 @@ export function approxEqual(a: number, b: number): boolean {
 }
 
 /**
- * Parse a student-entered number: plain decimals (`"2.5"`, `"-9.8"`) and
- * simple fractions (`"21/2"`, `"-1/3"`). Returns `null` for anything else —
- * the UI treats that as "not an answer yet", never as a wrong answer.
+ * Parse what a student typed into a value.
+ *
+ * Delegates to {@link parseStudentValue}, which accepts decimals, fractions,
+ * arithmetic expressions, units, Thai numerals and scientific notation — a
+ * student may show their working in the box instead of pre-computing. Returns
+ * `null` for anything that is not a value; the UI treats that as "not answered
+ * yet", never as a wrong answer.
  */
 export function parseStudentNumber(raw: string): number | null {
-  const text = raw.trim().replace(/,/g, "")
-  if (text === "") return null
-  const fraction = text.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)$/)
-  if (fraction) {
-    const denominator = Number(fraction[2])
-    if (denominator === 0) return null
-    return Number(fraction[1]) / denominator
-  }
-  const value = Number(text)
-  return Number.isFinite(value) ? value : null
+  return parseStudentValue(raw)
 }
 
-/** Step ①: the chosen relation either is the oracle's or it is not. */
 export function checkEquationChoice(
   chosenId: string,
   correctId: string

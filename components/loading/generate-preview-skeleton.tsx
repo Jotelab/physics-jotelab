@@ -1,3 +1,5 @@
+import { PhysicsLoader } from "@/components/loading/physics-loader"
+
 export function GeneratePreviewSkeleton() {
   return (
     <section className="flex min-h-[50vh] min-w-0 flex-1 flex-col bg-muted/30 md:min-h-[60vh] lg:min-h-0">
@@ -9,7 +11,9 @@ export function GeneratePreviewSkeleton() {
         </div>
       </div>
       <div className="flex flex-1 items-start justify-center p-4 sm:p-6 lg:p-8">
-        <div className="aspect-[210/297] w-full max-w-[210mm] animate-pulse rounded-sm bg-muted/50 shadow-sm ring-1 ring-border" />
+        <div className="flex aspect-[210/297] w-full max-w-[210mm] items-center justify-center rounded-sm bg-muted/50 shadow-sm ring-1 ring-border">
+          <PhysicsLoader />
+        </div>
       </div>
     </section>
   )

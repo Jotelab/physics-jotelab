@@ -28,6 +28,16 @@ PhysicsJotelab is a physics worksheet generation platform for high-school practi
   *How to test:* `npx vitest run features/coach` and
   `E2E_STUB_GENERATION=true pnpm test:e2e:public` (full coached solve in a
   browser, engine stubbed).
+- **Misconception-driven remediation** — the diagnosis decides the *next*
+  problem, not just the hint: a conceptual miss repeats the same Given/Find
+  shape, a sign error serves a drill with the acceleration pinned negative
+  (`conditions`), an execution slip re-rolls fresh numbers, and a clean solve
+  steps the difficulty band then rotates to a new relation
+  (`features/coach/remediation.ts`). The rules are plain and deterministic —
+  no model chooses, and the engine still owns every number.
+  *How to test:* `npx vitest run features/coach/remediation.test.ts features/coach/components`
+  — covers the plan for each error class plus the UI calling `/generate` with
+  the planned constraints.
 
 ## Getting Started
 
@@ -51,18 +61,71 @@ Copy `.env.example` to `.env.local` and fill in the required values:
 cp .env.example .env.local
 ```
 
-For engine-backed generation and the `/learn` coach, also point the app at a
-running engine service (`jotelab-ai` repo; production deploy runbook in
-`jotelab-ai/docs/deploy-render.md`):
+For engine-backed generation and the `/learn` coach, start the symbolic engine.
+**It ships in this repository**, under [`engine/`](engine/) — no second clone:
 
 ```bash
-# jotelab-ai: ENGINE_API_KEY=dev-secret uvicorn service.app:app --port 8000
+cd engine
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+ENGINE_API_KEY=dev-secret .venv/bin/uvicorn service.app:app --port 8000
+```
+
+Then in `.env.local`:
+
+```bash
 ENGINE_BASE_URL=http://127.0.0.1:8000
 ENGINE_API_KEY=dev-secret
 ```
 
+`engine/` is a **git subtree** of [Jotelab/jotelab-ai](https://github.com/Jotelab/jotelab-ai),
+so its history is preserved and it can be refreshed with:
+
+```bash
+git subtree pull --prefix=engine https://github.com/Jotelab/jotelab-ai.git main --squash
+```
+
+*How to test the engine itself:* `cd engine && .venv/bin/python -m pytest -q`
+(345 passing, ~8 min — SymPy is not fast). The production deploy runbook is
+`engine/docs/deploy-render.md`.
+
 *How to test:* `curl -s $ENGINE_BASE_URL/health` lists the engine topics, and
 `/learn` renders a Thai SUVAT problem instead of the connection-error box.
+
+### Judge / evaluation profile
+
+Some settings make the app serve content that only *looks* engine-generated —
+`E2E_STUB_GENERATION` (fixed stub question, for Playwright) and
+`GENERATION_MODE=llm_only` (the model computes the numbers). They are useful in
+CI and dangerous in a demo, because a stubbed worksheet is indistinguishable on
+screen from a real one.
+
+For any run whose output will be taken as evidence — judging, a recorded demo,
+a screenshot in the report — use the evaluation profile:
+
+```bash
+cp .env.judge.example .env.local   # then fill in the blanks
+```
+
+Two guard rails enforce this so it cannot be forgotten:
+
+- **Startup warning** — `instrumentation.ts` prints every active demo switch
+  and what it does when the server boots. A clean evaluation run prints nothing.
+- **Production refusal** — `next.config.ts` throws `DemoFlagsInProductionError`
+  rather than produce a production bundle with any of them enabled. Note this
+  reads `.env.local` too, so `npm run build` fails while a demo flag is set.
+  For builds that are never deployed — chiefly `pnpm build` before the
+  authenticated E2E suite — opt out with `ALLOW_DEMO_FLAGS_IN_BUILD=true`. That
+  hatch is ignored when `VERCEL` is set, so it can never excuse a real deploy.
+
+*How to test:*
+
+```bash
+npx vitest run lib/demo-mode.test.ts        # the rules themselves (16 cases)
+E2E_STUB_GENERATION=true npm run dev        # prints the demo-mode warning
+E2E_STUB_GENERATION=true npx next build     # fails with DemoFlagsInProductionError
+npx next build                              # succeeds with the flags unset
+```
 
 ## Testing
 
@@ -83,7 +146,7 @@ Public E2E tests (auth redirects, login page) run without Supabase. Authenticate
 ```bash
 supabase start
 eval "$(bash scripts/ci-supabase-e2e-env.sh)"
-E2E_STUB_GENERATION=true pnpm build
+E2E_STUB_GENERATION=true ALLOW_DEMO_FLAGS_IN_BUILD=true pnpm build
 E2E_STUB_GENERATION=true pnpm test:e2e:authenticated
 ```
 

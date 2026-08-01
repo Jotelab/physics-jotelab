@@ -64,7 +64,6 @@ describe("getGenerationErrorMessage", () => {
     expect(
       getGenerationErrorMessage(
         new TypeValidationError({
-          message: "invalid",
           value: {},
           cause: new z.ZodError([]),
         })

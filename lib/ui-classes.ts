@@ -1,8 +1,8 @@
-export const pageTitleClass = "text-2xl font-semibold tracking-normal"
+export const pageTitleClass = "font-heading text-2xl font-semibold tracking-normal"
 
 export const pageSubtitleClass = "mt-2 text-sm text-muted-foreground"
 
-export const sectionTitleClass = "text-xl font-semibold tracking-normal"
+export const sectionTitleClass = "font-heading text-xl font-semibold tracking-normal"
 
 export const formLabelClass = "text-sm font-medium"
 

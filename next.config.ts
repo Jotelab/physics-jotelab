@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
+import { assertNoDemoFlagsInProduction } from "./lib/demo-mode";
+
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
+
+// Evaluated on every build and production boot: refuse to ship a bundle whose
+// worksheet content would not be engine-generated (see lib/demo-mode.ts).
+assertNoDemoFlagsInProduction(process.env);
 
 const nextConfig: NextConfig = {
   // node-tikzjax ships a WASM TeX engine + `fs`-loaded fonts (lib/tikz). Keep it

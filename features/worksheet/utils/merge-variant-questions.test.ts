@@ -11,6 +11,7 @@ import {
 
 const masterQuestion: WorksheetQuestion = {
   id: "11111111-1111-4111-8111-111111111111",
+  format: "calculation",
   order: 1,
   question_text: "Find $x$",
   given_values: [{ symbol: "a", label: "coefficient", value: 2 }],

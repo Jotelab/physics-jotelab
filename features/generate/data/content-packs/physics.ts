@@ -5,6 +5,16 @@ import {
 
 export const PHYSICS_LESSON_IDS = [
   "motion-1d",
+  "vectors-1d",
+  "distance-displacement",
+  "average-speed",
+  "free-fall",
+  "upward-throw",
+  "multi-stage-motion",
+  "motion-graphs",
+  "relative-velocity",
+  "pursuit",
+  "two-phase-ascent",
   "newtons-laws",
   "energy-work",
   "circular-motion",
@@ -18,6 +28,16 @@ export type PhysicsLessonId = (typeof PHYSICS_LESSON_IDS)[number]
 
 const lessonLabelsEn: Record<PhysicsLessonId, string> = {
   "motion-1d": "Motion in one dimension",
+  "vectors-1d": "Vectors in one dimension",
+  "distance-displacement": "Distance & displacement",
+  "average-speed": "Average speed & velocity",
+  "free-fall": "Free fall",
+  "upward-throw": "Upward throw",
+  "multi-stage-motion": "Multi-stage motion",
+  "motion-graphs": "Motion graphs",
+  "relative-velocity": "Relative velocity",
+  pursuit: "Pursuit & chase",
+  "two-phase-ascent": "Two-phase ascent",
   "newtons-laws": "Newton's laws",
   "energy-work": "Energy & work",
   "circular-motion": "Circular motion",
@@ -44,6 +64,157 @@ const scenarioContent: SubjectContentPack["scenarioContent"] = {
     {
       label: "Find time",
       description: "Find time required to reach a given velocity under constant acceleration.",
+    },
+  ],
+  "vectors-1d": [
+    {
+      label: "Find velocity",
+      description: "Find the (signed) velocity given displacement and time for uniform 1-D motion.",
+    },
+    {
+      label: "Find displacement",
+      description: "Find the signed displacement given velocity and time.",
+    },
+    { label: "Find time", description: "Find the time given displacement and velocity." },
+  ],
+  "distance-displacement": [
+    {
+      label: "Find displacement",
+      description:
+        "Find the net (signed) displacement of a two-segment path along a line.",
+    },
+    {
+      label: "Find distance",
+      description: "Find the total path length of a two-segment trip along a line.",
+    },
+  ],
+  "average-speed": [
+    {
+      label: "Find average speed",
+      description:
+        "Find the average speed of a two-segment trip given both segments and the total time.",
+    },
+    {
+      label: "Find average velocity",
+      description:
+        "Find the (signed) average velocity of a two-segment trip given both segments and the total time.",
+    },
+  ],
+  "free-fall": [
+    {
+      label: "Find final speed",
+      description: "Find the speed of a falling object after a given time or distance.",
+    },
+    {
+      label: "Find fall distance",
+      description: "Find how far an object falls from its speeds or fall time.",
+    },
+    { label: "Find fall time", description: "Find how long an object takes to fall." },
+    {
+      label: "Find initial speed",
+      description: "Find the initial downward speed of a thrown-down object.",
+    },
+  ],
+  "upward-throw": [
+    {
+      label: "Find velocity",
+      description:
+        "Find the (signed) velocity of an object thrown straight up at a given time.",
+    },
+    {
+      label: "Find height",
+      description: "Find the height above the launch point at a given time.",
+    },
+    {
+      label: "Find time",
+      description: "Find the time for a thrown-up object to reach a given velocity.",
+    },
+    {
+      label: "Find launch speed",
+      description: "Find the initial upward speed from the motion at a later time.",
+    },
+  ],
+  "multi-stage-motion": [
+    {
+      label: "Find total displacement",
+      description:
+        "An object accelerates, then moves at constant velocity; find the total displacement.",
+    },
+    {
+      label: "Find cruise velocity",
+      description:
+        "Find the constant velocity of the second phase from the total displacement.",
+    },
+    {
+      label: "Find initial velocity",
+      description: "Find the starting velocity of the accelerating phase.",
+    },
+  ],
+  "motion-graphs": [
+    {
+      label: "Find displacement from the graph",
+      description:
+        "Read a velocity–time graph of a two-phase motion and find the total displacement (area).",
+    },
+    {
+      label: "Find acceleration from the graph",
+      description: "Find the acceleration from the slope of the first phase.",
+    },
+    {
+      label: "Find cruise velocity",
+      description: "Find the constant velocity of the second phase from the graph.",
+    },
+    {
+      label: "Find initial velocity",
+      description: "Find the starting velocity from the graph.",
+    },
+  ],
+  "relative-velocity": [
+    {
+      label: "Find relative velocity",
+      description: "Find the velocity of one body relative to another moving along the same line.",
+    },
+    {
+      label: "Find velocity of A",
+      description: "Find a body's velocity from the other body's velocity and their relative velocity.",
+    },
+    {
+      label: "Find velocity of B",
+      description: "Find the second body's velocity from the first body's and the relative velocity.",
+    },
+  ],
+  pursuit: [
+    {
+      label: "Find catch-up time",
+      description:
+        "A constant-speed pursuer starts behind an accelerating object; find when it catches up.",
+    },
+    {
+      label: "Find pursuer speed",
+      description: "Find the constant speed needed to catch up in a given time.",
+    },
+    {
+      label: "Find acceleration",
+      description: "Find the accelerating object's acceleration from the chase.",
+    },
+    {
+      label: "Find initial gap",
+      description: "Find the starting separation from the chase.",
+    },
+  ],
+  "two-phase-ascent": [
+    {
+      label: "Find maximum height",
+      description:
+        "A rocket accelerates upward, then coasts under gravity; find the peak height.",
+    },
+    {
+      label: "Find engine acceleration",
+      description: "Find the powered-phase acceleration from the peak height.",
+    },
+    {
+      label: "Find burn time",
+      description: "Find the powered-phase duration from the peak height.",
     },
   ],
   "newtons-laws": [
@@ -131,6 +302,16 @@ const scenarioContent: SubjectContentPack["scenarioContent"] = {
 
 const variableIdsByLesson: Record<PhysicsLessonId, string[]> = {
   "motion-1d": ["phys-v", "phys-v0", "phys-a", "phys-t", "phys-s"],
+  "vectors-1d": ["phys-vel", "phys-s", "phys-t"],
+  "distance-displacement": ["phys-d1", "phys-d2", "phys-s", "phys-dist"],
+  "average-speed": ["phys-d1", "phys-d2", "phys-t", "phys-sp", "phys-vavg"],
+  "free-fall": ["phys-v0", "phys-v", "phys-t", "phys-h", "phys-g"],
+  "upward-throw": ["phys-v0", "phys-v", "phys-g", "phys-t", "phys-h"],
+  "multi-stage-motion": ["phys-v0", "phys-v", "phys-a", "phys-t1", "phys-t2", "phys-s"],
+  "motion-graphs": ["phys-v0", "phys-v", "phys-a", "phys-t1", "phys-t2", "phys-s"],
+  "relative-velocity": ["phys-va", "phys-vb", "phys-vab"],
+  pursuit: ["phys-gap", "phys-a", "phys-vconst", "phys-t"],
+  "two-phase-ascent": ["phys-a", "phys-t1", "phys-g", "phys-hmax"],
   "newtons-laws": ["phys-f", "phys-m", "phys-a"],
   "energy-work": ["phys-ek", "phys-ep", "phys-f", "phys-m", "phys-v", "phys-s"],
   "circular-motion": ["phys-v", "phys-a", "phys-r", "phys-f", "phys-m", "phys-t"],
@@ -140,6 +321,11 @@ const variableIdsByLesson: Record<PhysicsLessonId, string[]> = {
   "magnetic-fields": ["phys-q", "phys-f", "phys-v", "phys-r"],
 }
 
+// These maps mirror the engine templates' solvability rules (jotelab-ai
+// `templates/*.py` / `templates/data/*.json`): a find id appears as a key only
+// if the engine can solve for it, and its candidate givens are the variables
+// the engine accepts alongside it. Variables the engine never solves for
+// (e.g. path segments d₁/d₂, or g) are given-only and have no key.
 const givenCandidatesByLessonAndFind: Record<PhysicsLessonId, Record<string, string[]>> = {
   "motion-1d": {
     "phys-v": ["phys-v0", "phys-a", "phys-t", "phys-s"],
@@ -147,6 +333,58 @@ const givenCandidatesByLessonAndFind: Record<PhysicsLessonId, Record<string, str
     "phys-a": ["phys-v", "phys-v0", "phys-t", "phys-s"],
     "phys-t": ["phys-v", "phys-v0", "phys-a", "phys-s"],
     "phys-s": ["phys-v", "phys-v0", "phys-a", "phys-t"],
+  },
+  "vectors-1d": {
+    "phys-vel": ["phys-s", "phys-t"],
+    "phys-s": ["phys-vel", "phys-t"],
+    "phys-t": ["phys-vel", "phys-s"],
+  },
+  "distance-displacement": {
+    "phys-s": ["phys-d1", "phys-d2"],
+    "phys-dist": ["phys-d1", "phys-d2"],
+  },
+  "average-speed": {
+    "phys-sp": ["phys-d1", "phys-d2", "phys-t"],
+    "phys-vavg": ["phys-d1", "phys-d2", "phys-t"],
+  },
+  "free-fall": {
+    "phys-v": ["phys-v0", "phys-t", "phys-h", "phys-g"],
+    "phys-v0": ["phys-v", "phys-t", "phys-h", "phys-g"],
+    "phys-t": ["phys-v0", "phys-v", "phys-h", "phys-g"],
+    "phys-h": ["phys-v0", "phys-v", "phys-t", "phys-g"],
+  },
+  "upward-throw": {
+    "phys-v": ["phys-v0", "phys-g", "phys-t"],
+    "phys-h": ["phys-v0", "phys-v", "phys-g", "phys-t"],
+    "phys-t": ["phys-v0", "phys-v", "phys-g"],
+    "phys-v0": ["phys-v", "phys-g", "phys-t"],
+  },
+  "multi-stage-motion": {
+    "phys-s": ["phys-v0", "phys-v", "phys-a", "phys-t1", "phys-t2"],
+    "phys-v": ["phys-s", "phys-v0", "phys-t1", "phys-t2"],
+    "phys-v0": ["phys-s", "phys-v", "phys-t1", "phys-t2"],
+  },
+  "motion-graphs": {
+    "phys-s": ["phys-v0", "phys-v", "phys-a", "phys-t1", "phys-t2"],
+    "phys-v": ["phys-s", "phys-v0", "phys-t1", "phys-t2"],
+    "phys-v0": ["phys-s", "phys-v", "phys-t1", "phys-t2"],
+    "phys-a": ["phys-s", "phys-v0", "phys-t1", "phys-t2"],
+  },
+  "relative-velocity": {
+    "phys-vab": ["phys-va", "phys-vb"],
+    "phys-va": ["phys-vab", "phys-vb"],
+    "phys-vb": ["phys-va", "phys-vab"],
+  },
+  pursuit: {
+    "phys-t": ["phys-gap", "phys-a", "phys-vconst"],
+    "phys-vconst": ["phys-gap", "phys-a", "phys-t"],
+    "phys-a": ["phys-gap", "phys-vconst", "phys-t"],
+    "phys-gap": ["phys-a", "phys-vconst", "phys-t"],
+  },
+  "two-phase-ascent": {
+    "phys-hmax": ["phys-a", "phys-g", "phys-t1"],
+    "phys-a": ["phys-hmax", "phys-g", "phys-t1"],
+    "phys-t1": ["phys-hmax", "phys-a", "phys-g"],
   },
   "newtons-laws": {
     "phys-f": ["phys-m", "phys-a"],
@@ -211,6 +449,22 @@ export const physicsContentPack: SubjectContentPack = {
     { id: "phys-p", symbol: "p", label: "momentum", unit: "kg·m/s" },
     { id: "phys-r", symbol: "r", label: "radius", unit: "m" },
     { id: "phys-q", symbol: "q", label: "charge", unit: "C" },
+    { id: "phys-vel", symbol: "v", label: "velocity", unit: "m/s" },
+    { id: "phys-d1", symbol: "d₁", label: "first segment displacement", unit: "m" },
+    { id: "phys-d2", symbol: "d₂", label: "second segment displacement", unit: "m" },
+    { id: "phys-dist", symbol: "d", label: "distance", unit: "m" },
+    { id: "phys-sp", symbol: "v̄", label: "average speed", unit: "m/s" },
+    { id: "phys-vavg", symbol: "v̄ₛ", label: "average velocity", unit: "m/s" },
+    { id: "phys-g", symbol: "g", label: "gravitational acceleration", unit: "m/s²", defaultValue: 10 },
+    { id: "phys-h", symbol: "h", label: "height", unit: "m" },
+    { id: "phys-t1", symbol: "t₁", label: "phase 1 time", unit: "s" },
+    { id: "phys-t2", symbol: "t₂", label: "phase 2 time", unit: "s" },
+    { id: "phys-gap", symbol: "d₀", label: "initial gap", unit: "m" },
+    { id: "phys-vconst", symbol: "v", label: "constant speed", unit: "m/s" },
+    { id: "phys-va", symbol: "vᴬ", label: "velocity of A", unit: "m/s" },
+    { id: "phys-vb", symbol: "vᴮ", label: "velocity of B", unit: "m/s" },
+    { id: "phys-vab", symbol: "vᴬᴮ", label: "velocity of A relative to B", unit: "m/s" },
+    { id: "phys-hmax", symbol: "H", label: "maximum height", unit: "m" },
   ],
   variableIdsByLesson,
   givenCandidatesByLessonAndFind,
