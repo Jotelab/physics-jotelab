@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { FocusScope } from "@radix-ui/react-focus-scope"
-import { useRef, useState, type RefObject } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { useTranslations } from "next-intl"
+import { FocusScope } from "@radix-ui/react-focus-scope";
+import { useRef, useState, type RefObject } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Wand2,
   Library,
@@ -17,28 +17,28 @@ import {
   LogOut,
   Settings,
   ArrowLeft,
-} from "lucide-react"
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { cn } from "@/lib/utils"
-import { signOutAction } from "@/features/auth/actions"
-import type { UserProfile } from "@/features/auth/types"
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { signOutAction } from "@/features/auth/actions";
+import type { UserProfile } from "@/features/auth/types";
 
 type SidebarContentProps = {
-  profile?: UserProfile | null
-  isCollapsed: boolean
-  headerSlot: React.ReactNode
-  onNavigate?: () => void
+  profile?: UserProfile | null;
+  isCollapsed: boolean;
+  headerSlot: React.ReactNode;
+  onNavigate?: () => void;
   /** Larger tap targets for drawer / tablet */
-  touchFriendly?: boolean
-}
+  touchFriendly?: boolean;
+};
 
 const profileMenuItemClass =
-  "min-h-0 cursor-pointer gap-3 rounded-md px-4 py-3 text-base focus:bg-accent focus:text-accent-foreground"
+  "min-h-0 cursor-pointer gap-3 rounded-md px-4 py-3 text-base focus:bg-accent focus:text-accent-foreground";
 
 function SidebarContent({
   profile,
@@ -47,35 +47,35 @@ function SidebarContent({
   onNavigate,
   touchFriendly = false,
 }: SidebarContentProps) {
-  const pathname = usePathname()
-  const t = useTranslations("common")
-  const tSettings = useTranslations("settings")
+  const pathname = usePathname();
+  const t = useTranslations("common");
+  const tSettings = useTranslations("settings");
   const isSettingsDomain =
-    pathname.startsWith("/settings") || pathname.startsWith("/account")
+    pathname.startsWith("/settings") || pathname.startsWith("/account");
 
   const workspaceNavItems = [
     { href: "/generate", label: t("generate"), icon: Wand2 },
     { href: "/learn", label: t("learn"), icon: GraduationCap },
     { href: "/library", label: t("library"), icon: Library },
-  ]
+  ];
 
   const settingsNavItems = [
     { href: "/account", label: tSettings("myAccount"), icon: User },
     { href: "/settings", label: tSettings("preferences"), icon: Settings },
-  ]
+  ];
 
-  const navItems = isSettingsDomain ? settingsNavItems : workspaceNavItems
+  const navItems = isSettingsDomain ? settingsNavItems : workspaceNavItems;
 
   function isNavActive(href: string) {
-    if (href === "/library") return pathname.startsWith("/library")
-    if (href === "/account") return pathname.startsWith("/account")
-    if (href === "/settings") return pathname.startsWith("/settings")
-    return pathname === href
+    if (href === "/library") return pathname.startsWith("/library");
+    if (href === "/account") return pathname.startsWith("/account");
+    if (href === "/settings") return pathname.startsWith("/settings");
+    return pathname === href;
   }
 
-  const displayName = profile?.display_name ?? profile?.email ?? t("user")
-  const creditBalance = profile?.credit_balance ?? "--"
-  const initials = displayName.substring(0, 2).toUpperCase()
+  const displayName = profile?.display_name ?? profile?.email ?? t("user");
+  const creditBalance = profile?.credit_balance ?? "--";
+  const initials = displayName.substring(0, 2).toUpperCase();
 
   function navLinkClass(isActive: boolean) {
     return cn(
@@ -85,12 +85,14 @@ function SidebarContent({
         : touchFriendly
           ? "min-h-16 gap-5 px-5 py-4 text-lg font-medium"
           : "min-h-14 gap-4 px-3 py-2.5 text-base font-medium",
-      isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
-    )
+      isActive
+        ? "bg-primary text-primary-foreground"
+        : "hover:bg-muted text-foreground",
+    );
   }
 
   function navIconClass() {
-    return cn("shrink-0", touchFriendly ? "size-7" : "size-6")
+    return cn("shrink-0", touchFriendly ? "size-7" : "size-6");
   }
 
   return (
@@ -99,7 +101,7 @@ function SidebarContent({
         <div
           className={cn(
             "flex shrink-0 items-center gap-2 border-b",
-            touchFriendly ? "min-h-20 px-5 py-4" : "px-3 py-3 lg:px-2 lg:py-2"
+            touchFriendly ? "min-h-20 px-5 py-4" : "px-3 py-3 lg:px-2 lg:py-2",
           )}
         >
           <Link
@@ -107,7 +109,7 @@ function SidebarContent({
             onClick={onNavigate}
             className={cn(
               navLinkClass(false),
-              "flex-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              "flex-1 text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
             <ArrowLeft className={navIconClass()} />
@@ -120,14 +122,14 @@ function SidebarContent({
           className={cn(
             "flex shrink-0 items-center border-b p-4",
             touchFriendly ? "min-h-20 px-5" : "h-[73px]",
-            isCollapsed && "justify-center px-1"
+            isCollapsed && "justify-center px-1",
           )}
         >
           {!isCollapsed && (
             <h1
               className={cn(
                 "truncate flex-1 font-bold",
-                touchFriendly ? "text-3xl" : "text-xl"
+                touchFriendly ? "text-3xl" : "text-xl",
               )}
             >
               {t("appName")}
@@ -144,12 +146,17 @@ function SidebarContent({
             ? "pt-6 px-4 pb-3"
             : touchFriendly
               ? "pt-6 px-4 pb-4"
-              : "pt-5 px-3 pb-3 lg:pt-5 lg:px-2 lg:pb-2"
+              : "pt-5 px-3 pb-3 lg:pt-5 lg:px-2 lg:pb-2",
         )}
       >
-        <div className={cn("flex flex-col", isCollapsed ? "space-y-3" : "space-y-2")}>
+        <div
+          className={cn(
+            "flex flex-col",
+            isCollapsed ? "space-y-3" : "space-y-2",
+          )}
+        >
           {navItems.map(({ href, label, icon: Icon }) => {
-            const isActive = isNavActive(href)
+            const isActive = isNavActive(href);
 
             return (
               <Link
@@ -162,29 +169,50 @@ function SidebarContent({
                 <Icon className={navIconClass()} />
                 {!isCollapsed && <span className="truncate">{label}</span>}
               </Link>
-            )
+            );
           })}
         </div>
       </nav>
 
-      {profile ? (
-        <div
-          className={cn(
-            "mt-auto shrink-0 border-t",
-            isCollapsed
-              ? "px-4 py-3"
-              : touchFriendly
-                ? "px-4 py-4"
-                : "px-3 py-3 lg:px-2 lg:py-2"
-          )}
-        >
+      <div
+        className={cn(
+          "mt-auto shrink-0 border-t",
+          isCollapsed
+            ? "px-4 py-3"
+            : touchFriendly
+              ? "px-4 py-4"
+              : "px-3 py-3 lg:px-2 lg:py-2",
+        )}
+      >
+        {!profile ? (
+          <Link
+            href="/login"
+            onClick={onNavigate}
+            className={cn(
+              "flex w-full items-center transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              isCollapsed
+                ? "aspect-square w-12 justify-center mx-auto rounded-full border-0 bg-transparent p-0 hover:bg-muted"
+                : "gap-3 rounded-lg border bg-card px-3 py-2.5 hover:bg-accent",
+            )}
+            aria-label={t("signIn")}
+          >
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <User className="size-5" />
+            </div>
+            {!isCollapsed && (
+              <span className="truncate text-sm font-semibold text-foreground">
+                {t("signIn")}
+              </span>
+            )}
+          </Link>
+        ) : (
           <DropdownMenu>
             <DropdownMenuTrigger
               className={cn(
                 "flex w-full items-center text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isCollapsed
                   ? "aspect-square w-12 justify-center mx-auto rounded-full border-0 bg-transparent p-0 hover:bg-muted"
-                  : "gap-3 rounded-lg border bg-card px-3 py-2.5 hover:bg-accent"
+                  : "gap-3 rounded-lg border bg-card px-3 py-2.5 hover:bg-accent",
               )}
               aria-label={t("userProfile")}
             >
@@ -223,7 +251,11 @@ function SidebarContent({
                 </DropdownMenuItem>
               ) : null}
               <form action={signOutAction} className="w-full">
-                <DropdownMenuItem variant="destructive" asChild className={profileMenuItemClass}>
+                <DropdownMenuItem
+                  variant="destructive"
+                  asChild
+                  className={profileMenuItemClass}
+                >
                   <button type="submit" className="w-full cursor-pointer">
                     <LogOut className="size-5" />
                     <span>{t("logout")}</span>
@@ -232,29 +264,29 @@ function SidebarContent({
               </form>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-      ) : null}
+        )}
+      </div>
     </div>
-  )
+  );
 }
 
 function useIsSettingsDomain() {
-  const pathname = usePathname()
-  return pathname.startsWith("/settings") || pathname.startsWith("/account")
+  const pathname = usePathname();
+  return pathname.startsWith("/settings") || pathname.startsWith("/account");
 }
 
 export function Sidebar({ profile }: { profile?: UserProfile | null }) {
-  const t = useTranslations("common")
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const isSettingsDomain = useIsSettingsDomain()
+  const t = useTranslations("common");
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const isSettingsDomain = useIsSettingsDomain();
 
-  const effectiveCollapsed = isSettingsDomain ? false : isCollapsed
+  const effectiveCollapsed = isSettingsDomain ? false : isCollapsed;
 
   return (
     <aside
       className={cn(
         "hidden h-screen shrink-0 flex-col border-r bg-muted/20 print:hidden lg:flex",
-        effectiveCollapsed ? "w-20" : "w-72 2xl:w-64"
+        effectiveCollapsed ? "w-20" : "w-72 2xl:w-64",
       )}
     >
       <SidebarContent
@@ -267,9 +299,11 @@ export function Sidebar({ profile }: { profile?: UserProfile | null }) {
               onClick={() => setIsCollapsed(!isCollapsed)}
               className={cn(
                 "inline-flex size-12 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted 2xl:size-10 2xl:rounded-lg",
-                isCollapsed && "mx-auto"
+                isCollapsed && "mx-auto",
               )}
-              aria-label={isCollapsed ? t("expandSidebar") : t("collapseSidebar")}
+              aria-label={
+                isCollapsed ? t("expandSidebar") : t("collapseSidebar")
+              }
             >
               {isCollapsed ? (
                 <ChevronRight className="size-6 2xl:size-5" />
@@ -281,7 +315,7 @@ export function Sidebar({ profile }: { profile?: UserProfile | null }) {
         }
       />
     </aside>
-  )
+  );
 }
 
 export function SidebarDrawer({
@@ -290,20 +324,20 @@ export function SidebarDrawer({
   onClose,
   returnFocusRef,
 }: {
-  profile?: UserProfile | null
-  open: boolean
-  onClose: () => void
-  returnFocusRef?: RefObject<HTMLButtonElement | null>
+  profile?: UserProfile | null;
+  open: boolean;
+  onClose: () => void;
+  returnFocusRef?: RefObject<HTMLButtonElement | null>;
 }) {
-  const t = useTranslations("common")
-  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const t = useTranslations("common");
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   return (
     <aside
       id="mobile-navigation-drawer"
       className={cn(
         "fixed inset-y-0 left-0 z-50 flex w-[min(20rem,88vw)] flex-col border-r bg-background shadow-xl transition-transform duration-200 motion-reduce:transition-none lg:hidden print:hidden",
-        open ? "translate-x-0" : "-translate-x-full"
+        open ? "translate-x-0" : "-translate-x-full",
       )}
       role="dialog"
       aria-modal={open}
@@ -314,14 +348,14 @@ export function SidebarDrawer({
         trapped={open}
         loop
         onMountAutoFocus={(event) => {
-          if (!open) return
-          event.preventDefault()
-          closeButtonRef.current?.focus()
+          if (!open) return;
+          event.preventDefault();
+          closeButtonRef.current?.focus();
         }}
         onUnmountAutoFocus={(event) => {
-          if (!returnFocusRef?.current) return
-          event.preventDefault()
-          returnFocusRef.current.focus()
+          if (!returnFocusRef?.current) return;
+          event.preventDefault();
+          returnFocusRef.current.focus();
         }}
       >
         <SidebarContent
@@ -343,5 +377,5 @@ export function SidebarDrawer({
         />
       </FocusScope>
     </aside>
-  )
+  );
 }
