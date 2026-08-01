@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { getTranslations } from "next-intl/server"
 
+import { InclinedPlaneDoodle } from "@/components/doodles"
 import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { WorksheetCard } from "@/features/library/components/worksheet-card"
@@ -35,11 +36,14 @@ export default async function LibraryPage({
       <PageHeader title={t("title")} description={t("subtitle")} />
 
       {worksheets.length === 0 && page === 1 ? (
-        <div className="flex min-h-72 items-center justify-center rounded-md border border-dashed bg-muted/10 p-8 text-center text-sm text-muted-foreground">
-          {t("emptyFirst")}{" "}
-          <Link href="/generate" className="underline underline-offset-4">
-            {t("generateFirst")}
-          </Link>
+        <div className="flex min-h-72 flex-col items-center justify-center gap-4 rounded-md border border-dashed bg-muted/10 p-8 text-center text-sm text-muted-foreground">
+          <InclinedPlaneDoodle />
+          <p>
+            {t("emptyFirst")}{" "}
+            <Link href="/generate" className="underline underline-offset-4">
+              {t("generateFirst")}
+            </Link>
+          </p>
         </div>
       ) : worksheets.length === 0 ? (
         <div className="flex min-h-72 items-center justify-center rounded-md border border-dashed bg-muted/10 p-8 text-center text-sm text-muted-foreground">

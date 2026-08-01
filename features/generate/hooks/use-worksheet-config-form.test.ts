@@ -128,6 +128,57 @@ describe("buildGenerateWorksheetInput", () => {
     expect(result.data.math_complexity).toBe("scientific")
     expect(result.data.conceptual_difficulty).toBe("level_3")
   })
+
+  it("card selection overrides the free-text lesson and carries star difficulty", () => {
+    const result = buildGenerateWorksheetInput({
+      ...baseParams,
+      lesson: "ignored custom text",
+      selectedLessonIds: ["free-fall"],
+      starDifficulty: 3,
+    })
+
+    expect(result.success).toBe(true)
+    if (!result.success) return
+
+    expect(result.data.lesson).toBe(getLessonLabel("free-fall"))
+    expect(result.data.lessons).toBeUndefined()
+    expect(result.data.star_difficulty).toBe(3)
+  })
+
+  it("multi-topic selection lists all lessons and needs no scenario pick", () => {
+    const result = buildGenerateWorksheetInput({
+      ...baseParams,
+      selectedLessonIds: ["free-fall", "upward-throw", "pursuit"],
+      scenarioDescription: "",
+      resolvedScenarioId: "",
+      starDifficulty: 4,
+    })
+
+    expect(result.success).toBe(true)
+    if (!result.success) return
+
+    expect(result.data.lesson).toBe(getLessonLabel("free-fall"))
+    expect(result.data.lessons).toEqual([
+      getLessonLabel("free-fall"),
+      getLessonLabel("upward-throw"),
+      getLessonLabel("pursuit"),
+    ])
+    expect(result.data.scenario.length).toBeGreaterThan(0)
+    expect(result.data.star_difficulty).toBe(4)
+  })
+
+  it("does not attach star difficulty to custom free-text lessons", () => {
+    const result = buildGenerateWorksheetInput({
+      ...baseParams,
+      lesson: "Custom kinematics topic",
+      starDifficulty: 4,
+    })
+
+    expect(result.success).toBe(true)
+    if (!result.success) return
+
+    expect(result.data.star_difficulty).toBeUndefined()
+  })
 })
 
 describe("useWorksheetConfigForm", () => {

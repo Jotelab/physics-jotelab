@@ -2,8 +2,10 @@
   "common": {
     "appName": "PhysicsJotelab",
     "generate": "Generate",
+    "learn": "Practice",
     "library": "Library",
     "account": "Account",
+    "signIn": "Sign in",
     "logout": "Logout",
     "user": "User",
     "credits": "Credits",
@@ -50,6 +52,12 @@
     "worksheetTitle": "Worksheet",
     "worksheetDescription": "View the \"{title}\" worksheet in your PhysicsJotelab library."
   },
+  "loader": {
+    "solving": "Solving for x…",
+    "converting": "Converting units…",
+    "aligning": "Aligning vectors…",
+    "checking": "Double-checking the answer key…"
+  },
   "auth": {
     "tagline": "Generate high-school calculation worksheets in seconds.",
     "loginWithGoogle": "Login with Google",
@@ -75,7 +83,7 @@
   "library": {
     "title": "Library",
     "subtitle": "Open saved worksheets without spending credits.",
-    "emptyFirst": "No worksheets yet.",
+    "emptyFirst": "Your library is at rest — it stays that way until a force acts on it.",
     "generateFirst": "Generate your first worksheet",
     "emptyPage": "No worksheets on this page.",
     "backToPageOne": "Go back to page 1",
@@ -109,6 +117,41 @@
       "level_2": "Level 2: Unit conversions",
       "level_3": "Level 3: Distractor data"
     },
+    "topics": {
+      "title": "Topics",
+      "hint": "Pick one or more topic cards — questions rotate through your picks.",
+      "selectedCount": "{count} selected",
+      "deckHint": "Hover or tap to fan out the 11 topic cards.",
+      "customTitle": "Or type a custom topic",
+      "mixedHint": "Mixing topics: a fitting scenario is chosen per question.",
+      "multiVariablesHint": "Variable pins apply to single-topic worksheets — when mixing topics, the engine picks a valid variable split per question."
+    },
+    "starDifficulty": {
+      "title": "Difficulty",
+      "levelLabel": "Level {level} · {name}",
+      "level_1_name": "Direct",
+      "level_1_blurb": "One formula in its natural direction: read, substitute, solve.",
+      "level_1_example": "e.g. A car accelerates at 2 m/s² for 5 s — find its final velocity.",
+      "level_2_name": "Sequential",
+      "level_2_blurb": "One result feeds the next formula, or a genuine rearrangement is needed.",
+      "level_2_example": "e.g. Find the time by rearranging s = ut + ½at².",
+      "level_3_name": "Hidden conditions",
+      "level_3_blurb": "A given arrives as words — \"dropped from rest\", \"reaches the top\" — not as a number.",
+      "level_3_example": "e.g. \"A ball is dropped…\" — u = 0 is never written out.",
+      "level_4_name": "Compound",
+      "level_4_blurb": "Simultaneous systems and working backwards through them.",
+      "level_4_example": "e.g. A motorbike chases a car — when do they meet?",
+      "level_5_name": "Cross-topic",
+      "level_5_blurb": "One problem spanning topics, parts wired exactly.",
+      "level_5_example": "e.g. A drop feeds a skid — one part's answer carries into the next.",
+      "fiveStarSoon": "For now, 5★ generates the hardest single-part structure (4★) — full multi-part chains arrive once worksheets support them."
+    },
+    "sections": {
+      "practice": "What to practice",
+      "challenge": "How challenging",
+      "amount": "How many"
+    },
+    "scenarioRequired": "Required — pick a scenario before generating.",
     "questions": "Questions",
     "numberOfQuestions": "Number of questions",
     "limitedQuestions": "Limited to {count, plural, one {# question} other {# questions}} by your credit balance.",
@@ -119,7 +162,7 @@
     "partialCredits": "You have {count} credits. Generation will stop after that many saved questions unless more credits are added.",
     "generatingProgress": "Generating {current} of {total}",
     "generatingProgressShort": "Generating {current}/{total}...",
-    "generateWorksheet": "Generate Worksheet — Up to {cost} Credits",
+    "generateWorksheet": "Generate Worksheet",
     "regenerateAll": "Regenerate All",
     "regenerateAllAria": "Regenerate all questions",
     "appendQuestions": "Append Questions",
@@ -163,7 +206,7 @@
     "solution": "Solution",
     "finalAnswer": "Final answer:",
     "target": "Target:",
-    "emptyPreview": "Generated questions will appear here one by one.",
+    "emptyPreview": "Generated questions land here one by one.",
     "provenanceEngine": "Engine-verified",
     "provenanceLlm": "AI-authored — numbers not engine-verified",
     "layingOutPages": "Laying out pages",
@@ -200,6 +243,16 @@
     "presets": {
       "lessons": {
         "motion-1d": "Motion in one dimension",
+        "vectors-1d": "Vectors in one dimension",
+        "distance-displacement": "Distance & displacement",
+        "average-speed": "Average speed & velocity",
+        "free-fall": "Free fall",
+        "upward-throw": "Upward throw",
+        "multi-stage-motion": "Multi-stage motion",
+        "motion-graphs": "Motion graphs",
+        "relative-velocity": "Relative velocity",
+        "pursuit": "Pursuit & chase",
+        "two-phase-ascent": "Two-phase ascent",
         "newtons-laws": "Newton's laws",
         "energy-work": "Energy & work",
         "circular-motion": "Circular motion",
@@ -208,12 +261,77 @@
         "electrostatics": "Electrostatics",
         "magnetic-fields": "Magnetic fields"
       },
+      "lessonDescriptions": {
+        "motion-1d": "Constant-acceleration motion in a straight line — v = u + at and friends.",
+        "vectors-1d": "Signed velocity and displacement on a line: direction matters.",
+        "distance-displacement": "Path length versus net displacement for multi-leg trips.",
+        "average-speed": "Average speed and velocity across trips with several segments.",
+        "free-fall": "Objects dropped or thrown downward under gravity.",
+        "upward-throw": "Straight-up launches: the rise, the momentary stop at the top, the fall back.",
+        "multi-stage-motion": "Accelerate first, then cruise — two phases, one journey.",
+        "motion-graphs": "Read velocity–time graphs: slopes are accelerations, areas are displacements.",
+        "relative-velocity": "How fast one moving body looks from another on the same line.",
+        "pursuit": "A chaser and a leader — solve the moment they meet.",
+        "two-phase-ascent": "A rocket burns, then coasts to its peak — two phases solved together."
+      },
       "scenarios": {
         "motion-1d": {
           "1": { "label": "Find final velocity", "description": "Find final velocity given initial velocity, acceleration, and time." },
           "2": { "label": "Find displacement", "description": "Find displacement given initial velocity, acceleration, and time." },
           "3": { "label": "Find acceleration", "description": "Find acceleration given initial velocity, final velocity, and time." },
           "4": { "label": "Find time", "description": "Find time required to reach a given velocity under constant acceleration." }
+        },
+        "vectors-1d": {
+          "1": { "label": "Find velocity", "description": "Find the (signed) velocity given displacement and time for uniform 1-D motion." },
+          "2": { "label": "Find displacement", "description": "Find the signed displacement given velocity and time." },
+          "3": { "label": "Find time", "description": "Find the time given displacement and velocity." }
+        },
+        "distance-displacement": {
+          "1": { "label": "Find displacement", "description": "Find the net (signed) displacement of a two-segment path along a line." },
+          "2": { "label": "Find distance", "description": "Find the total path length of a two-segment trip along a line." }
+        },
+        "average-speed": {
+          "1": { "label": "Find average speed", "description": "Find the average speed of a two-segment trip given both segments and the total time." },
+          "2": { "label": "Find average velocity", "description": "Find the (signed) average velocity of a two-segment trip given both segments and the total time." }
+        },
+        "free-fall": {
+          "1": { "label": "Find final speed", "description": "Find the speed of a falling object after a given time or distance." },
+          "2": { "label": "Find fall distance", "description": "Find how far an object falls from its speeds or fall time." },
+          "3": { "label": "Find fall time", "description": "Find how long an object takes to fall." },
+          "4": { "label": "Find initial speed", "description": "Find the initial downward speed of a thrown-down object." }
+        },
+        "upward-throw": {
+          "1": { "label": "Find velocity", "description": "Find the (signed) velocity of an object thrown straight up at a given time." },
+          "2": { "label": "Find height", "description": "Find the height above the launch point at a given time." },
+          "3": { "label": "Find time", "description": "Find the time for a thrown-up object to reach a given velocity." },
+          "4": { "label": "Find launch speed", "description": "Find the initial upward speed from the motion at a later time." }
+        },
+        "multi-stage-motion": {
+          "1": { "label": "Find total displacement", "description": "An object accelerates, then moves at constant velocity; find the total displacement." },
+          "2": { "label": "Find cruise velocity", "description": "Find the constant velocity of the second phase from the total displacement." },
+          "3": { "label": "Find initial velocity", "description": "Find the starting velocity of the accelerating phase." }
+        },
+        "motion-graphs": {
+          "1": { "label": "Find displacement from the graph", "description": "Read a velocity–time graph of a two-phase motion and find the total displacement (area)." },
+          "2": { "label": "Find acceleration from the graph", "description": "Find the acceleration from the slope of the first phase." },
+          "3": { "label": "Find cruise velocity", "description": "Find the constant velocity of the second phase from the graph." },
+          "4": { "label": "Find initial velocity", "description": "Find the starting velocity from the graph." }
+        },
+        "relative-velocity": {
+          "1": { "label": "Find relative velocity", "description": "Find the velocity of one body relative to another moving along the same line." },
+          "2": { "label": "Find velocity of A", "description": "Find a body's velocity from the other body's velocity and their relative velocity." },
+          "3": { "label": "Find velocity of B", "description": "Find the second body's velocity from the first body's and the relative velocity." }
+        },
+        "pursuit": {
+          "1": { "label": "Find catch-up time", "description": "A constant-speed pursuer starts behind an accelerating object; find when it catches up." },
+          "2": { "label": "Find pursuer speed", "description": "Find the constant speed needed to catch up in a given time." },
+          "3": { "label": "Find acceleration", "description": "Find the accelerating object's acceleration from the chase." },
+          "4": { "label": "Find initial gap", "description": "Find the starting separation from the chase." }
+        },
+        "two-phase-ascent": {
+          "1": { "label": "Find maximum height", "description": "A rocket accelerates upward, then coasts under gravity; find the peak height." },
+          "2": { "label": "Find engine acceleration", "description": "Find the powered-phase acceleration from the peak height." },
+          "3": { "label": "Find burn time", "description": "Find the powered-phase duration from the peak height." }
         },
         "newtons-laws": {
           "1": { "label": "Find net force", "description": "Find net force given mass and acceleration (F = ma)." },
@@ -309,7 +427,7 @@
     "pageLoadFailed": "Could not load this page",
     "pageLoadFailedDescription": "The request failed before the workspace could finish loading.",
     "pageNotFound": "Page not found",
-    "pageNotFoundDescription": "The page you requested does not exist.",
+    "pageNotFoundDescription": "This page has escaped the observable universe. The rest of the app is right where you left it.",
     "INSUFFICIENT_CREDITS": "You do not have enough credits.",
     "WORKSHEET_ACCESS_DENIED": "You do not have access to this worksheet.",
     "WORKSHEET_ALREADY_COMPLETE": "This worksheet is already complete.",

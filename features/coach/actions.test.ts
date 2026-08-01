@@ -5,6 +5,12 @@ import { SUVAT } from "@/lib/engine/topics"
 import { generateCoachProblem } from "./actions"
 import { buildCoachProblem } from "./oracle"
 
+// The coach surface must never load the WASM TeX engine in unit tests; the
+// diagram compile is covered by lib/tikz/attach-diagram.test.ts.
+vi.mock("@/lib/tikz/attach-diagram", () => ({
+  templateDiagramSvg: vi.fn(async () => "<svg>coach-diagram</svg>"),
+}))
+
 /**
  * E2E stub mode (C1.3): with E2E_STUB_GENERATION=true a coached solve must run
  * with no engine service configured — the same boundary pattern as
@@ -50,6 +56,18 @@ describe("generateCoachProblem under E2E_STUB_GENERATION", () => {
       first.sympyData.given.map((g) => g.symbol)
     )
     expect(rerolled.sympyData.find.symbol).toBe(first.sympyData.find.symbol)
+  })
+
+  it("attaches the templated diagram SVG to the coached problem", async () => {
+    vi.stubEnv("E2E_STUB_GENERATION", "true")
+    vi.stubEnv("ENGINE_BASE_URL", "")
+    vi.stubEnv("ENGINE_API_KEY", "")
+
+    const result = await generateCoachProblem()
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.diagramSvg).toBe("<svg>coach-diagram</svg>")
   })
 
   it("still reports the engine error when the stub is off", async () => {

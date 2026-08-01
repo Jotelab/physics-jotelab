@@ -2,6 +2,7 @@ import type { ConceptualDifficulty, MathComplexity } from "@/features/generate/t
 
 export const DEFAULT_MATH_COMPLEXITY: MathComplexity = "integers"
 export const DEFAULT_CONCEPTUAL_DIFFICULTY: ConceptualDifficulty = "level_1"
+export const DEFAULT_STAR_DIFFICULTY = 1
 
 export const MATH_COMPLEXITY_OPTIONS: { value: MathComplexity; labelKey: string }[] = [
   { value: "integers", labelKey: "mathComplexity.integers" },

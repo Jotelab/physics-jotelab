@@ -6,6 +6,7 @@ import sympyDataContractFixture from "@/tests/fixtures/sympy-data-contract.json"
 
 import { sympyDataSchema, type SympyData } from "./sympy-data"
 import {
+  engineBackedLessons,
   engineNameForDisplaySymbol,
   mathComplexityToDifficulty,
   resolveEngineTopic,
@@ -40,6 +41,37 @@ describe("resolveEngineTopic", () => {
       label: "ความเร็วต้น",
       unit: "m/s",
     })
+  })
+})
+
+describe("engineBackedLessons", () => {
+  // The prose-fidelity benchmark sweeps this catalog, but it is skipped unless
+  // PROSE_BENCHMARK=1 — so the sweep contract is pinned here instead of only
+  // being exercised by a benchmark that does not run in CI.
+  it("enumerates every wired lesson, and nothing that is not engine-backed", () => {
+    const lessons = engineBackedLessons()
+
+    expect(lessons.length).toBeGreaterThan(0)
+    expect(new Set(lessons.map((l) => l.lessonId)).size).toBe(lessons.length)
+    expect(lessons.map((l) => l.lessonId)).toContain("motion-1d")
+    expect(lessons.every((l) => resolveEngineTopic(l.lessonId, "physics") !== null)).toBe(true)
+  })
+
+  it("stays in lockstep with resolveEngineTopic — same topic object per lesson", () => {
+    for (const { lessonId, topic } of engineBackedLessons()) {
+      expect(resolveEngineTopic(lessonId, "physics")).toBe(topic)
+    }
+  })
+
+  it("carries display metadata for every variable of every topic", () => {
+    for (const { lessonId, topic } of engineBackedLessons()) {
+      expect(topic.topic, `${lessonId} has an engine topic id`).toBeTruthy()
+      for (const [name, meta] of Object.entries(topic.variables)) {
+        expect(meta.symbol, `${lessonId}.${name} symbol`).toBeTruthy()
+        expect(meta.label, `${lessonId}.${name} label`).toBeTruthy()
+        expect(typeof meta.unit, `${lessonId}.${name} unit`).toBe("string")
+      }
+    }
   })
 })
 

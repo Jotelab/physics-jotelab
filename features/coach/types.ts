@@ -14,6 +14,13 @@ import type { SympyData } from "@/lib/engine/sympy-data"
 export type CoachStep = "equation" | "substitution" | "answer"
 
 /**
+ * The engine's difficulty band, mirrored here so client-side coaching modules
+ * (`remediation.ts`, the session UI) can name it without importing the
+ * server-only engine client.
+ */
+export type CoachDifficulty = "easy" | "medium" | "hard"
+
+/**
  * The misconception taxonomy (C1.2 minimum SUVAT set). `value-slip` is the
  * catch-all for a substitution that is wrong but matches no known pattern —
  * still logged, per the risk register ("unmatched errors get a generic hint").

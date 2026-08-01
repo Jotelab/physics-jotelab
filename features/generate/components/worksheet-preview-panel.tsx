@@ -205,7 +205,7 @@ export function WorksheetPreviewPanel({
         </div>
       ) : null}
 
-      <div className="relative min-h-0 flex-1 overflow-auto p-4 print:bg-white print:p-0 sm:p-6 lg:p-8">
+      <div className="relative min-h-0 flex-1 overflow-auto p-4 print:overflow-visible print:bg-white print:p-0 sm:p-6 lg:p-8">
         <div className={canPrintAllVersions ? "print:hidden" : undefined}>
           <WorksheetPreview
             header={header}

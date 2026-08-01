@@ -122,6 +122,12 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
 
 
   const lessonDisplay = useMemo(() => {
+    // Cards win over free text; several cards read as "first topic +N".
+    if (configForm.selectedLessonIds.length > 0) {
+      const primaryLabel = t(`presets.lessons.${configForm.selectedLessonIds[0]}`)
+      const extraCount = configForm.selectedLessonIds.length - 1
+      return extraCount > 0 ? `${primaryLabel} +${extraCount}` : primaryLabel
+    }
     const trimmed = configForm.trimmedLesson
     if (!trimmed) return ""
     const key = resolveLessonKey(trimmed)
@@ -129,7 +135,7 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
       return t(`presets.lessons.${key.lessonId}`)
     }
     return trimmed
-  }, [configForm.trimmedLesson, t])
+  }, [configForm.selectedLessonIds, configForm.trimmedLesson, t])
 
   const worksheetTitle = useMemo(() => {
     if (creditLimits.hasActiveWorksheet && creditLimits.activeWorksheetMeta) {
@@ -240,14 +246,20 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
       onActiveTabChange: configForm.setActiveTab,
       controlsDisabled,
       lesson: configForm.lesson,
+      selectedLessonIds: configForm.selectedLessonIds,
+      primaryLesson: configForm.primaryLesson,
+      isMultiTopic: configForm.isMultiTopic,
       resolvedScenarioId: configForm.resolvedScenarioId,
       onLessonChange: configForm.handleLessonChange,
       onLessonSuggestionSelect: configForm.handleLessonSuggestionSelect,
+      onLessonCardToggle: configForm.handleLessonCardToggle,
       onScenarioChange: configForm.handleScenarioChange,
       mathComplexity: configForm.mathComplexity,
       conceptualDifficulty: configForm.conceptualDifficulty,
+      starDifficulty: configForm.starDifficulty,
       onMathComplexityChange: configForm.setMathComplexity,
       onConceptualDifficultyChange: configForm.setConceptualDifficulty,
+      onStarDifficultyChange: configForm.setStarDifficulty,
       onQuestionCountChange: configForm.setQuestionCount,
       givenVariableIds: configForm.givenVariableIds,
       findVariableIds: configForm.findVariableIds,

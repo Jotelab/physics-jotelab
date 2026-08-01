@@ -251,14 +251,20 @@ describe("editQuestionAction", () => {
       error: null,
     })
 
+    // A client could send server-owned fields; the action must ignore them and
+    // keep the stored id/order. Hoisted out of the call so this is a structural
+    // assignment rather than a fresh literal (excess-property checking would
+    // reject the very shape this test exists to exercise).
+    const withServerOwnedFields = {
+      ...editedQuestion,
+      id: "00000000-0000-4000-8000-000000000099",
+      order: 99,
+    }
+
     const result = await editQuestionAction({
       worksheetId,
       questionId,
-      editedQuestion: {
-        ...editedQuestion,
-        id: "00000000-0000-4000-8000-000000000099",
-        order: 99,
-      },
+      editedQuestion: withServerOwnedFields,
     })
 
     expect(result.ok).toBe(true)
@@ -390,6 +396,7 @@ describe("regenerateQuestionAction", () => {
     const result = await regenerateQuestionAction({
       worksheetId: "not-a-uuid",
       questionId,
+      attemptId: "00000000-0000-4000-8000-0000000000aa",
     })
 
     expect(result).toEqual(failure("VALIDATION_FAILED", "Could not regenerate the question."))

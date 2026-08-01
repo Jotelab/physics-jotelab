@@ -12,17 +12,27 @@ export function getWorksheetTitle(input: GenerateWorksheetInput) {
 export function buildGenerationSettingsPayload(input: GenerateWorksheetInput) {
   const payload: {
     lesson: string
+    lessons?: GenerateWorksheetInput["lessons"]
     scenario: string
     given_variables?: GenerateWorksheetInput["given_variables"]
     target_variables?: GenerateWorksheetInput["target_variables"]
     target_randomize?: boolean
     math_complexity: GenerateWorksheetInput["math_complexity"]
     conceptual_difficulty: GenerateWorksheetInput["conceptual_difficulty"]
+    star_difficulty?: GenerateWorksheetInput["star_difficulty"]
   } = {
     lesson: input.lesson,
     scenario: input.scenario,
     math_complexity: input.math_complexity ?? DEFAULT_MATH_COMPLEXITY,
     conceptual_difficulty: input.conceptual_difficulty ?? DEFAULT_CONCEPTUAL_DIFFICULTY,
+  }
+
+  if (input.lessons && input.lessons.length > 0) {
+    payload.lessons = input.lessons
+  }
+
+  if (input.star_difficulty != null) {
+    payload.star_difficulty = input.star_difficulty
   }
 
   if (input.given_variables && input.given_variables.length > 0) {

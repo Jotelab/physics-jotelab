@@ -9,10 +9,12 @@ import { Button } from "@/components/ui/button"
 import { formLabelClass } from "@/lib/ui-classes"
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { LessonCardGrid } from "@/features/generate/components/lesson-card-grid"
 import { LessonCombobox } from "@/features/generate/components/lesson-combobox"
 import {
   ConceptualDifficultySelect,
   MathComplexitySelect,
+  StarDifficultySelect,
 } from "@/features/generate/components/difficulty-select"
 import { ScenarioSelect } from "@/features/generate/components/scenario-select"
 import { VariableConstraintPicker } from "@/features/generate/components/variable-constraint-picker"
@@ -25,14 +27,20 @@ export type WorksheetFormControls = {
   onActiveTabChange: (tab: "basic" | "advanced") => void
   controlsDisabled: boolean
   lesson: string
+  selectedLessonIds: string[]
+  primaryLesson: string
+  isMultiTopic: boolean
   resolvedScenarioId: string
   onLessonChange: (lesson: string) => void
   onLessonSuggestionSelect: () => void
+  onLessonCardToggle: (lessonId: string) => void
   onScenarioChange: (id: string, description: string) => void
   mathComplexity: MathComplexity
   conceptualDifficulty: ConceptualDifficulty
+  starDifficulty: number
   onMathComplexityChange: (value: MathComplexity) => void
   onConceptualDifficultyChange: (value: ConceptualDifficulty) => void
+  onStarDifficultyChange: (value: number) => void
   onQuestionCountChange: (count: number) => void
   givenVariableIds: string[]
   findVariableIds: string[]
@@ -90,35 +98,84 @@ function WorksheetBasicFields({
 }) {
   const t = useTranslations("generate")
 
+  const usingCards = form.selectedLessonIds.length > 0
+  const needsScenario =
+    !form.isMultiTopic && Boolean(form.primaryLesson) && !form.resolvedScenarioId
+  const sectionEyebrowClass =
+    "text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
+
   return (
-    <div className="space-y-6">
-      <LessonCombobox
-        value={form.lesson}
-        onChange={form.onLessonChange}
-        onSuggestionSelect={form.onLessonSuggestionSelect}
-        disabled={form.controlsDisabled}
-      />
+    <div className="space-y-7">
+      <div className="space-y-4">
+        <p className={sectionEyebrowClass}>{t("sections.practice")}</p>
 
-      <ScenarioSelect
-        lesson={form.lesson}
-        value={form.resolvedScenarioId}
-        onChange={form.onScenarioChange}
-        disabled={form.controlsDisabled}
-      />
+        <LessonCardGrid
+          selectedIds={form.selectedLessonIds}
+          onToggle={form.onLessonCardToggle}
+          disabled={form.controlsDisabled}
+        />
 
-      <MathComplexitySelect
-        value={form.mathComplexity}
-        onChange={form.onMathComplexityChange}
-        disabled={form.controlsDisabled}
-      />
+        {!usingCards ? (
+          <details className="group">
+            <summary className="cursor-pointer list-none text-xs text-muted-foreground underline-offset-4 hover:underline">
+              {t("topics.customTitle")}
+            </summary>
+            <div className="mt-3">
+              <LessonCombobox
+                value={form.lesson}
+                onChange={form.onLessonChange}
+                onSuggestionSelect={form.onLessonSuggestionSelect}
+                disabled={form.controlsDisabled}
+              />
+            </div>
+          </details>
+        ) : null}
 
-      <ConceptualDifficultySelect
-        value={form.conceptualDifficulty}
-        onChange={form.onConceptualDifficultyChange}
-        disabled={form.controlsDisabled}
-      />
+        {form.isMultiTopic ? (
+          <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            {t("topics.mixedHint")}
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            <ScenarioSelect
+              lesson={form.primaryLesson}
+              value={form.resolvedScenarioId}
+              onChange={form.onScenarioChange}
+              disabled={form.controlsDisabled}
+            />
+            {needsScenario ? (
+              <p className="text-xs text-muted-foreground">{t("scenarioRequired")}</p>
+            ) : null}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        <p className={sectionEyebrowClass}>{t("sections.challenge")}</p>
+
+        <MathComplexitySelect
+          value={form.mathComplexity}
+          onChange={form.onMathComplexityChange}
+          disabled={form.controlsDisabled}
+        />
+
+        {usingCards ? (
+          <StarDifficultySelect
+            value={form.starDifficulty}
+            onChange={form.onStarDifficultyChange}
+            disabled={form.controlsDisabled}
+          />
+        ) : (
+          <ConceptualDifficultySelect
+            value={form.conceptualDifficulty}
+            onChange={form.onConceptualDifficultyChange}
+            disabled={form.controlsDisabled}
+          />
+        )}
+      </div>
 
       <div className="space-y-3">
+        <p className={sectionEyebrowClass}>{t("sections.amount")}</p>
         <div className="flex items-center justify-between gap-3">
           <label htmlFor="question-count" className={formLabelClass}>
             {t("questions")}
@@ -240,7 +297,7 @@ function WorksheetGenerationActions({
         >
           {status.isGenerating && status.progress
             ? t("generatingProgressShort", { current: status.progress.current, total: status.progress.total })
-            : t("generateWorksheet", { cost: credits.cost })}
+            : t("generateWorksheet")}
         </Button>
       ) : (
         <div className="flex flex-col gap-2">
@@ -253,7 +310,9 @@ function WorksheetGenerationActions({
               {t("generatingProgressShort", { current: status.progress.current, total: status.progress.total })}
             </p>
           ) : null}
-          <div className="flex gap-2">
+          {/* flex-wrap: the two touch-wide buttons cannot shrink below their
+              nowrap labels — let the second stack instead of overflowing. */}
+          <div className="flex flex-wrap gap-2">
             <Button
               id="regenerate-all-btn"
               type="button"
@@ -402,18 +461,26 @@ export function WorksheetConfigPanel({
           <div className="space-y-7">
             {basicFields}
 
-            <VariableConstraintPicker
-              lesson={form.lesson}
-              findVariableIds={form.findVariableIds}
-              targetRandomize={form.targetRandomize}
-              givenVariableIds={form.givenVariableIds}
-              onFindChange={form.onFindVariableIdsChange}
-              onTargetRandomizeChange={form.onTargetRandomizeChange}
-              onGivenChange={form.onGivenVariableIdsChange}
-              disabled={form.controlsDisabled}
-            />
+            {form.isMultiTopic ? (
+              <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                {t("topics.multiVariablesHint")}
+              </p>
+            ) : (
+              <>
+                <VariableConstraintPicker
+                  lesson={form.primaryLesson}
+                  findVariableIds={form.findVariableIds}
+                  targetRandomize={form.targetRandomize}
+                  givenVariableIds={form.givenVariableIds}
+                  onFindChange={form.onFindVariableIdsChange}
+                  onTargetRandomizeChange={form.onTargetRandomizeChange}
+                  onGivenChange={form.onGivenVariableIdsChange}
+                  disabled={form.controlsDisabled}
+                />
 
-            <p className="text-xs text-muted-foreground">{t("variablesHint")}</p>
+                <p className="text-xs text-muted-foreground">{t("variablesHint")}</p>
+              </>
+            )}
 
             {actionArea}
           </div>

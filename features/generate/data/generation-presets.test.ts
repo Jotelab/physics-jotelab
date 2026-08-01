@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   findScenarioById,
   getScenariosForLesson,
+  getVariablePresets,
   getVariablesForLesson,
   pruneVariableSelection,
   resolveLessonKey,
@@ -95,7 +96,7 @@ describe("getVariablesForLesson", () => {
 
   it("returns all variables for custom lessons", () => {
     const variables = getVariablesForLesson("Custom thermodynamics")
-    expect(variables).toHaveLength(12)
+    expect(variables).toHaveLength(getVariablePresets().length)
   })
 
   it("returns no variables when lesson is empty", () => {

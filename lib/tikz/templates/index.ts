@@ -1,5 +1,6 @@
 import type { SympyData } from "@/lib/engine/sympy-data"
 
+import { engineDiagramTikz } from "../engine-diagram"
 import { suvatMotionTikz } from "./suvat"
 
 /**
@@ -15,8 +16,18 @@ const TEMPLATE_BUILDERS: Record<string, (sympyData: SympyData) => string> = {
   suvat: suvatMotionTikz,
 }
 
-/** Build the templated TikZ for a `sympy_data` payload, or `null` if none exists. */
+/**
+ * Build the templated TikZ for a `sympy_data` payload, or `null` if none exists.
+ * An engine-authored `diagram` spec wins over the local per-topic builders —
+ * the engine knows which quantities matter and already applied answer-hiding;
+ * 9 of the 11 engine topics ship one. Local builders remain the fallback for
+ * payloads generated before the engine authored diagrams.
+ */
 export function buildTemplateTikz(sympyData: SympyData): string | null {
+  const engineAuthored = engineDiagramTikz(sympyData.diagram)
+  if (engineAuthored) {
+    return engineAuthored
+  }
   const build = TEMPLATE_BUILDERS[sympyData.topic]
   return build ? build(sympyData) : null
 }

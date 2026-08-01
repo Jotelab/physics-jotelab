@@ -46,9 +46,121 @@ export const SUVAT: EngineTopic = {
   },
 }
 
+const VECTORS_1D: EngineTopic = {
+  topic: "vectors-1d",
+  variables: {
+    s: { symbol: "s", label: "การกระจัด", unit: "m" },
+    t: { symbol: "t", label: "เวลา", unit: "s" },
+    v: { symbol: "v", label: "ความเร็ว", unit: "m/s" },
+  },
+}
+
+const DISTANCE_DISPLACEMENT: EngineTopic = {
+  topic: "distance-displacement",
+  variables: {
+    d1: { symbol: "d₁", label: "การกระจัดช่วงที่ 1", unit: "m" },
+    d2: { symbol: "d₂", label: "การกระจัดช่วงที่ 2", unit: "m" },
+    disp: { symbol: "s", label: "การกระจัดลัพธ์", unit: "m" },
+    dist: { symbol: "d", label: "ระยะทางรวม", unit: "m" },
+  },
+}
+
+const AVERAGE_SPEED: EngineTopic = {
+  topic: "average-speed",
+  variables: {
+    d1: { symbol: "d₁", label: "การกระจัดช่วงที่ 1", unit: "m" },
+    d2: { symbol: "d₂", label: "การกระจัดช่วงที่ 2", unit: "m" },
+    t: { symbol: "t", label: "เวลารวม", unit: "s" },
+    sp: { symbol: "v̄", label: "อัตราเร็วเฉลี่ย", unit: "m/s" },
+    vavg: { symbol: "v̄ₛ", label: "ความเร็วเฉลี่ย", unit: "m/s" },
+  },
+}
+
+const FREE_FALL: EngineTopic = {
+  topic: "free-fall",
+  variables: {
+    u: { symbol: "v₀", label: "ความเร็วต้น", unit: "m/s" },
+    v: { symbol: "v", label: "ความเร็วปลาย", unit: "m/s" },
+    t: { symbol: "t", label: "เวลา", unit: "s" },
+    h: { symbol: "h", label: "ระยะที่ตกลงมา", unit: "m" },
+    g: { symbol: "g", label: "ความเร่งโน้มถ่วง", unit: "m/s²" },
+  },
+}
+
+const UPWARD_THROW: EngineTopic = {
+  topic: "upward-throw",
+  variables: {
+    u: { symbol: "v₀", label: "ความเร็วต้น", unit: "m/s" },
+    v: { symbol: "v", label: "ความเร็วที่เวลา t", unit: "m/s" },
+    g: { symbol: "g", label: "ความเร่งโน้มถ่วง", unit: "m/s²" },
+    t: { symbol: "t", label: "เวลา", unit: "s" },
+    h: { symbol: "h", label: "ความสูง", unit: "m" },
+  },
+}
+
+// multi-stage-motion and motion-graphs share the same two-phase variables
+// (the engine templates share symbols too); only the topic id differs.
+const TWO_PHASE_VARIABLES: EngineTopic["variables"] = {
+  u: { symbol: "v₀", label: "ความเร็วต้น", unit: "m/s" },
+  a: { symbol: "a", label: "ความเร่งช่วงที่ 1", unit: "m/s²" },
+  t1: { symbol: "t₁", label: "เวลาช่วงที่ 1", unit: "s" },
+  t2: { symbol: "t₂", label: "เวลาช่วงที่ 2", unit: "s" },
+  v: { symbol: "v", label: "ความเร็วช่วงคงที่", unit: "m/s" },
+  s: { symbol: "s", label: "การกระจัดรวม", unit: "m" },
+}
+
+const MULTI_STAGE_MOTION: EngineTopic = {
+  topic: "multi-stage-motion",
+  variables: TWO_PHASE_VARIABLES,
+}
+
+const MOTION_GRAPHS: EngineTopic = {
+  topic: "motion-graphs",
+  variables: TWO_PHASE_VARIABLES,
+}
+
+const RELATIVE_VELOCITY: EngineTopic = {
+  topic: "relative-velocity",
+  variables: {
+    va: { symbol: "vᴬ", label: "ความเร็วของ A", unit: "m/s" },
+    vb: { symbol: "vᴮ", label: "ความเร็วของ B", unit: "m/s" },
+    vab: { symbol: "vᴬᴮ", label: "ความเร็วของ A เทียบกับ B", unit: "m/s" },
+  },
+}
+
+const PURSUIT: EngineTopic = {
+  topic: "pursuit",
+  variables: {
+    gap: { symbol: "d₀", label: "ระยะห่างเริ่มต้น", unit: "m" },
+    a: { symbol: "a", label: "ความเร่งของคันหน้า", unit: "m/s²" },
+    v: { symbol: "v", label: "อัตราเร็วของผู้ไล่", unit: "m/s" },
+    t: { symbol: "t", label: "เวลาไล่ทัน", unit: "s" },
+  },
+}
+
+const TWO_PHASE_ASCENT: EngineTopic = {
+  topic: "two-phase-ascent",
+  variables: {
+    a: { symbol: "a", label: "ความเร่งช่วงเครื่องยนต์ทำงาน", unit: "m/s²" },
+    t1: { symbol: "t₁", label: "เวลาช่วงเครื่องยนต์ทำงาน", unit: "s" },
+    g: { symbol: "g", label: "ความเร่งโน้มถ่วง", unit: "m/s²" },
+    H: { symbol: "H", label: "ความสูงสูงสุด", unit: "m" },
+  },
+}
+
 /** Lesson id → engine topic. Only lessons listed here go neuro-symbolic. */
 const ENGINE_TOPICS_BY_LESSON: Record<string, EngineTopic> = {
   "motion-1d": SUVAT,
+  "vectors-1d": VECTORS_1D,
+  "distance-displacement": DISTANCE_DISPLACEMENT,
+  "average-speed": AVERAGE_SPEED,
+  "free-fall": FREE_FALL,
+  "upward-throw": UPWARD_THROW,
+  "multi-stage-motion": MULTI_STAGE_MOTION,
+  "motion-graphs": MOTION_GRAPHS,
+  "relative-velocity": RELATIVE_VELOCITY,
+  pursuit: PURSUIT,
+  "two-phase-ascent": TWO_PHASE_ASCENT,
 }
 
 /**

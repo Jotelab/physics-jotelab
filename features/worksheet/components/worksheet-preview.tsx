@@ -6,6 +6,7 @@ import { MoreVertical } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { BlockMath, InlineMath } from "react-katex"
 
+import { PendulumDoodle } from "@/components/doodles"
 import { Button } from "@/components/ui/button"
 import type { SkippedSlot, WorksheetQuestion } from "@/features/generate/types"
 import { TikzDiagram } from "@/features/worksheet/components/tikz-diagram"
@@ -54,11 +55,6 @@ export function MathText({ children }: { children: string }) {
   })
 
   return <>{nodes}</>
-}
-
-function formatGivenValue(value: WorksheetQuestion["given_values"][number]) {
-  const unit = value.unit ? ` ${value.unit}` : ""
-  return `${value.symbol}: ${value.label} = ${String(value.value)}${unit}`
 }
 
 export { getDisplayItems }
@@ -114,7 +110,10 @@ export function WorksheetPreview({
             onHeaderChange={onHeaderChange}
           />
           <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-            <div className="flex min-h-72 w-full items-center justify-center rounded-md border border-dashed bg-muted/10 p-8 text-center text-sm text-muted-foreground">
+            <div className="flex min-h-72 w-full flex-col items-center justify-center gap-4 rounded-md border border-dashed bg-muted/10 p-8 text-center text-sm text-muted-foreground">
+              <span className="print:hidden">
+                <PendulumDoodle />
+              </span>
               {resolvedEmptyMessage}
             </div>
           </div>
@@ -304,17 +303,6 @@ function QuestionBlock({
           </span>
           <div className="text-sm leading-6">
             <MathText>{question.question_text}</MathText>
-          </div>
-          <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
-            {question.given_values.map((value) => (
-              <div key={`${question.id}-${value.symbol}-${value.label}`}>
-                <MathText>{formatGivenValue(value)}</MathText>
-              </div>
-            ))}
-            <div>
-              {t("target")} <MathText>{question.target_variable.label}</MathText>
-              {question.target_variable.unit ? ` (${question.target_variable.unit})` : ""}
-            </div>
           </div>
         </div>
         {questionActions ? (

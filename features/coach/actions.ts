@@ -4,8 +4,10 @@ import { e2eStubEngineQuestion } from "@/lib/ai/e2e-stub-question"
 import { engineGenerate, EngineError } from "@/lib/engine/client"
 import { SUVAT } from "@/lib/engine/topics"
 import { sympyDataSchema, type SympyData } from "@/lib/engine/sympy-data"
+import { templateDiagramSvg } from "@/lib/tikz/attach-diagram"
 
 import { relationForSplit } from "./equations"
+import type { CoachDifficulty } from "./types"
 
 /**
  * Server actions for the coaching surface (C1.1).
@@ -18,26 +20,41 @@ import { relationForSplit } from "./equations"
  */
 
 export type CoachGenerateResult =
-  | { ok: true; sympyData: SympyData }
+  | { ok: true; sympyData: SympyData; diagramSvg: string | null }
   | { ok: false; error: string }
 
 const MAX_ATTEMPTS = 3
+
+/**
+ * A coachable payload plus its motion diagram (§2.2's templated TikZ, reused
+ * for C1). Unlike the worksheet read path this also compiles in E2E stub mode:
+ * the stub is one fixed problem, so the single cached compile is what makes
+ * the diagram visible in engine-less local/e2e runs. `null` (no template or
+ * compile failure) renders the solve without a picture.
+ */
+async function coachResult(sympyData: SympyData): Promise<CoachGenerateResult> {
+  return { ok: true, sympyData, diagramSvg: await templateDiagramSvg(sympyData) }
+}
 
 export async function generateCoachProblem(params?: {
   /** Pin the split (isomorphic re-roll): the previous problem's given names. */
   given?: string[]
   /** …and its find name. */
   find?: string
-  difficulty?: "easy" | "medium" | "hard"
+  difficulty?: CoachDifficulty
+  /**
+   * Pin exact values onto givens — the remediation planner's targeted-drill
+   * mechanism (a sign drill pins a negative acceleration). Forwarded verbatim;
+   * the engine treats a pinned given as fixed rather than sampled, so the
+   * numbers still originate in the symbolic layer.
+   */
+  conditions?: Record<string, number>
 }): Promise<CoachGenerateResult> {
   // E2E stub (same boundary pattern as generate-engine-question): a coached
   // solve runs in Playwright with no engine service. The fixed payload is its
   // own isomorphic re-roll — the pinned split always matches.
   if (process.env.E2E_STUB_GENERATION === "true") {
-    return {
-      ok: true,
-      sympyData: sympyDataSchema.parse(e2eStubEngineQuestion.sympy_data),
-    }
+    return coachResult(sympyDataSchema.parse(e2eStubEngineQuestion.sympy_data))
   }
 
   try {
@@ -51,11 +68,12 @@ export async function generateCoachProblem(params?: {
         difficulty: params?.difficulty ?? "easy",
         given: params?.given,
         find: params?.find,
+        conditions: params?.conditions,
       })
       last = sympyData
       const split = sympyData.given.map((given) => given.symbol)
       if (relationForSplit(split, sympyData.find.symbol)) {
-        return { ok: true, sympyData }
+        return coachResult(sympyData)
       }
     }
     return {

@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { getTranslations } from "next-intl/server"
 
+import { EscapedPageDoodle } from "@/components/doodles"
 import { Button } from "@/components/ui/button"
 import { PageState } from "@/components/ui/page-state"
 
@@ -14,6 +15,7 @@ export default async function NotFound() {
       <PageState
         title={t("pageNotFound")}
         description={t("pageNotFoundDescription")}
+        illustration={<EscapedPageDoodle />}
         className="min-h-screen"
         action={
           <Button asChild variant="outline">
