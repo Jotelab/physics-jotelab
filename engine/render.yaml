@@ -1,11 +1,17 @@
 # Render blueprint (DEVELOPMENT_PLAN §1.1 ops loose end): deploy the engine
 # service from this repo with "New → Blueprint" in the Render dashboard.
 # The Dockerfile honors Render's injected $PORT; /health is unauthenticated.
+#
+# `plan: free` so the blueprint applies without a payment method on the
+# account. The trade-off is real and worth knowing before a demo: a free
+# instance spins down when idle and cold-starts on the next request (tens of
+# seconds). Hit /health once to wake it before any session where someone will
+# open the app expecting an immediate response.
 services:
   - type: web
     name: jotelab-engine
     runtime: docker
-    plan: starter
+    plan: free
     healthCheckPath: /health
     autoDeploy: true
     envVars:
