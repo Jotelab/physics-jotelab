@@ -60,19 +60,52 @@ type ActorsSpec = {
   bodies?: { name?: string; velocity?: DiagramLabel }[]
 }
 
-/** `m/s^2` → `\mathrm{m/s^2}`; the odd `·` becomes `\cdot`. */
+/**
+ * Everything except the symbol itself is emitted in **text mode**, deliberately.
+ *
+ * node-tikzjax's DVI→SVG step reads each glyph's font slot as ASCII, so a
+ * character drawn from a maths font whose slot means something else in ASCII
+ * silently renders as the wrong character. Compilation still succeeds, which is
+ * how this survived: `$\mathrm{m/s}$` produced **`m=s`** (`/` is cmmi slot 61,
+ * and 61 is `=` in ASCII), and `$-4$` produced **`¡4`** (minus comes from
+ * cmsy10). Letters and digits are unaffected, so symbols looked fine while every
+ * unit and every negative number did not.
+ *
+ * Text mode uses cmr, where the slot mapping is correct. Only the italic symbol
+ * — letters and subscripts, both safe — stays in maths.
+ * See `glyph-fidelity.test.ts`, which asserts on compiled SVG rather than on the
+ * TeX string, because a TeX-level assertion passes either way.
+ */
+
+/** `m/s^2` → `~m/s$^{2}$` in text mode, with the exponent as safe maths digits. */
 function unitTex(unit: string | undefined): string {
   if (!unit) return ""
-  return `~\\mathrm{${unit.replaceAll("·", "\\cdot ")}}`
+
+  const text = unit
+    // `\cdot` is cmsy10 and renders as `¢`; a thin gap reads the same and is safe.
+    .replaceAll("·", " ")
+    // Exponent only — the base letter stays in text mode. (Pulling the base into
+    // the maths group was measured and changes no glyph position, so it buys
+    // nothing over the simpler form.)
+    .replace(/\^\{?(-?\d+)\}?/g, (_match, exponent: string) =>
+      // A digit-only exponent is safe in maths and gets the right script size.
+      // A negative one would pull the minus from cmsy, so box it into text mode.
+      exponent.startsWith("-") ? `$^{\\mbox{${exponent}}}$` : `$^{${exponent}}$`
+    )
+
+  return `~${text}`
 }
 
-/** One labelled quantity as TeX math: `v_0 = 12~\mathrm{m/s}`, or `v = ?` for the find. */
+/**
+ * One labelled quantity, e.g. `$v_0$ = 12~m/s`, or `$v$ = ?` for the find.
+ * The symbol is maths; the `=`, the value and the unit are text.
+ */
 function labelTex(item: DiagramLabel): string {
   const name = item.label || item.symbol
   if (item.role === "find" || item.value == null) {
-    return `$${name} = \\,?$`
+    return `$${name}$ = ?`
   }
-  return `$${name} = ${item.value}${unitTex(item.unit)}$`
+  return `$${name}$ = ${item.value}${unitTex(item.unit)}`
 }
 
 function isLabel(value: unknown): value is DiagramLabel {
@@ -259,10 +292,13 @@ function plot2d(spec: Plot2dSpec): string {
   const sx = (x: number) => (x / maxX) * plotW
   const sy = (y: number) => (y / maxY) * plotH
 
+  // Same glyph-fidelity rule as `labelTex`: symbol in maths, unit in text mode.
+  // The parentheses are text too — they are cmr in both modes, but keeping the
+  // whole unit group out of maths is what stops `/` becoming `=`.
   const axisLabel = (axis: PlotAxis | undefined) => {
     if (!axis?.symbol) return ""
-    const unit = axis.unit ? `~(\\mathrm{${axis.unit.replaceAll("·", "\\cdot ")}})` : ""
-    return `$${axis.symbol}${unit}$`
+    const unit = axis.unit ? ` (${unitTex(axis.unit).slice(1)})` : ""
+    return `$${axis.symbol}$${unit}`
   }
 
   const lines: string[] = [PICTURE_OPEN]
