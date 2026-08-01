@@ -52,14 +52,13 @@ choose *Modify → Add to PATH*.
 
 ---
 
-## 2. Get both repositories
+## 2. Get the code
 
-The app and the engine are separate projects. You need both.
+The engine ships inside the app repository (`engine/`), so this is one clone.
 
 ```powershell
 cd C:\jotelab
 git clone https://github.com/Jotelab/physics-jotelab.git
-git clone https://github.com/Jotelab/jotelab-ai.git
 ```
 
 Check out the branch that has the current work:
@@ -77,7 +76,7 @@ git checkout local-testing
 ## 3. The symbolic engine
 
 ```powershell
-cd C:\jotelab\jotelab-ai
+cd C:\jotelab\physics-jotelab\engine
 py -m venv .venv
 .venv\Scripts\pip.exe install -r requirements.txt
 ```
@@ -159,7 +158,7 @@ Save as `C:\jotelab\start-engine.bat`:
 
 ```bat
 @echo off
-cd /d C:\jotelab\jotelab-ai
+cd /d C:\jotelab\physics-jotelab\engine
 set ENGINE_API_KEY=dev-secret
 .venv\Scripts\uvicorn.exe service.app:app --port 8000
 ```

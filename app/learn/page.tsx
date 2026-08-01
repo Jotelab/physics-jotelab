@@ -4,6 +4,7 @@ import Link from "next/link"
 import { generateCoachProblem } from "@/features/coach/actions"
 import { CoachProgressCard } from "@/features/coach/components/coach-progress-card"
 import { CoachSession } from "@/features/coach/components/coach-session"
+import { fetchRecentErrorTypes } from "@/features/coach/recent-errors"
 
 /**
  * The Application-as-Teacher surface (DEVELOPMENT_PLAN C1): a student solves an
@@ -26,6 +27,8 @@ export const dynamic = "force-dynamic"
 
 export default async function LearnPage() {
   const result = await generateCoachProblem()
+  // Anonymous solves get [] — remediation then relies on this session alone.
+  const recentErrors = await fetchRecentErrorTypes()
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
@@ -48,6 +51,7 @@ export default async function LearnPage() {
           <CoachSession
             initial={result.sympyData}
             initialDiagramSvg={result.diagramSvg}
+            priorErrors={recentErrors}
           />
           {/* Renders null for anonymous solves, so the page stays account-free. */}
           <div className="mt-8">

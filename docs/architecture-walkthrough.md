@@ -59,7 +59,10 @@ fallback to LLM-computed numbers.
 `generateEngineQuestion` — `lib/ai/generate-engine-question.ts:160` →
 `engineGenerate` — `lib/engine/client.ts:82` → `POST /generate`.
 
-This is a real HTTP call to a Python FastAPI service (the `jotelab-ai` repo).
+This is a real HTTP call to a Python FastAPI service that **ships in this
+repository** under [`engine/`](../engine/) — `engine/service/app.py`, vendored as
+a git subtree of `Jotelab/jotelab-ai` so a judge can read and run it from the
+same clone.
 The response is parsed with a Zod schema (`lib/engine/sympy-data.ts`) before
 anything downstream may touch it. A network error, a non-2xx, or a payload that
 does not match the contract all raise `EngineError` — and the reservation fails.
@@ -238,20 +241,45 @@ writes or judges anything.
    five-relation bank does not know. Worksheets cover 11 topics; the coach
    covers one.
 2. **Data Fidelity is measured by the engine on its own output.** It is a strong
-   internal-consistency check, not external validation.
-3. **Prose checking is numeric.** The gate verifies the *numbers* in the Thai
+   internal-consistency check, not external validation. Nobody outside the
+   project has audited it, and the figure describes generated instances rather
+   than classroom outcomes.
+
+   *Say it first:* «เราวัด Data Fidelity ด้วย harness ของเราเอง จึงเป็นการยืนยัน
+   ความสอดคล้องภายใน ไม่ใช่การตรวจสอบจากภายนอกครับ»
+
+3. **No expert-teacher baseline exists.** Where the report describes automated
+   review as comparable to a teacher's, there is no agreement study behind it —
+   no panel, no inter-rater statistic, no sample of teacher-marked work. It is
+   an expectation, not a result, and should be stated that way. Note the coach
+   itself makes no such claim: it grades against the engine's own solution with
+   plain rules, and no model judges anything.
+
+4. **The misconception taxonomy is hand-authored.** The six categories were
+   chosen by us, not derived from a study of student work. Rather than assert
+   they are right, the app measures whether they are: every diagnosis is logged,
+   and `features/coach/taxonomy-evidence.ts` reports the **catch-all share** —
+   the fraction landing in `value-slip` / `arithmetic-slip`, the buckets used
+   when the classifier knows an answer is wrong but not why. Above 50% the
+   taxonomy is reported as `unsupported` and needs revising. The threshold is
+   committed in advance so it is a prediction that can fail.
+5. **Prose checking is numeric.** The gate verifies the *numbers* in the Thai
    sentence, not that the sentence describes the physics well.
-4. **Two repositories.** The engine is a separate service; the TypeScript side
-   mirrors its contract in `lib/engine/sympy-data.ts`, guarded by a shared
-   fixture (`tests/fixtures/sympy-data-contract.json`).
+6. **Two processes, one repository.** The engine runs as a separate service
+   (it is Python; the app is TypeScript), but its source ships here under
+   `engine/`. The TypeScript side mirrors its contract in
+   `lib/engine/sympy-data.ts`, guarded by a shared fixture
+   (`tests/fixtures/sympy-data-contract.json`). The mirror is the real cost of
+   the split: the contract exists in two languages and must be kept in step.
 
 ---
 
 ## How to test everything above
 
 ```bash
-# 1. Start the engine (jotelab-ai repo)
-ENGINE_API_KEY=dev-secret uvicorn service.app:app --port 8000
+# 1. Start the engine (ships in this repo, under engine/)
+cd engine && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+ENGINE_API_KEY=dev-secret .venv/bin/uvicorn service.app:app --port 8000
 curl -s http://127.0.0.1:8000/health          # → 11 topics
 
 # 2. See a real payload — the numbers, steps and diagram the app never edits

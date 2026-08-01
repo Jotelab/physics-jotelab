@@ -25,6 +25,7 @@ import type { CoachDifficulty, CoachErrorType } from "./types"
  */
 
 export type RemediationKind =
+  | "consolidate"
   | "repeat-split"
   | "sign-drill"
   | "same-shape"
@@ -48,14 +49,22 @@ export type NextProblemPlan = {
 const CONCEPTUAL_ERRORS: readonly CoachErrorType[] = ["wrong-equation", "swapped-variables"]
 
 /**
- * Accelerations the sign drill pins. Cycled by problem index so a student who
- * keeps slipping on signs meets a different deceleration each time rather than
- * memorizing one number.
+ * Accelerations the sign drill pins, in m/s².
+ *
+ * Not arbitrary: 2–5 m/s² is the everyday braking range for a road vehicle, so
+ * a drill problem reads like something real slowing down rather than a number
+ * chosen to be awkward. Negative throughout, because the whole point is that a
+ * quantity opposing the positive direction carries a sign. Cycled by problem
+ * index so a student who keeps slipping meets a different deceleration each
+ * time instead of memorizing one answer.
  */
 export const SIGN_DRILL_ACCELERATIONS = [-2, -3, -4, -5] as const
 
-/** The `v = u + at` split — the sign drill's target, always coachable. */
-const SIGN_DRILL_RELATION_ID = "v-uat"
+/**
+ * How many times a misconception must appear in the recent history before it
+ * counts as *persistent* — i.e. one clean solve is not evidence it is fixed.
+ */
+const PERSISTENCE_THRESHOLD = 3
 
 const HARDER: Record<CoachDifficulty, CoachDifficulty> = {
   easy: "medium",
@@ -72,6 +81,31 @@ function splitFor(relation: SuvatRelation): { given: string[]; find: string } {
   return { given: [...given], find }
 }
 
+/**
+ * The relation the sign drill targets: the first in the bank whose canonical
+ * split *gives* acceleration, so `conditions: {a}` can actually pin it. Derived
+ * rather than hardcoded, so editing the relation bank cannot silently leave the
+ * drill pinning a variable the split does not contain.
+ */
+function signDrillRelation(): SuvatRelation {
+  const found = SUVAT_RELATIONS.find((rel) => splitFor(rel).given.includes("a"))
+  return found ?? SUVAT_RELATIONS[0]
+}
+
+/** The misconception seen at least {@link PERSISTENCE_THRESHOLD} times, if any. */
+function persistentError(
+  history: readonly CoachErrorType[]
+): CoachErrorType | null {
+  const counts = new Map<CoachErrorType, number>()
+  for (const error of history) {
+    counts.set(error, (counts.get(error) ?? 0) + 1)
+  }
+  for (const [error, count] of counts) {
+    if (count >= PERSISTENCE_THRESHOLD) return error
+  }
+  return null
+}
+
 export function planNextProblem(input: {
   /** Error types recorded while solving the problem just finished, in order. */
   errors: readonly CoachErrorType[]
@@ -83,6 +117,13 @@ export function planNextProblem(input: {
   difficulty: CoachDifficulty
   /** Problems completed this session — drives the deterministic rotations. */
   completed: number
+  /**
+   * Misconceptions from earlier problems (this session, or the student's
+   * persisted `coaching_attempts`). Consulted only when the problem just
+   * finished was clean: a fresh diagnosis is better evidence than a trend, but
+   * one clean solve is not proof that a recurring gap is closed.
+   */
+  history?: readonly CoachErrorType[]
 }): NextProblemPlan {
   const { errors, difficulty, completed } = input
   const sameSplit = { given: [...input.given], find: input.find }
@@ -97,9 +138,7 @@ export function planNextProblem(input: {
   }
 
   if (errors.includes("sign-error")) {
-    const relation =
-      SUVAT_RELATIONS.find((rel) => rel.id === SIGN_DRILL_RELATION_ID) ?? SUVAT_RELATIONS[0]
-    const drillSplit = splitFor(relation)
+    const drillSplit = splitFor(signDrillRelation())
     const acceleration =
       SIGN_DRILL_ACCELERATIONS[completed % SIGN_DRILL_ACCELERATIONS.length]
     return {
@@ -119,6 +158,32 @@ export function planNextProblem(input: {
       kind: "same-shape",
       params: { ...sameSplit, difficulty },
       reason: "ฝึกความแม่นยำ — โจทย์รูปแบบเดิม ตัวเลขใหม่",
+    }
+  }
+
+  // Clean solve — but check the trend before rewarding it. A misconception the
+  // student keeps returning to is not fixed by one good problem, and advancing
+  // the band on top of an unresolved gap is how a student ends up stuck.
+  const persistent = persistentError(input.history ?? [])
+  if (persistent === "sign-error") {
+    const drillSplit = splitFor(signDrillRelation())
+    const acceleration =
+      SIGN_DRILL_ACCELERATIONS[completed % SIGN_DRILL_ACCELERATIONS.length]
+    return {
+      kind: "sign-drill",
+      params: {
+        ...drillSplit,
+        difficulty,
+        ...(drillSplit.given.includes("a") ? { conditions: { a: acceleration } } : {}),
+      },
+      reason: "ยังพลาดเรื่องเครื่องหมายอยู่บ่อย — ฝึกโจทย์ความเร่งเป็นลบอีกสักข้อ",
+    }
+  }
+  if (persistent) {
+    return {
+      kind: "consolidate",
+      params: { ...sameSplit, difficulty },
+      reason: "ทำได้แล้ว แต่ยังพลาดจุดเดิมบ่อย — ย้ำอีกข้อที่ระดับเดิมก่อนขยับ",
     }
   }
 

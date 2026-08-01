@@ -42,7 +42,7 @@ choose a wrong equation on purpose → the hint names the actual mistake.
 
 ## 4. Engine service
 
-- FastAPI service (jotelab-ai repo): `/generate`, `/verify`, `/chain`, all
+- FastAPI service (ships here as `engine/`): `/generate`, `/verify`, `/chain`, all
   behind `X-Engine-Api-Key`, every response harness-verified at the source.
 
 **Check:** `pytest tests/test_service.py` in jotelab-ai (12 tests).
