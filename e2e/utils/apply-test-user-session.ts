@@ -48,7 +48,9 @@ export async function applyTestUserSession(page: Page, baseURL: string) {
     {
       name: getSupabaseAuthCookieName(supabaseUrl),
       value: encodeSupabaseSessionCookie(data.session),
-      url: baseURL,
+      // Playwright rejects a cookie carrying both `url` and `domain`/`path`
+      // ("Cookie should have either url or domain"), so scope it by
+      // domain + path only.
       domain: hostname,
       path: "/",
       httpOnly: false,

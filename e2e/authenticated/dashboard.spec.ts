@@ -3,7 +3,8 @@ import { test, expect } from "@playwright/test"
 test.describe("authenticated dashboard", () => {
   test("generate page loads builder", async ({ page }) => {
     await page.goto("/generate")
-    await expect(page.getByText("Worksheet Preview")).toBeVisible({ timeout: 15_000 })
+    // The panel header and the editable worksheet title both carry this text.
+    await expect(page.getByText("Worksheet Preview").first()).toBeVisible({ timeout: 15_000 })
     await expect(page.locator("#lesson-combobox")).toBeVisible()
   })
 

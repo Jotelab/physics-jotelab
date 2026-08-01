@@ -2,7 +2,11 @@ import { defineConfig } from "@playwright/test"
 
 import { hasAuthenticatedE2E } from "./e2e/utils/env"
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000"
+// `localhost`, not `127.0.0.1`: Next dev blocks cross-origin requests to
+// `/_next/*` dev resources, and the dev server's own origin is `localhost`.
+// Driving it over `127.0.0.1` gets the client runtime blocked, so the page
+// serves its SSR HTML but never hydrates — every interaction silently no-ops.
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000"
 
 export default defineConfig({
   testDir: "./e2e",

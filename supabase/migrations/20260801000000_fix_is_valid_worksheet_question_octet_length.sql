@@ -1,14 +1,17 @@
--- GENERATED FILE — do not edit by hand.
+-- Fix `is_valid_worksheet_question` raising 42883 at runtime.
 --
--- Canonical definition, reconstructed from the migration history by
--- `pnpm run db:functions:sync`. Migrations remain the source of truth for the
--- database; this file is the source of truth for *review* — it is what lets you
--- diff two versions of a function instead of two 300-line migration pastes.
+-- `octet_length` has no jsonb overload (text/bytea/bit only), so every call to
+-- this validator aborted with
+--   function octet_length(jsonb) does not exist
+-- which surfaced in the product as "Could not save the generated question." for
+-- every generated question: `complete_generate_question_reservation` calls this
+-- validator, so the whole worksheet generation pipeline failed at the save step
+-- and refunded the credits.
 --
--- To change this function: write a migration containing the new definition,
--- then re-run the sync. `pnpm run db:functions:check` fails if the two drift.
--- Last changed by: 20260801000000_fix_is_valid_worksheet_question_octet_length.sql
--- Redefined 7x across: 20260516050000_harden_worksheet_json_validation.sql, 20260524010000_phase_9_extend_worksheet_count.sql, 20260607000000_payload_size_limits.sql, 20260610000000_worksheet_question_limit_constants.sql, 20260629010000_question_format_key.sql, 20260705000000_worksheet_question_sympy_data.sql, 20260801000000_fix_is_valid_worksheet_question_octet_length.sql
+-- Cast to text for the size check, the same way `is_valid_worksheet_variants`
+-- already does. This is the sole change versus the previous definition; the
+-- whole body is re-pasted because `create or replace function` has no patch
+-- form (see supabase/sql/functions/README.md).
 
 create or replace function public.is_valid_worksheet_question(
   p_question jsonb

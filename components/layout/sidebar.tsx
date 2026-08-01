@@ -210,7 +210,10 @@ function SidebarContent({
               side={isCollapsed ? "right" : "top"}
               align="start"
               sideOffset={4}
-              className="z-[100] min-w-[var(--radix-dropdown-menu-trigger-width)] p-1"
+              className={cn(
+                "z-[100] p-1",
+                isCollapsed ? "min-w-56" : "min-w-[var(--radix-dropdown-menu-trigger-width)]"
+              )}
             >
               {!isSettingsDomain ? (
                 <DropdownMenuItem asChild className={profileMenuItemClass}>
