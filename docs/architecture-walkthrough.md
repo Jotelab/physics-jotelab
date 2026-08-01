@@ -59,7 +59,10 @@ fallback to LLM-computed numbers.
 `generateEngineQuestion` — `lib/ai/generate-engine-question.ts:160` →
 `engineGenerate` — `lib/engine/client.ts:82` → `POST /generate`.
 
-This is a real HTTP call to a Python FastAPI service (the `jotelab-ai` repo).
+This is a real HTTP call to a Python FastAPI service that **ships in this
+repository** under [`engine/`](../engine/) — `engine/service/app.py`, vendored as
+a git subtree of `Jotelab/jotelab-ai` so a judge can read and run it from the
+same clone.
 The response is parsed with a Zod schema (`lib/engine/sympy-data.ts`) before
 anything downstream may touch it. A network error, a non-2xx, or a payload that
 does not match the contract all raise `EngineError` — and the reservation fails.
@@ -241,17 +244,21 @@ writes or judges anything.
    internal-consistency check, not external validation.
 3. **Prose checking is numeric.** The gate verifies the *numbers* in the Thai
    sentence, not that the sentence describes the physics well.
-4. **Two repositories.** The engine is a separate service; the TypeScript side
-   mirrors its contract in `lib/engine/sympy-data.ts`, guarded by a shared
-   fixture (`tests/fixtures/sympy-data-contract.json`).
+4. **Two processes, one repository.** The engine runs as a separate service
+   (it is Python; the app is TypeScript), but its source ships here under
+   `engine/`. The TypeScript side mirrors its contract in
+   `lib/engine/sympy-data.ts`, guarded by a shared fixture
+   (`tests/fixtures/sympy-data-contract.json`). The mirror is the real cost of
+   the split: the contract exists in two languages and must be kept in step.
 
 ---
 
 ## How to test everything above
 
 ```bash
-# 1. Start the engine (jotelab-ai repo)
-ENGINE_API_KEY=dev-secret uvicorn service.app:app --port 8000
+# 1. Start the engine (ships in this repo, under engine/)
+cd engine && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+ENGINE_API_KEY=dev-secret .venv/bin/uvicorn service.app:app --port 8000
 curl -s http://127.0.0.1:8000/health          # → 11 topics
 
 # 2. See a real payload — the numbers, steps and diagram the app never edits

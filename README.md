@@ -61,15 +61,33 @@ Copy `.env.example` to `.env.local` and fill in the required values:
 cp .env.example .env.local
 ```
 
-For engine-backed generation and the `/learn` coach, also point the app at a
-running engine service (`jotelab-ai` repo; production deploy runbook in
-`jotelab-ai/docs/deploy-render.md`):
+For engine-backed generation and the `/learn` coach, start the symbolic engine.
+**It ships in this repository**, under [`engine/`](engine/) — no second clone:
 
 ```bash
-# jotelab-ai: ENGINE_API_KEY=dev-secret uvicorn service.app:app --port 8000
+cd engine
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+ENGINE_API_KEY=dev-secret .venv/bin/uvicorn service.app:app --port 8000
+```
+
+Then in `.env.local`:
+
+```bash
 ENGINE_BASE_URL=http://127.0.0.1:8000
 ENGINE_API_KEY=dev-secret
 ```
+
+`engine/` is a **git subtree** of [Jotelab/jotelab-ai](https://github.com/Jotelab/jotelab-ai),
+so its history is preserved and it can be refreshed with:
+
+```bash
+git subtree pull --prefix=engine https://github.com/Jotelab/jotelab-ai.git main --squash
+```
+
+*How to test the engine itself:* `cd engine && .venv/bin/python -m pytest -q`
+(345 passing, ~8 min — SymPy is not fast). The production deploy runbook is
+`engine/docs/deploy-render.md`.
 
 *How to test:* `curl -s $ENGINE_BASE_URL/health` lists the engine topics, and
 `/learn` renders a Thai SUVAT problem instead of the connection-error box.
