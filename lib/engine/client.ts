@@ -3,8 +3,7 @@ import "server-only"
 import { sympyDataSchema, type SympyData } from "./sympy-data"
 
 /**
- * Typed client for the symbolic engine service (jotelab-ai `service/app.py`,
- * DEVELOPMENT_PLAN §1.2).
+ * Typed client for the symbolic engine service (jotelab-ai `service/app.py`).
  *
  * Every computed number the app shows comes through here: `POST /generate`
  * returns a `sympy_data` payload the engine has *already* run through its Data
@@ -42,7 +41,7 @@ export type EngineGenerateParams = {
  * Thrown for any failure talking to the engine (network, auth, non-2xx, or a
  * malformed body). The caller fails the reservation and refunds the credit
  * rather than silently falling back to LLM-computed numbers — the
- * neuro-symbolic invariant is never quietly broken (DEVELOPMENT_PLAN §1.2).
+ * neuro-symbolic invariant is never quietly broken.
  */
 export class EngineError extends Error {
   readonly status?: number

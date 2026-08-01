@@ -7,8 +7,7 @@ import { logTikzAttempt } from "./compilation-log"
 import { buildTemplateTikz } from "./templates"
 
 /**
- * Attach a rendered diagram to a question at the display boundary
- * (DEVELOPMENT_PLAN §2.2).
+ * Attach a rendered diagram to a question at the display boundary.
  *
  * The templated diagram is a deterministic function of the engine's `sympy_data`,
  * which is already persisted — so instead of a DB migration for the compiled SVG

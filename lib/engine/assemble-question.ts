@@ -1,11 +1,11 @@
 import type { GeneratedQuestion, GivenVariable } from "@/features/generate/types"
 
-import type { EngineTopic, EngineVariableMeta } from "./topics"
+import type { EngineTopic, EngineVariableMeta } from "./topic-types"
 import type { SympyData } from "./sympy-data"
 
 /**
  * Assemble a `GeneratedQuestion` from an engine `sympy_data` payload plus the
- * LLM's Thai `question_text` (DEVELOPMENT_PLAN §1.2).
+ * LLM's Thai `question_text`.
  *
  * This is where the neuro-symbolic invariant is enforced structurally: the
  * givens, target, solution steps, and final answer are built **from

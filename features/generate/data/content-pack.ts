@@ -5,6 +5,12 @@
 // variable-compatibility logic in `generation-presets.ts` /
 // `variable-compatibility.ts` reads from the pack for a given subject, so
 // adding a subject means authoring a pack — not editing that logic.
+//
+// That includes which lessons are neuro-symbolic: `engineTopics` below is the
+// only place a lesson is bound to an engine topic. `lib/engine/topics.ts` is
+// pure resolution logic over these packs and holds no subject data itself.
+
+import type { EngineTopic } from "@/lib/engine/topic-types"
 
 export type ScenarioContent = {
   label: string
@@ -38,6 +44,14 @@ export type SubjectContentPack = {
   variableIdsByLesson: Record<string, string[]>
   /** find-id → compatible given-ids, per lesson id (drives constraint pruning). */
   givenCandidatesByLessonAndFind: Record<string, Record<string, string[]>>
+  /**
+   * Lesson id → engine topic, for the lessons that generate neuro-symbolically.
+   * Lessons absent here stay on the pure-LLM path.
+   *
+   * Scoped per subject, so two subjects can each have a `motion-1d` lesson
+   * without colliding.
+   */
+  engineTopics?: Record<string, EngineTopic>
   /** Subject-specific fragments injected into the generation prompts. */
   prompt: SubjectPromptPack
 }

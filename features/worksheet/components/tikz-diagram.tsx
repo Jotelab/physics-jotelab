@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils"
 
 /**
  * Renders a compiled TikZ diagram (a self-contained SVG string) as a vector
- * block in the A4 canvas (DEVELOPMENT_PLAN §2.1).
+ * block in the A4 canvas.
  *
  * The SVG is injected as-is so it stays vector — it survives `print` and zoom as
  * crisp lines, and carries its own embedded fonts (see `lib/tikz`). We sanitize

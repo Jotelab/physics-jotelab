@@ -1,7 +1,7 @@
 import type { SympyData } from "@/lib/engine/sympy-data"
 
 /**
- * Runtime Data Fidelity gate for the neuro-symbolic path (DEVELOPMENT_PLAN §1.2).
+ * Runtime Data Fidelity gate for the neuro-symbolic path.
  *
  * The structured fields (given_values, target, solution, final_answer) are
  * assembled from `sympy_data`, so they are faithful by construction. This gate

@@ -1,7 +1,7 @@
 # ADR-006 — TikZ rendering: server compile → self-contained SVG
 
 - **Status:** Accepted (2026-07-06)
-- **Phase:** DEVELOPMENT_PLAN §2.1 (TikZ: rendering first, independent of AI)
+- **Phase:** TikZ rendering — server-side compile, independent of AI
 - **Supersedes/relates:** ADR-001 (Neuro-Symbolic Split)
 
 ## Context

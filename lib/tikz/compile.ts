@@ -11,7 +11,7 @@ import { sanitizeSvg } from "./sanitize-svg"
 import { wrapTikzDocument } from "./wrap-document"
 
 /**
- * Server-side TikZ → SVG compiler (DEVELOPMENT_PLAN §2.1, ADR-006).
+ * Server-side TikZ → SVG compiler (ADR-006).
  *
  * We compile TikZ to SVG on the server with node-tikzjax (a WASM TeX engine),
  * embed the referenced TeX fonts so the result is fully self-contained, and

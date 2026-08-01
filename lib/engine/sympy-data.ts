@@ -2,7 +2,7 @@ import { z } from "zod"
 
 /**
  * Zod mirror of the Python engine's locked `sympy_data` contract
- * (jotelab-ai `engine/contract.py`, DEVELOPMENT_PLAN §1.2).
+ * (jotelab-ai `engine/contract.py`).
  *
  * The engine is the single source of truth for every number a student sees; this
  * schema parses its payload at the trust boundary so nothing downstream has to

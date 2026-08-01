@@ -1,7 +1,7 @@
 # ADR-007 — Diagram generation: web-side templates derived from `sympy_data`
 
 - **Status:** Accepted (2026-07-06)
-- **Phase:** DEVELOPMENT_PLAN §2.2 (TikZ: diagram generation) + §2.3 (benchmark hook)
+- **Phase:** TikZ diagram generation, plus the compilation-rate benchmark hook
 - **Builds on:** ADR-006 (server compile → self-contained SVG)
 
 ## Context

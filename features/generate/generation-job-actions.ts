@@ -263,7 +263,7 @@ export async function getGenerationJobAction(
     return localizedFailure("QUESTIONS_LOAD_FAILED")
   }
 
-  // Attach templated diagrams as questions stream in (DEVELOPMENT_PLAN §2.2).
+  // Attach templated diagrams as questions stream in.
   const questions = await attachQuestionDiagrams(rawQuestions)
 
   const poll = mapGenerationJobPoll({

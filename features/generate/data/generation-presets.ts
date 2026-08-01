@@ -63,8 +63,12 @@ function legacyLabelToId(pack: SubjectContentPack): Record<string, string> {
   return map
 }
 
+/**
+ * Scenario presets are pure identity — id, lesson, and 1-based index. The
+ * display strings are looked up from the pack on demand (`getScenarioLabel` /
+ * `getScenarioDescription`), so only the row *count* matters here.
+ */
 function buildScenarios(
-  pack: SubjectContentPack,
   subject: Subject,
   lessonKey: string,
   items: ScenarioContent[]
@@ -142,18 +146,17 @@ export function getScenariosForLesson(
   if (isPreset && lessonId) {
     const items = pack.scenarioContent[lessonId]
     if (items && items.length > 0) {
-      return { scenarios: buildScenarios(pack, subject, lessonId, items), isFallback: false }
+      return { scenarios: buildScenarios(subject, lessonId, items), isFallback: false }
     }
   }
   const fallbackItems = pack.scenarioContent[FALLBACK_LESSON_KEY] ?? []
   return {
-    scenarios: buildScenarios(pack, subject, FALLBACK_LESSON_KEY, fallbackItems),
+    scenarios: buildScenarios(subject, FALLBACK_LESSON_KEY, fallbackItems),
     isFallback: true,
   }
 }
 
 export const FALLBACK_SCENARIOS: ScenarioPreset[] = buildScenarios(
-  defaultPack,
   DEFAULT_SUBJECT,
   FALLBACK_LESSON_KEY,
   defaultPack.scenarioContent[FALLBACK_LESSON_KEY] ?? []

@@ -251,14 +251,20 @@ describe("editQuestionAction", () => {
       error: null,
     })
 
+    // A client can send an id/order it does not own; the action must ignore
+    // them and keep the server's. The action's param type is the *validated*
+    // shape, so the hostile payload is built separately — inlining it would
+    // trip TS's excess-property check on the object literal.
+    const clientSuppliedIdentity = {
+      ...editedQuestion,
+      id: "00000000-0000-4000-8000-000000000099",
+      order: 99,
+    }
+
     const result = await editQuestionAction({
       worksheetId,
       questionId,
-      editedQuestion: {
-        ...editedQuestion,
-        id: "00000000-0000-4000-8000-000000000099",
-        order: 99,
-      },
+      editedQuestion: clientSuppliedIdentity,
     })
 
     expect(result.ok).toBe(true)
@@ -390,6 +396,7 @@ describe("regenerateQuestionAction", () => {
     const result = await regenerateQuestionAction({
       worksheetId: "not-a-uuid",
       questionId,
+      attemptId,
     })
 
     expect(result).toEqual(failure("VALIDATION_FAILED", "Could not regenerate the question."))

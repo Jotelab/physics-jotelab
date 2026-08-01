@@ -25,7 +25,7 @@ import {
 } from "./prompt-rules"
 
 /**
- * The neuro-symbolic generation pipeline (DEVELOPMENT_PLAN §1.2).
+ * The neuro-symbolic generation pipeline.
  *
  * The flow is *inverted* versus the pure-LLM path: the engine samples a verified
  * problem first, then the LLM only phrases it. Concretely —

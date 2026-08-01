@@ -1,5 +1,5 @@
 /**
- * TikZ Compilation Rate instrumentation (DEVELOPMENT_PLAN §2.3, feeds §5).
+ * TikZ Compilation Rate instrumentation.
  *
  * Every diagram compile attempt — templated now, LLM-generated later — emits one
  * structured line. The Phase 5 benchmark computes the "TikZ Compilation Rate"

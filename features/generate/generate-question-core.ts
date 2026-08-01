@@ -15,7 +15,7 @@ import {
 import { attachQuestionDiagrams } from "@/lib/tikz/attach-diagram"
 
 import { failure, parseRpcFailure } from "./errors"
-import type { AppFailure, GenerationErrorCode } from "./errors"
+import type { AppFailureWithCreditBalance, GenerationErrorCode } from "./errors"
 import type { GenerateQuestionResult } from "./result-types"
 import { withCreditReservation } from "./utils/with-credit-reservation"
 import type { ParsedReservation } from "./utils/with-credit-reservation"
@@ -49,8 +49,8 @@ function parseGenerationSettings(settings: unknown) {
 }
 
 /**
- * Advanced-mode pins translated to engine variable names (DEVELOPMENT_PLAN
- * §1.2/§6): the per-order target (rotation/randomization included, via
+ * Advanced-mode pins translated to engine variable names: the per-order target
+ * (rotation/randomization included, via
  * {@link resolveQuestionTarget}) becomes the engine `find` pin, and the user's
  * pinned given variables become a subset constraint the engine completes into a
  * valid split. Pins whose display symbol the topic does not know are dropped —
@@ -142,9 +142,9 @@ async function cancelRegenerateReservation(
 const REGENERATE_FALLBACK_CODE = "REGENERATE_FAILED" as const
 
 function mapInvalidCompleteFailure(
-  result: AppFailure,
+  result: AppFailureWithCreditBalance,
   fallbackCode: GenerationErrorCode = "SAVE_FAILED"
-): AppFailure {
+): AppFailureWithCreditBalance {
   if (result.code === "UNKNOWN" && result.message === "Invalid complete response.") {
     return failure(fallbackCode)
   }
@@ -247,7 +247,7 @@ export async function generateQuestionForWorksheet(params: {
       cancelGenerateReservation(supabase, reservationId, idempotencyKey),
     run: async (context) => {
       // Neuro-symbolic lessons generate through the engine (numbers first, LLM
-      // phrases); other lessons stay on the pure-LLM path (DEVELOPMENT_PLAN §1.2).
+      // phrases); other lessons stay on the pure-LLM path.
       const generatedQuestion = shouldUseEngine(
         generationSettings.lesson,
         worksheet.subject
@@ -370,7 +370,7 @@ export async function regenerateQuestionForWorksheet(params: {
     run: async (context) => {
       // Re-roll numbers: for an engine-backed question, resample the SAME
       // Given/Find split with a fresh engine seed — same topic + structure, new
-      // numbers and new phrasing (DEVELOPMENT_PLAN §1.2). Questions without an
+      // numbers and new phrasing. Questions without an
       // engine payload (LLM-only lessons / legacy rows) regenerate via the LLM.
       const originalSympyData = originalQuestion.sympy_data
       const generatedQuestion =
@@ -442,7 +442,7 @@ export async function loadWorksheetQuestionsForProfile(
   profileId: string,
   options?: {
     /**
-     * Diagrams belong to the display boundary (DEVELOPMENT_PLAN §2.2). Internal
+     * Diagrams belong to the display boundary. Internal
      * reads that only need question text/context (e.g. the generation worker's
      * prompt-context load) pass `false` to skip the WASM TeX compiles entirely.
      */

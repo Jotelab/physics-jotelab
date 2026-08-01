@@ -1,6 +1,5 @@
 /**
- * Make a compiled TikZ SVG self-contained by inlining the TeX fonts it uses
- * (DEVELOPMENT_PLAN §2.1).
+ * Make a compiled TikZ SVG self-contained by inlining the TeX fonts it uses.
  *
  * node-tikzjax renders glyphs as `<text>` elements tagged with the Computer
  * Modern family they need (`cmr10`, `cmmi10`, …) and, by default, references

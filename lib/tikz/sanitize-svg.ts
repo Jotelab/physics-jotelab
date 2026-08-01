@@ -1,5 +1,5 @@
 /**
- * Conservative SVG sanitizer for compiled TikZ diagrams (DEVELOPMENT_PLAN §2.1).
+ * Conservative SVG sanitizer for compiled TikZ diagrams.
  *
  * The diagram SVG is injected into the A4 canvas via `dangerouslySetInnerHTML`,
  * so anything active in it would run in the app's origin. The source is our own

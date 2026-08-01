@@ -1,11 +1,16 @@
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
+import type { SubjectContentPack } from "@/features/generate/data/content-pack"
+import { physicsContentPack } from "@/features/generate/data/content-packs/physics"
 import { getVariablesForLesson } from "@/features/generate/data/generation-presets"
+import * as packs from "@/features/generate/data/subject-content-packs"
+import { SUBJECT_CONTENT_PACKS } from "@/features/generate/data/subject-content-packs"
 import { suvatMotionTikz } from "@/lib/tikz/templates/suvat"
 import sympyDataContractFixture from "@/tests/fixtures/sympy-data-contract.json"
 
 import { sympyDataSchema, type SympyData } from "./sympy-data"
 import {
+  allRegisteredEngineTopics,
   engineNameForDisplaySymbol,
   mathComplexityToDifficulty,
   resolveEngineTopic,
@@ -17,6 +22,7 @@ const ORIGINAL_MODE = process.env.GENERATION_MODE
 afterEach(() => {
   if (ORIGINAL_MODE === undefined) delete process.env.GENERATION_MODE
   else process.env.GENERATION_MODE = ORIGINAL_MODE
+  vi.restoreAllMocks()
 })
 
 describe("resolveEngineTopic", () => {
@@ -40,6 +46,33 @@ describe("resolveEngineTopic", () => {
       label: "ความเร็วต้น",
       unit: "m/s",
     })
+  })
+
+  it("scopes the lookup to the subject's own pack", () => {
+    // Engine topics are declared per content pack, so a lesson id is only
+    // engine-backed for the subject that declares it. A second subject with a
+    // same-named lesson must not inherit physics' SUVAT topic.
+    const packWithoutEngineTopics: SubjectContentPack = {
+      ...physicsContentPack,
+      engineTopics: undefined,
+    }
+
+    vi.spyOn(packs, "getSubjectContentPack").mockReturnValue(packWithoutEngineTopics)
+
+    expect(resolveEngineTopic("motion-1d", "physics")).toBeNull()
+    expect(shouldUseEngine("motion-1d", "physics")).toBe(false)
+  })
+})
+
+describe("allRegisteredEngineTopics", () => {
+  it("indexes every pack's topics by engine topic id", () => {
+    const topics = allRegisteredEngineTopics(Object.values(SUBJECT_CONTENT_PACKS))
+
+    expect(topics.get("suvat")?.variables.u.symbol).toBe("v₀")
+  })
+
+  it("tolerates packs that declare no engine topics", () => {
+    expect(allRegisteredEngineTopics([{}, { engineTopics: {} }]).size).toBe(0)
   })
 })
 
@@ -81,10 +114,11 @@ describe("engineNameForDisplaySymbol", () => {
   })
 })
 
-// Phase-4 drift guards: the per-variable metadata lives in several tables
-// (this registry, the content pack's presets, the TikZ template) and the
-// Python contract has a Zod mirror. These cross-checks fail the moment one
-// copy is edited without the others.
+// Phase-4 drift guards. The engine topic table now lives *inside* the physics
+// content pack, next to the variable presets it has to agree with, so the two
+// can no longer be edited in different files by accident — but they still have
+// to agree on symbol and unit, and the TikZ template and the Python contract
+// are separate copies. These cross-checks fail the moment one drifts.
 describe("registry cross-checks", () => {
   const topic = resolveEngineTopic("motion-1d", "physics")!
 

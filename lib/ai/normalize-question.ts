@@ -3,6 +3,20 @@ import { DEFAULT_MATH_COMPLEXITY } from "@/features/generate/constants/difficult
 
 import { formatNumericValue } from "./format-math-complexity"
 
+/**
+ * Undo the model's occasional double-escaping of LaTeX control sequences.
+ *
+ * Structured output sometimes comes back with `\\frac` / `\\text` where `\frac`
+ * was meant — KaTeX then renders the literal text instead of the math. Only a
+ * doubled backslash immediately followed by a letter is collapsed: a real `\\`
+ * (LaTeX row break) is followed by whitespace or `[`, and the negative
+ * lookbehind leaves a genuine row break that precedes a command (`\\` + `\text`,
+ * i.e. three backslashes) untouched.
+ */
+function unescapeDoubledLatex(value: string): string {
+  return value.replace(/(?<!\\)\\\\(?=[a-zA-Z])/g, "\\")
+}
+
 function omitEmptyUnit(unit: string | undefined) {
   const trimmed = unit?.trim()
   return trimmed ? { unit: trimmed } : {}
@@ -42,7 +56,7 @@ export function normalizeGeneratedQuestion(
 
   return {
     format: raw.format,
-    question_text: raw.question_text.trim(),
+    question_text: unescapeDoubledLatex(raw.question_text.trim()),
     given_values: raw.given_values.map((given) => ({
       symbol: given.symbol.trim(),
       label: given.label.trim(),
@@ -55,8 +69,10 @@ export function normalizeGeneratedQuestion(
       ...omitEmptyUnit(raw.target_variable.unit),
     },
     solution: {
-      steps: raw.solution.steps.map((step) => step.trim()).filter((step) => step.length > 0),
-      final_answer: raw.solution.final_answer.trim(),
+      steps: raw.solution.steps
+        .map((step) => unescapeDoubledLatex(step.trim()))
+        .filter((step) => step.length > 0),
+      final_answer: unescapeDoubledLatex(raw.solution.final_answer.trim()),
     },
   }
 }

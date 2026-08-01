@@ -19,7 +19,7 @@ export const MAX_FINAL_ANSWER_LEN = 500
 // TikZ source is the durable, persisted diagram field (small). The compiled
 // `diagram_svg` is a transient render artifact assembled server-side from it and
 // is *not* meant to live in the persisted question JSON — see the note on
-// `MAX_QUESTION_JSON_BYTES` below and DEVELOPMENT_PLAN §2.1.
+// `MAX_QUESTION_JSON_BYTES` below.
 export const MAX_TIKZ_CODE_LEN = 8000
 // Self-contained diagram SVGs embed subsetted TeX fonts, so they run large.
 // Kept well above `MAX_QUESTION_JSON_BYTES` on purpose: `diagram_svg` is a

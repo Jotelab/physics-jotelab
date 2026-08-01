@@ -5,7 +5,7 @@ import { compileTikz, TikzCompileError } from "@/lib/tikz/compile"
 import { createClient } from "@/lib/supabase/server"
 
 /**
- * Authenticated TikZ → SVG compile endpoint (DEVELOPMENT_PLAN §2.1).
+ * Authenticated TikZ → SVG compile endpoint.
  *
  * Wraps {@link compileTikz} so the generation flow (Phase 2.2) and manual
  * previews can turn `tikz_code` into a self-contained `diagram_svg`. Runs in the

@@ -113,7 +113,7 @@ export const getLibraryWorksheet = cache(async function getLibraryWorksheet(
     throw new Error("Could not load worksheet questions")
   }
 
-  // Attach templated diagrams for the saved-worksheet view (DEVELOPMENT_PLAN §2.2).
+  // Attach templated diagrams for the saved-worksheet view.
   const questions = await attachQuestionDiagrams(rawQuestions)
 
   return toDetail(data, questions)

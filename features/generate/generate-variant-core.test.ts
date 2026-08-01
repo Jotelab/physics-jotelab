@@ -10,6 +10,7 @@ import {
   variantReserveAlreadyCompletedResponse,
   variantReserveRpcResponse,
 } from "@/tests/fixtures/worksheet-question"
+import { createSupabaseClientMock } from "@/tests/mocks/supabase-client"
 
 const mockRpc = vi.fn()
 const mockWorksheetsSingle = vi.fn()
@@ -31,32 +32,13 @@ vi.mock("@/lib/ai/generate-engine-question", async (importOriginal) => {
 })
 
 function createSupabaseClient() {
-  return {
-    from: vi.fn((table: string) => {
-      if (table === "worksheets") {
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: mockWorksheetsSingle,
-            })),
-          })),
-        }
-      }
-
-      if (table === "worksheet_questions") {
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              order: mockWorksheetQuestionsOrder,
-            })),
-          })),
-        }
-      }
-
-      throw new Error(`Unexpected table: ${table}`)
-    }),
+  return createSupabaseClientMock({
+    tables: {
+      worksheets: { single: mockWorksheetsSingle },
+      worksheet_questions: { order: mockWorksheetQuestionsOrder },
+    },
     rpc: mockRpc,
-  }
+  })
 }
 
 import { generateVariantRollForQuestion } from "./generate-variant-core"

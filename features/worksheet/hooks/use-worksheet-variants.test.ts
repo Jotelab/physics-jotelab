@@ -8,6 +8,7 @@ import { useWorksheetVariants } from "./use-worksheet-variants"
 const masterQuestion: WorksheetQuestion = {
   id: "11111111-1111-4111-8111-111111111111",
   order: 1,
+  format: "calculation",
   question_text: "Find $x$",
   given_values: [{ symbol: "a", label: "coefficient", value: 2 }],
   target_variable: { symbol: "x", label: "unknown" },

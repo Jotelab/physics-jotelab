@@ -25,7 +25,7 @@ export function getItemMeasureFingerprint(
       JSON.stringify(question.target_variable),
       JSON.stringify(question.solution),
       // A rendered diagram changes the block height, so it must invalidate the
-      // measured-height cache (DEVELOPMENT_PLAN §2.1). Key on the SVG length
+      // measured-height cache. Key on the SVG length
       // rather than the full markup to keep the fingerprint cheap to compare.
       question.diagram_svg ? `svg:${question.diagram_svg.length}` : "",
     ].join("|")

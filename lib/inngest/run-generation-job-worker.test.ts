@@ -81,12 +81,17 @@ function makeJobRow(overrides: Partial<GenerationJobRow> = {}): GenerationJobRow
 
 function recordingStep() {
   const names: string[] = []
+  /** Each step's resolved value — what Inngest would persist and memoize. */
+  const outputs: { name: string; value: unknown }[] = []
   return {
     names,
+    outputs,
     step: {
       run: async <T>(name: string, fn: () => Promise<T>) => {
         names.push(name)
-        return fn()
+        const value = await fn()
+        outputs.push({ name, value })
+        return value
       },
     },
   }
@@ -164,6 +169,41 @@ describe("runGenerationJobWorker (standard)", () => {
       profileId,
       { attachDiagrams: false }
     )
+  })
+
+  it("keeps each work step's payload independent of how many orders precede it", async () => {
+    // Inngest persists and memoizes every step's return value. If a work step
+    // returns the accumulated question list, order N's payload carries N
+    // questions and the job's total step storage is O(N^2) — which is the cost
+    // the single up-front worksheet load was introduced to remove. Each step
+    // must report only its own question.
+    const orderCount = 8
+    const { admin } = makeAdmin({
+      kindRow: { kind: "initial", user_id: profileId },
+      jobRow: makeJobRow({ to_order: orderCount }),
+    })
+    mockAdminFactory.mockReturnValue(admin as never)
+
+    const store: WorksheetQuestion[] = []
+    mockLoad.mockImplementation(async () => worksheetLoad([...store]) as never)
+    mockGenerate.mockImplementation(async ({ order }) => {
+      const question = { ...validWorksheetQuestion, id: `q-${order}`, order }
+      store.push(question)
+      return { ok: true, data: { question, creditBalance: 50 - order } }
+    })
+
+    const { step, outputs } = recordingStep()
+    await runGenerationJobWorker({ jobId, worksheetId, profileId, step })
+
+    const workStepPayloads = outputs
+      .filter(({ name }) => name.startsWith("generate-order-"))
+      .map(({ value }) => JSON.stringify(value).length)
+
+    expect(workStepPayloads).toHaveLength(orderCount)
+
+    // Every order's payload is one question, so the last is the same size as
+    // the first. Returning the running list would make the last ~8x the first.
+    expect(Math.max(...workStepPayloads)).toBe(Math.min(...workStepPayloads))
   })
 
   it("stops at partial and marks remaining orders skipped when credits run out", async () => {

@@ -56,6 +56,24 @@ function upsertRoll(variant: WorksheetVariant, roll: VariantQuestionRoll) {
 
 type VariantItem = { label: VariantLabel; order: number }
 
+/**
+ * The orders a job covers, inclusive of both ends.
+ *
+ * Both the work list and the reported total derive from this one function, so
+ * they cannot disagree. They previously did: the total was computed as
+ * `labels * to_order`, which silently assumes `from_order === 1`. That holds
+ * for variant jobs today (`enqueue_variant_generation_job` hardcodes 1) but is
+ * not a property of the schema — `generation_jobs` carries a real range, and
+ * the standard worker already enqueues partial ones.
+ */
+function ordersForJob(job: GenerationJobRow): number[] {
+  const orders: number[] = []
+  for (let order = job.from_order; order <= job.to_order; order += 1) {
+    orders.push(order)
+  }
+  return orders
+}
+
 type VariantState = {
   skippedOrders: VariantSkippedSlot[]
   lastCompletedOrder: number
@@ -114,7 +132,7 @@ export async function runVariantGenerationJobWorker(params: {
         const items: VariantItem[] = []
 
         for (const label of labels) {
-          for (let order = job.from_order; order <= job.to_order; order += 1) {
+          for (const order of ordersForJob(job)) {
             const variant = state.variants.find((entry) => entry.label === label)
             const alreadyRolled = variant?.rolls.some((roll) => roll.order === order)
             if (!alreadyRolled) {
@@ -199,7 +217,7 @@ export async function runVariantGenerationJobWorker(params: {
       finalizeStepId: "finalize-variant",
       buildResult: (status, state, job) => ({
         status,
-        totalRolls: (job.variant_labels?.length ?? 0) * job.to_order,
+        totalRolls: (job.variant_labels?.length ?? 0) * ordersForJob(job).length,
         completedRolls: state.lastCompletedOrder,
         variants: state.variants,
       }),

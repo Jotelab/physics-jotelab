@@ -49,8 +49,9 @@ describe("getGenerationErrorMessage", () => {
   it("maps schema validation errors", () => {
     expect(
       getGenerationErrorMessage(
+        // @ai-sdk/provider v3 derives the message from value/cause; the
+        // constructor no longer accepts one.
         new TypeValidationError({
-          message: "invalid",
           value: {},
           cause: new z.ZodError([]),
         })

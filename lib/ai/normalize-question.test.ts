@@ -55,6 +55,40 @@ describe("normalizeGeneratedQuestion", () => {
     expect(result.given_values[1]?.value).toBe("fast")
   })
 
+  it("collapses double-escaped LaTeX commands in prose and math fields", () => {
+    const result = normalizeGeneratedQuestion({
+      ...validGeneratedQuestion,
+      question_text: "จงหา $\\\\frac{F}{m}$",
+      solution: {
+        steps: ["$a = \\\\frac{F}{m}$", "$a = 5\\\\ \\\\text{m/s}^2$"],
+        final_answer: "$\\\\text{5 m/s}^2$",
+      },
+    })
+
+    expect(result.question_text).toBe("จงหา $\\frac{F}{m}$")
+    expect(result.solution.steps).toEqual([
+      "$a = \\frac{F}{m}$",
+      "$a = 5\\\\ \\text{m/s}^2$",
+    ])
+    expect(result.solution.final_answer).toBe("$\\text{5 m/s}^2$")
+  })
+
+  it("leaves a real LaTeX row break intact, including before a command", () => {
+    const result = normalizeGeneratedQuestion({
+      ...validGeneratedQuestion,
+      solution: {
+        // `\\` + newline (row break) and `\\` + `\text` (row break then command).
+        steps: ["$$a = 1 \\\\ b = 2$$", "$$a = 1 \\\\\\text{ต่อ}$$"],
+        final_answer: "5",
+      },
+    })
+
+    expect(result.solution.steps).toEqual([
+      "$$a = 1 \\\\ b = 2$$",
+      "$$a = 1 \\\\\\text{ต่อ}$$",
+    ])
+  })
+
   it("rounds numeric values to integers by default", () => {
     const result = normalizeGeneratedQuestion({
       ...validGeneratedQuestion,

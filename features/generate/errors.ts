@@ -60,6 +60,17 @@ const generationErrorCodeSchema = z.enum(GENERATION_ERROR_CODES)
 
 export type AppFailure = { ok: false; code: GenerationErrorCode; message: string }
 
+/**
+ * A failure that also reports the caller's credit balance.
+ *
+ * When the DB refunds a reservation as part of rejecting a completion, the
+ * `complete_*` RPCs return the post-refund balance alongside the error code
+ * (see `parseCompleteResponse`). That balance is the authoritative one — the
+ * client should show it rather than its now-stale local count — so the failure
+ * channel has to keep the field instead of widening it back to `AppFailure`.
+ */
+export type AppFailureWithCreditBalance = AppFailure & { creditBalance?: number }
+
 export function failure(code: GenerationErrorCode, message?: string): AppFailure {
   return {
     ok: false,

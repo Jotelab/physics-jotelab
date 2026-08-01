@@ -25,6 +25,11 @@ jobs:
 
       - run: pnpm run lint
 
+      - run: pnpm run typecheck
+
+      # Fails if supabase/sql/functions/ has drifted from the migrations.
+      - run: pnpm run db:functions:check
+
       - run: pnpm run test:coverage
 
       - run: pnpm run build

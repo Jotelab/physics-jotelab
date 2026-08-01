@@ -1,6 +1,5 @@
 /**
- * Wrap raw TikZ source into the document body node-tikzjax expects
- * (DEVELOPMENT_PLAN §2.1).
+ * Wrap raw TikZ source into the document body node-tikzjax expects.
  *
  * node-tikzjax supplies the `\documentclass` + TikZ preamble internally, but the
  * TeX engine still needs a `\begin{document}...\end{document}` around the body —

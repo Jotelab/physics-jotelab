@@ -2,6 +2,7 @@ import {
   FALLBACK_LESSON_KEY,
   type SubjectContentPack,
 } from "@/features/generate/data/content-pack"
+import type { EngineTopic } from "@/lib/engine/topic-types"
 
 export const PHYSICS_LESSON_IDS = [
   "motion-1d",
@@ -194,6 +195,35 @@ const givenCandidatesByLessonAndFind: Record<PhysicsLessonId, Record<string, str
   },
 }
 
+/**
+ * The symbolic engine names 1-D kinematics variables `u, v, a, t, s`; the
+ * product surface uses different display symbols (`v₀` for initial velocity)
+ * and Thai labels. This table is the translation between the two.
+ *
+ * It must agree with `variablePresets` below on symbol and unit for every
+ * variable it names — `lib/engine/topics.test.ts` asserts exactly that, so the
+ * two tables cannot drift apart.
+ */
+const SUVAT: EngineTopic = {
+  topic: "suvat",
+  variables: {
+    u: { symbol: "v₀", label: "ความเร็วต้น", unit: "m/s" },
+    v: { symbol: "v", label: "ความเร็วปลาย", unit: "m/s" },
+    a: { symbol: "a", label: "ความเร่ง", unit: "m/s²" },
+    t: { symbol: "t", label: "เวลา", unit: "s" },
+    s: { symbol: "s", label: "การกระจัด", unit: "m" },
+  },
+}
+
+/**
+ * Which physics lessons are engine-backed. Adding a Phase 4 topic = adding its
+ * lesson id here with its variable metadata; routing and assembly pick it up
+ * automatically.
+ */
+const engineTopics: Partial<Record<PhysicsLessonId, EngineTopic>> = {
+  "motion-1d": SUVAT,
+}
+
 export const physicsContentPack: SubjectContentPack = {
   lessonIds: PHYSICS_LESSON_IDS,
   lessonLabelsEn,
@@ -214,6 +244,7 @@ export const physicsContentPack: SubjectContentPack = {
   ],
   variableIdsByLesson,
   givenCandidatesByLessonAndFind,
+  engineTopics,
   prompt: {
     questionKind: "calculation question",
     generationRules: `- The question must be solvable from the given values.

@@ -150,7 +150,7 @@ export async function generateVariantRollForQuestion(params: {
     cancel: (reservationId) =>
       cancelVariantRollReservation(supabase, reservationId, idempotencyKey),
     run: async (context) => {
-      // Neuro-symbolic invariant (DEVELOPMENT_PLAN §0): an engine-backed master
+      // Neuro-symbolic invariant: an engine-backed master
       // re-rolls through the engine — same Given/Find split, fresh seed, LLM
       // phrases only — so variant numbers and answer keys stay verified. The
       // LLM variant path remains for LLM-only lessons and legacy rows. E2E stub

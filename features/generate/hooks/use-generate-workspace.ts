@@ -265,14 +265,17 @@ export function useGenerateWorkspace({ creditBalance }: { creditBalance: number 
       hasPartialCredits: creditLimits.hasPartialCredits,
       hasGenerated: creditLimits.hasGenerated,
       canGenerate: creditLimits.canGenerate,
+    },
+    append: {
       canAppend: creditLimits.canAppend,
       showAppendInput: creditLimits.showAppendInput,
       onToggleAppendInput: () => creditLimits.setShowAppendInput((current) => !current),
       appendCount: creditLimits.appendCount,
       maxAppendable: creditLimits.maxAppendable,
       onAppendCountChange: creditLimits.setAppendCount,
+    },
+    devTools: {
       showDevMockToggle: creditLimits.showDevMockToggle,
-      hasGeneratedMock: creditLimits.hasGeneratedMock,
       onToggleGeneratedMock: creditLimits.toggleGeneratedMock,
     },
     status: {

@@ -71,7 +71,13 @@ function renderHeaderConfigHarness(args: HarnessArgs) {
 describe("useWorksheetHeaderConfig", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockUpdateWorksheetHeaderAction.mockResolvedValue({ ok: true, data: {} })
+    mockUpdateWorksheetHeaderAction.mockResolvedValue({
+      ok: true,
+      data: {
+        generationSettings: { lesson: "motion-1d", scenario: "car" },
+        title: "Worksheet",
+      },
+    })
     vi.useFakeTimers()
   })
 

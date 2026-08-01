@@ -42,7 +42,10 @@ export type WorksheetFormControls = {
   onTargetRandomizeChange: (enabled: boolean) => void
 }
 
-/** Credit/quota figures and the gating flags + append/dev-mock controls. */
+/**
+ * Credit economics for the *initial* generation: what it will cost, what the
+ * user has, and whether that is enough to proceed.
+ */
 export type WorksheetCreditState = {
   effectiveQuestionCount: number
   maxQuestionCount: number
@@ -52,14 +55,27 @@ export type WorksheetCreditState = {
   hasPartialCredits: boolean
   hasGenerated: boolean
   canGenerate: boolean
+}
+
+/** The "add more questions to an existing worksheet" control and its state. */
+export type WorksheetAppendControls = {
   canAppend: boolean
   showAppendInput: boolean
   onToggleAppendInput: () => void
   appendCount: number
   maxAppendable: number
   onAppendCountChange: (count: number) => void
+}
+
+/**
+ * Development-only affordances; `showDevMockToggle` is false in production.
+ *
+ * The mock's own on/off state stays inside `useWorksheetCreditLimits` — it
+ * feeds `hasGenerated` there and the toggle button renders the same either
+ * way, so the panel has no use for it.
+ */
+export type WorksheetDevTools = {
   showDevMockToggle: boolean
-  hasGeneratedMock: boolean
   onToggleGeneratedMock: () => void
 }
 
@@ -76,6 +92,8 @@ export type WorksheetGenerationStatus = {
 export type WorksheetConfigPanelProps = {
   form: WorksheetFormControls
   credits: WorksheetCreditState
+  append: WorksheetAppendControls
+  devTools: WorksheetDevTools
   status: WorksheetGenerationStatus
   onGenerate: () => void
   onAppendQuestions: () => void
@@ -158,11 +176,15 @@ function WorksheetBasicFields({
 
 function WorksheetGenerationActions({
   credits,
+  append,
+  devTools,
   status,
   onGenerate,
   onAppendQuestions,
 }: {
   credits: WorksheetCreditState
+  append: WorksheetAppendControls
+  devTools: WorksheetDevTools
   status: WorksheetGenerationStatus
   onGenerate: () => void
   onAppendQuestions: () => void
@@ -272,33 +294,33 @@ function WorksheetGenerationActions({
               type="button"
               size="touch-wide"
               className="flex-1"
-              disabled={!credits.canAppend}
-              onClick={credits.onToggleAppendInput}
+              disabled={!append.canAppend}
+              onClick={append.onToggleAppendInput}
               aria-label={t("appendQuestionsAria")}
-              aria-expanded={credits.showAppendInput}
+              aria-expanded={append.showAppendInput}
             >
               <PlusCircle className="size-4" />
               {t("appendQuestions")}
             </Button>
           </div>
 
-          {credits.showAppendInput ? (
+          {append.showAppendInput ? (
             <div className="space-y-2 rounded-md border bg-muted/40 p-3">
               <label htmlFor="append-count" className="text-sm font-medium">
-                {t("appendCountLabel", { max: credits.maxAppendable })}
+                {t("appendCountLabel", { max: append.maxAppendable })}
               </label>
               <div className="flex gap-2">
                 <input
                   id="append-count"
                   type="number"
                   min={1}
-                  max={credits.maxAppendable}
-                  value={Math.min(credits.appendCount, credits.maxAppendable)}
+                  max={append.maxAppendable}
+                  value={Math.min(append.appendCount, append.maxAppendable)}
                   disabled={status.isGenerating}
                   onChange={(event) => {
                     const next = Number(event.target.value)
                     if (Number.isFinite(next)) {
-                      credits.onAppendCountChange(next)
+                      append.onAppendCountChange(next)
                     }
                   }}
                   className="h-10 w-24 rounded-md border bg-background px-3 text-sm"
@@ -307,7 +329,7 @@ function WorksheetGenerationActions({
                 <Button
                   type="button"
                   className="flex-1"
-                  disabled={!credits.canAppend || status.isGenerating}
+                  disabled={!append.canAppend || status.isGenerating}
                   onClick={onAppendQuestions}
                 >
                   {t("confirmAppend")}
@@ -316,10 +338,10 @@ function WorksheetGenerationActions({
             </div>
           ) : null}
 
-          {credits.showDevMockToggle ? (
+          {devTools.showDevMockToggle ? (
             <button
               type="button"
-              onClick={credits.onToggleGeneratedMock}
+              onClick={devTools.onToggleGeneratedMock}
               className="text-xs text-muted-foreground underline-offset-2 hover:underline"
             >
               {t("devToggle")}
@@ -334,6 +356,8 @@ function WorksheetGenerationActions({
 export function WorksheetConfigPanel({
   form,
   credits,
+  append,
+  devTools,
   status,
   onGenerate,
   onAppendQuestions,
@@ -351,6 +375,8 @@ export function WorksheetConfigPanel({
   const actionArea = (
     <WorksheetGenerationActions
       credits={credits}
+      append={append}
+      devTools={devTools}
       status={status}
       onGenerate={onGenerate}
       onAppendQuestions={onAppendQuestions}

@@ -3,7 +3,11 @@ import {
   parseRpcFailure,
   parseStructuredRpcFailure,
 } from "@/features/generate/errors"
-import type { AppFailure, GenerationErrorCode } from "@/features/generate/errors"
+import type {
+  AppFailure,
+  AppFailureWithCreditBalance,
+  GenerationErrorCode,
+} from "@/features/generate/errors"
 import {
   getGenerationFailure,
   logGenerationError,
@@ -42,11 +46,11 @@ export type ParsedReservation<TData> =
  */
 export type CompleteOutcome<TData> =
   | { ok: true; data: TData }
-  | { ok: false; failure: AppFailure; cancel: boolean }
+  | { ok: false; failure: AppFailureWithCreditBalance; cancel: boolean }
 
 export type ReservationResult<TData> =
   | { ok: true; data: TData }
-  | AppFailure
+  | AppFailureWithCreditBalance
 
 function parseReserveRpcFailure(
   reserveResult: unknown,

@@ -94,8 +94,18 @@ type StandardState = {
   questions: WorksheetQuestion[]
 }
 
+/**
+ * What one generated order reports back out of its work step.
+ *
+ * Deliberately just the new question, not the accumulated list. Inngest
+ * persists and memoizes every step's return value, so returning the running
+ * list would make order N's payload carry all N questions — reintroducing, in
+ * step storage, the same O(N^2) transfer that moving to a single up-front
+ * worksheet load was meant to remove. The runner appends in `onSaved`, which
+ * runs outside the step.
+ */
 type StandardSaved = {
-  questions: WorksheetQuestion[]
+  question: WorksheetQuestion
   creditBalance: number
 }
 
@@ -134,7 +144,10 @@ async function runStandardGenerationJobWorker(params: {
         questions: [],
       }),
       onWorksheetLoaded: (state, questions) => {
-        state.questions = questions
+        // Copy: the runner also hands `loaded.questions` to `runItem`, and
+        // `onSaved` now appends in place. Sharing the array would silently grow
+        // the runner's copy too.
+        state.questions = [...questions]
       },
       buildWorkItems: (job, questions) =>
         getUnfilledOrders(questions, job.to_order).filter(
@@ -145,8 +158,11 @@ async function runStandardGenerationJobWorker(params: {
       runItem: async ({ item: order, userClient, state }) => {
         // The worksheet's questions are loaded once (load-worksheet step) and
         // accumulated in `state` as each order saves, so reuse them for context
-        // and thread them into the core — no per-order re-read. This is what
+        // and thread them into the core — no per-order re-read. That is what
         // turns the old O(N^2) row transfer into O(N).
+        //
+        // The list is read here but never *returned* from the step: see
+        // `StandardSaved` for why the step's own payload has to stay O(1).
         const knownQuestions = state.questions
         const context = buildPreviousQuestionsContext(knownQuestions, order)
 
@@ -168,7 +184,7 @@ async function runStandardGenerationJobWorker(params: {
           return {
             type: "saved",
             saved: {
-              questions: [...knownQuestions, result.data.question],
+              question: result.data.question,
               creditBalance: result.data.creditBalance,
             },
           }
@@ -188,7 +204,16 @@ async function runStandardGenerationJobWorker(params: {
         return { type: "skipped", message: result.message }
       },
       onSaved: (order, saved, state) => {
-        state.questions = saved.questions
+        // Upsert rather than push: the core returns the existing question when
+        // an order's slot is already filled (idempotent replay), so the order
+        // can already be present.
+        const index = state.questions.findIndex((question) => question.order === order)
+        if (index >= 0) {
+          state.questions[index] = saved.question
+        } else {
+          state.questions.push(saved.question)
+        }
+
         state.lastCompletedOrder = Math.max(state.lastCompletedOrder, order)
         state.skippedOrders = state.skippedOrders.filter((slot) => slot.order !== order)
       },

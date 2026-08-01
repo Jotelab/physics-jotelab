@@ -147,6 +147,30 @@ describe("runVariantGenerationJobWorker", () => {
     expect(final?.p_variant_results).toMatchObject({ variants: [{ label: "B" }] })
   })
 
+  it("reports a total that matches the job's order range, not just to_order", async () => {
+    // `totalRolls` used to be `labels * to_order`, which silently assumes the
+    // range starts at 1. `enqueue_variant_generation_job` does start at 1
+    // today, so the bug is latent — but `generation_jobs` carries a real
+    // from_order/to_order range and the standard worker already enqueues
+    // partial ones. Derive the count from the same range the work list uses.
+    const { admin } = makeAdmin({
+      jobRow: makeVariantJobRow({ from_order: 3, to_order: 5, variant_labels: ["B", "C"] }),
+    })
+    mockAdminFactory.mockReturnValue(admin as never)
+    mockVariant.mockImplementation(async ({ order }) => ({
+      ok: true,
+      data: { roll: rollFor(order), creditBalance: 10 },
+    }))
+
+    const { step, names } = recordingStep()
+    const result = await runVariantGenerationJobWorker({ jobId, worksheetId, profileId, step })
+
+    // Orders 3..5 for two labels — six rolls, not two labels x to_order (10).
+    const rollSteps = names.filter((name) => name.startsWith("variant-"))
+    expect(rollSteps).toHaveLength(6)
+    expect(result).toMatchObject({ status: "completed", totalRolls: 6, completedRolls: 6 })
+  })
+
   it("stops at partial and marks the remaining rolls skipped when credits run out", async () => {
     const { admin, rpcCalls } = makeAdmin({ jobRow: makeVariantJobRow() })
     mockAdminFactory.mockReturnValue(admin as never)

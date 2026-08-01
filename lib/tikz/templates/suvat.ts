@@ -1,8 +1,7 @@
 import type { SympyData } from "@/lib/engine/sympy-data"
 
 /**
- * Deterministic motion-diagram TikZ for a SUVAT (1-D kinematics) instance
- * (DEVELOPMENT_PLAN §2.2).
+ * Deterministic motion-diagram TikZ for a SUVAT (1-D kinematics) instance.
  *
  * This is the "templated, always-compiles" diagram: a pure function of the
  * engine's `sympy_data`, so it needs no model and no persistence (it re-derives
