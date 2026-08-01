@@ -35,10 +35,10 @@ describe("engineDiagramTikz", () => {
       ],
     })
     expect(tikz).toContain("\\begin{tikzpicture}")
-    expect(tikz).toContain("$v_0 = 4~\\mathrm{m/s}$")
-    expect(tikz).toContain("$a = 2~\\mathrm{m/s^2}$")
+    expect(tikz).toContain("$v_0$ = 4~m/s")
+    expect(tikz).toContain("$a$ = 2~m/s$^{2}$")
     // The find target renders as `?` and its value never appears.
-    expect(tikz).toContain("$v = \\,?$")
+    expect(tikz).toContain("$v$ = ?")
   })
 
   it("keeps the answer out even when the payload accidentally carried one", () => {
@@ -47,7 +47,7 @@ describe("engineDiagramTikz", () => {
       kind: "motion-1d",
       segments: [{ velocity_out: leaky }],
     })
-    expect(tikz).toContain("$v = \\,?$")
+    expect(tikz).toContain("$v$ = ?")
     expect(tikz).not.toContain("99")
   })
 
@@ -64,9 +64,9 @@ describe("engineDiagramTikz", () => {
         { ...given("dist", "d", 40, "m"), measures: "path" },
       ],
     })
-    expect(tikz).toContain("$d_1 = 30~\\mathrm{m}$")
-    expect(tikz).toContain("$\\Delta x = \\,?$")
-    expect(tikz).toContain("$d = 40~\\mathrm{m}$")
+    expect(tikz).toContain("$d_1$ = 30~m")
+    expect(tikz).toContain("$\\Delta x$ = ?")
+    expect(tikz).toContain("$d$ = 40~m")
   })
 
   it("draws the vertical throw: up leg, reverse leg, side totals", () => {
@@ -82,9 +82,9 @@ describe("engineDiagramTikz", () => {
         { ...given("t", "t", 4, "s"), measures: "duration" },
       ],
     })
-    expect(tikz).toContain("$v_0 = 30~\\mathrm{m/s}$")
-    expect(tikz).toContain("$h = 25~\\mathrm{m}$")
-    expect(tikz).toContain("$t = 4~\\mathrm{s}$")
+    expect(tikz).toContain("$v_0$ = 30~m/s")
+    expect(tikz).toContain("$h$ = 25~m")
+    expect(tikz).toContain("$t$ = 4~s")
   })
 
   it("draws a plot with axes, the polyline and tick values", () => {
@@ -97,8 +97,8 @@ describe("engineDiagramTikz", () => {
         { x: { value: 8 }, y: { value: 10 } },
       ],
     })
-    expect(tikz).toContain("$t~(\\mathrm{s})$")
-    expect(tikz).toContain("$v~(\\mathrm{m/s})$")
+    expect(tikz).toContain("$t$ (s)")
+    expect(tikz).toContain("$v$ (m/s)")
     expect(tikz).toContain("very thick")
     expect(tikz).toContain("{$3$}")
     expect(tikz).toContain("{$10$}")
@@ -113,7 +113,7 @@ describe("engineDiagramTikz", () => {
       ],
     })
     expect(tikz).toContain("$A$")
-    expect(tikz).toContain("$v_A = -20~\\mathrm{m/s}$")
-    expect(tikz).toContain("$v_B = \\,?$")
+    expect(tikz).toContain("$v_A$ = -20~m/s")
+    expect(tikz).toContain("$v_B$ = ?")
   })
 })
