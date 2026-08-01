@@ -34,7 +34,7 @@ vi.mock("@/lib/ai/generate-engine-question", () => ({
 }))
 
 function createSupabaseClient() {
-  return {
+  return asSupabaseClient({
     from: vi.fn((table: string) => {
       if (table === "worksheets") {
         return {
@@ -69,12 +69,13 @@ function createSupabaseClient() {
       throw new Error(`Unexpected table: ${table}`)
     }),
     rpc: mockRpc,
-  }
+  })
 }
 
 import { generateQuestionForWorksheet, regenerateQuestionForWorksheet } from "./generate-question-core"
 import { failure } from "./errors"
 import { buildGenerateIdempotencyKey, buildRegenerateIdempotencyKey } from "./utils/idempotency-key"
+import { asSupabaseClient } from "../../tests/mocks/supabase-client"
 
 const worksheetId = "a1b2c3d4-e5f6-4789-a012-3456789abcde"
 const profileId = "11111111-1111-4111-8111-111111111111"
