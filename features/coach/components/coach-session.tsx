@@ -380,6 +380,10 @@ export function CoachSession({
               {problem.answer.unit}
             </span>
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            พิมพ์วิธีคิดได้เลย เช่น <code>20*4/2</code>, <code>21/2</code> หรือ{" "}
+            <code>10.5 m/s</code> — ระบบคิดค่าให้เอง
+          </p>
           {!steps.answer.done ? (
             <Button
               className="mt-3"
