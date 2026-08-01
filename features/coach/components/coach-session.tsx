@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { TikzDiagram } from "@/features/worksheet/components/tikz-diagram"
+import { cardClass, sectionTitleClass } from "@/lib/ui-classes"
 import { cn } from "@/lib/utils"
 import { SUVAT } from "@/lib/engine/topics"
 import type { SympyData } from "@/lib/engine/sympy-data"
@@ -272,7 +273,7 @@ export function CoachSession({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border bg-card p-4 shadow-sm">
+      <section className={cardClass}>
         <h2 className="mb-2 text-sm font-medium text-muted-foreground">โจทย์</h2>
         <p className="text-base leading-relaxed">{problem.questionText}</p>
         {diagramSvg ? (
@@ -281,8 +282,8 @@ export function CoachSession({
       </section>
 
       {/* Step ① — equation MCQ */}
-      <section className="rounded-lg border bg-card p-4 shadow-sm">
-        <h3 className="mb-3 font-medium">{STEP_TITLES.equation}</h3>
+      <section className={cardClass}>
+        <h3 className={cn(sectionTitleClass, "mb-3 text-base")}>{STEP_TITLES.equation}</h3>
         <div className="grid gap-2 sm:grid-cols-2">
           {problem.equationOptions.map((option) => (
             <button
@@ -316,8 +317,8 @@ export function CoachSession({
 
       {/* Step ② — substitution */}
       {steps.equation.done ? (
-        <section className="rounded-lg border bg-card p-4 shadow-sm">
-          <h3 className="mb-3 font-medium">{STEP_TITLES.substitution}</h3>
+        <section className={cardClass}>
+          <h3 className={cn(sectionTitleClass, "mb-3 text-base")}>{STEP_TITLES.substitution}</h3>
           <div className="grid gap-3 sm:grid-cols-3">
             {problem.substitutionFields.map((field) => (
               <div key={field.symbol} className="space-y-1">
@@ -363,8 +364,8 @@ export function CoachSession({
 
       {/* Step ③ — answer */}
       {steps.substitution.done ? (
-        <section className="rounded-lg border bg-card p-4 shadow-sm">
-          <h3 className="mb-3 font-medium">{STEP_TITLES.answer}</h3>
+        <section className={cardClass}>
+          <h3 className={cn(sectionTitleClass, "mb-3 text-base")}>{STEP_TITLES.answer}</h3>
           <div className="flex max-w-xs items-center gap-2">
             <Label htmlFor="coach-answer" className="whitespace-nowrap">
               {problem.find.label} ({problem.find.displaySymbol}) =
@@ -399,8 +400,8 @@ export function CoachSession({
 
       {/* Solved — worked solution + next problem */}
       {solved ? (
-        <section className="rounded-lg border border-primary/40 bg-primary/5 p-4">
-          <h3 className="mb-2 font-medium text-primary">🎉 ถูกต้องครบทุกขั้น</h3>
+        <section className={cn(cardClass, "border-primary/40 bg-primary/5")}>
+          <h3 className={cn(sectionTitleClass, "mb-2 text-base text-primary")}>🎉 ถูกต้องครบทุกขั้น</h3>
           <div className="space-y-1">
             <BlockMath math={problem.workedStep.exprLatex} />
             <BlockMath math={problem.workedStep.substitutedLatex} />
