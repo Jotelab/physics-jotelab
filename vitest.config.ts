@@ -44,6 +44,8 @@ export default defineConfig({
         "features/generate/hooks/use-worksheet-generator.ts",
         "features/worksheet/**/*.{ts,tsx}",
         "lib/ai/**/*.{ts,tsx}",
+        "lib/engine/**/*.{ts,tsx}",
+        "features/coach/**/*.{ts,tsx}",
         "proxy.ts",
       ],
       exclude: [
@@ -51,12 +53,38 @@ export default defineConfig({
         "**/*.d.ts",
         "features/**/components/**",
       ],
+      // Floors, not aspirations: each is set just below what the suite measured
+      // when the threshold was added, so it locks in coverage already earned and
+      // fails when a change erodes it. Raise them when the numbers rise; never
+      // lower one to make a build pass.
       thresholds: {
         "features/generate/**": {
           branches: 70,
           lines: 80,
           statements: 80,
           functions: 85,
+        },
+        // The engine boundary: contract parsing, topic routing, assembly.
+        "lib/engine/**": {
+          branches: 70,
+          lines: 90,
+          statements: 90,
+          functions: 90,
+        },
+        // The coach: oracle, classifier, remediation — all pure and testable.
+        "features/coach/**": {
+          branches: 72,
+          lines: 88,
+          statements: 88,
+          functions: 90,
+        },
+        // Lower by design: this layer is mostly model I/O, exercised end to end
+        // rather than by unit tests. The floor stops it sliding further.
+        "lib/ai/**": {
+          branches: 55,
+          lines: 65,
+          statements: 65,
+          functions: 70,
         },
       },
     },

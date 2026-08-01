@@ -69,10 +69,17 @@ const STEP_TITLES: Record<CoachStep, string> = {
 export function CoachSession({
   initial,
   initialDiagramSvg = null,
+  priorErrors = [],
 }: {
   initial: SympyData
   /** Templated motion diagram for `initial` (compiled server-side), if any. */
   initialDiagramSvg?: string | null
+  /**
+   * The student's misconceptions from earlier sessions (empty when anonymous).
+   * Combined with this session's, it lets remediation tell a one-off slip from
+   * a gap the student keeps returning to.
+   */
+  priorErrors?: readonly CoachErrorType[]
 }) {
   const [sympyData, setSympyData] = useState(initial)
   const [diagramSvg, setDiagramSvg] = useState(initialDiagramSvg)
@@ -90,6 +97,8 @@ export function CoachSession({
   const [difficulty, setDifficulty] = useState<CoachDifficulty>("easy")
   /** Every misconception the classifier named on this problem, in order. */
   const [problemErrors, setProblemErrors] = useState<CoachErrorType[]>([])
+  /** …and across every problem this session, never reset by a re-roll. */
+  const [sessionErrors, setSessionErrors] = useState<CoachErrorType[]>([])
   const [completed, setCompleted] = useState(0)
 
   const problem = useMemo(() => buildCoachProblem(sympyData, SUVAT), [sympyData])
@@ -122,6 +131,7 @@ export function CoachSession({
     find: currentSplit.find,
     difficulty,
     completed,
+    history: [...sessionErrors, ...priorErrors],
   })
 
   /** Distinct diagnoses on this problem, for the end-of-problem summary chip. */
@@ -143,8 +153,11 @@ export function CoachSession({
       if (step === "answer") setCompleted((prev) => prev + 1)
       return
     }
-    // Remediation reads this: what was diagnosed decides what comes next.
+    // Remediation reads both: this problem's diagnosis decides the next
+    // problem, and the running history decides whether a clean solve is
+    // actually evidence the gap is closed.
     setProblemErrors((prev) => [...prev, result.errorType])
+    setSessionErrors((prev) => [...prev, result.errorType])
     const level = hintLevelForAttempt(attempts)
     const text =
       level === "nudge" ? NUDGES[step] : EXPLANATIONS[result.errorType]
