@@ -129,6 +129,22 @@
     "confirmAppend": "ยืนยันการเพิ่ม",
     "devToggle": "[dev] สลับมุมมองหลังสร้าง",
     "variablesHint": "ตัวแปรที่เลือกจะถูกบันทึกกับใบงานและรวมในคำสั่งสร้าง AI",
+    "outputFormat": {
+      "title": "รูปแบบผลลัพธ์",
+      "comingSoon": "เร็ว ๆ นี้",
+      "includeDiagrams": "แสดงแผนภาพ",
+      "answerKeyDetail": {
+        "title": "ระดับรายละเอียดเฉลย",
+        "brief": "เฉพาะคำตอบสุดท้าย",
+        "full_steps": "แสดงวิธีทำทั้งหมด"
+      },
+      "questionFormat": {
+        "title": "รูปแบบคำถาม",
+        "word_problem": "โจทย์บรรยาย",
+        "multi_part": "หลายข้อย่อย (ก, ข, ค)"
+      },
+      "hint": "ตัวอย่างการตั้งค่าที่กำลังพัฒนา — ยังไม่มีผลต่อใบงานที่สร้าง"
+    },
     "enterLessonFirst": "กรอกบทเรียนก่อน",
     "chooseScenario": "เลือกสถานการณ์",
     "lessonPlaceholder": "การเคลื่อนที่ในหนึ่งมิติ",

@@ -217,6 +217,23 @@ describe("useWorksheetHeaderConfig", () => {
     expect(mockUpdateWorksheetHeaderAction).not.toHaveBeenCalled()
   })
 
+  // A write on mount bumps the worksheet's `updated_at`, which revalidates the
+  // route, which remounts the editor — and the fresh mount writes again. The
+  // saved-worksheet page spun in that loop, tearing down open menus every
+  // second or so.
+  it("does not persist on mount when the worksheet id is already known", async () => {
+    renderHeaderConfigHarness({
+      worksheetId: worksheetIdA,
+      ...defaults,
+    })
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000)
+    })
+
+    expect(mockUpdateWorksheetHeaderAction).not.toHaveBeenCalled()
+  })
+
   it("debounces persist after field changes", async () => {
     const harness = renderHeaderConfigHarness({
       worksheetId: worksheetIdA,

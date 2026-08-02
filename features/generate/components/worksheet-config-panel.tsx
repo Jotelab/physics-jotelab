@@ -14,6 +14,7 @@ import {
   ConceptualDifficultySelect,
   MathComplexitySelect,
 } from "@/features/generate/components/difficulty-select"
+import { OutputFormatSection } from "@/features/generate/components/output-format-section"
 import { ScenarioSelect } from "@/features/generate/components/scenario-select"
 import { VariableConstraintPicker } from "@/features/generate/components/variable-constraint-picker"
 import { MAX_INITIAL_WORKSHEET_QUESTION_COUNT } from "@/features/generate/limits"
@@ -446,6 +447,8 @@ export function WorksheetConfigPanel({
             />
 
             <p className="text-xs text-muted-foreground">{t("variablesHint")}</p>
+
+            <OutputFormatSection disabled={form.controlsDisabled} />
 
             {actionArea}
           </div>

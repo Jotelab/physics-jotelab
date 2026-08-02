@@ -190,11 +190,19 @@ export function useWorksheetHeaderConfig({
     }
   }, [])
 
+  // Flush the pre-generation draft once a worksheet id attaches (or changes).
+  // Deliberately *not* on first mount with an id already in hand: an unprompted
+  // write bumps `updated_at`, and the saved-worksheet page remounts its editor
+  // on `updated_at`, so persisting on mount re-mounts this hook and loops —
+  // closing menus and dialogs about once a second.
+  const persistedWorksheetIdRef = useRef(worksheetId)
+
   useEffect(() => {
-    if (!worksheetId) {
+    if (!worksheetId || persistedWorksheetIdRef.current === worksheetId) {
       return
     }
 
+    persistedWorksheetIdRef.current = worksheetId
     const resolved = resolveHeaderConfig(latestConfigRef.current, defaults)
     schedulePersist(latestConfigRef.current, resolved)
   }, [worksheetId, defaults, schedulePersist])

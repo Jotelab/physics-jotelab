@@ -129,6 +129,22 @@
     "confirmAppend": "Confirm append",
     "devToggle": "[dev] toggle post-generation view",
     "variablesHint": "Selected variables are stored with the worksheet and included in AI generation prompts.",
+    "outputFormat": {
+      "title": "Output format",
+      "comingSoon": "Coming soon",
+      "includeDiagrams": "Include diagrams",
+      "answerKeyDetail": {
+        "title": "Answer key detail",
+        "brief": "Final answer only",
+        "full_steps": "Full worked steps"
+      },
+      "questionFormat": {
+        "title": "Question format",
+        "word_problem": "Word problem",
+        "multi_part": "Multi-part (a, b, c)"
+      },
+      "hint": "Preview of planned controls — these do not affect generated worksheets yet."
+    },
     "enterLessonFirst": "Enter a lesson first",
     "chooseScenario": "Choose a scenario",
     "lessonPlaceholder": "Motion in one dimension",

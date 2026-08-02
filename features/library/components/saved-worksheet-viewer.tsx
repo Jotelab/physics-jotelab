@@ -27,8 +27,13 @@ export function SavedWorksheetViewer({
   creditBalance: number
 }) {
   return (
+    // Keyed on identity only. Keying on `updatedAt` too meant every save that
+    // touched the row — a header toggle, a regenerate — remounted the editor
+    // and threw away open menus, dialogs and unsaved variants. Each action that
+    // changes the worksheet already folds its result into local state, so the
+    // refresh that follows does not need a remount to land.
     <SavedWorksheetEditor
-      key={`${worksheet.id}:${worksheet.updatedAt}`}
+      key={worksheet.id}
       worksheet={worksheet}
       creditBalance={creditBalance}
     />
